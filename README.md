@@ -8,7 +8,7 @@ Betaflightの再実装でも、操縦練習ゲームでもありません。部�
 
 ## Hakoniwa Drone PROとの関係
 
-このリポジトリは設計入力と生成処理を管理し、[`hakoniwa-drone-pro`](../hakoniwa-drone-pro/) を物理・制御ランタイムとして使用します。
+このリポジトリは設計入力と生成処理を管理し、[TOPPERS/hakoniwa-drone-core](https://github.com/toppers/hakoniwa-drone-core)を基盤とする箱庭ドローンPROを物理・制御ランタイムとして使用します。
 
 - 本リポジトリ: Catalog、Recipe、物理モデルCompiler、生成Package
 - Drone PRO: MuJoCo機体物理、Rotor/Battery、Mixer、Radio Controller、Rate/Angle PID、箱庭連携
