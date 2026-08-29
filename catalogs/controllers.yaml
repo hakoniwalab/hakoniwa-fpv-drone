@@ -1,0 +1,77 @@
+schema_version: 1
+kind: controller
+items:
+  - id: hakoniwa_default
+    name: Hakoniwa FPV Initial Controller
+    vendor: Hakoniwa Lab
+    description: Initial Rate/Angle parameters for simulation. They are not real-aircraft tuning recommendations.
+    mass_kg: 0.018
+    backend: hakoniwa
+    supported_modes: [rate, angle]
+    default_mode: angle
+    parameters:
+      GRAVITY: {value: 9.81, origin: generic_default}
+      PID_ALT_CONTROL_CYCLE: {value: 0.0, origin: generic_default}
+      PID_ALT_MAX_POWER: {value: 9.81, origin: generic_default}
+      PID_ALT_THROTTLE_GAIN: {value: 1.0, origin: generic_default}
+      PID_ALT_MAX_SPD: {value: 5.5, origin: generic_default}
+      PID_ALT_Kp: {value: 10.0, origin: catalog_default}
+      PID_ALT_Ki: {value: 0.0, origin: catalog_default}
+      PID_ALT_Kd: {value: 5.0, origin: catalog_default}
+      PID_ALT_SPD_Kp: {value: 10.0, origin: catalog_default}
+      PID_ALT_SPD_Ki: {value: 0.0, origin: catalog_default}
+      PID_ALT_SPD_Kd: {value: 5.0, origin: catalog_default}
+      BASE_THRUST_DIVISOR: {value: 1.0, origin: generic_default}
+      POS_CONTROL_CYCLE: {value: 0.0, origin: generic_default}
+      SPD_CONTROL_CYCLE: {value: 0.0, origin: generic_default}
+      PID_POS_MAX_SPD: {value: 20.0, origin: generic_default}
+      POS_DIST_CONTROL: {value: 0.0, origin: generic_default}
+      PID_POS_X_Kp: {value: 6.0, origin: generic_default}
+      PID_POS_X_Ki: {value: 0.0, origin: generic_default}
+      PID_POS_X_Kd: {value: 3.0, origin: generic_default}
+      PID_POS_Y_Kp: {value: 6.0, origin: generic_default}
+      PID_POS_Y_Ki: {value: 0.0, origin: generic_default}
+      PID_POS_Y_Kd: {value: 3.0, origin: generic_default}
+      PID_POS_VX_Kp: {value: 20.0, origin: generic_default}
+      PID_POS_VX_Ki: {value: 0.0, origin: generic_default}
+      PID_POS_VX_Kd: {value: 1.0, origin: generic_default}
+      PID_POS_VY_Kp: {value: 20.0, origin: generic_default}
+      PID_POS_VY_Ki: {value: 0.0, origin: generic_default}
+      PID_POS_VY_Kd: {value: 1.0, origin: generic_default}
+      HEAD_CONTROL_CYCLE: {value: 0.0, origin: generic_default}
+      ANGULAR_CONTROL_CYCLE: {value: 0.0, origin: generic_default}
+      ANGULAR_RATE_CONTROL_CYCLE: {value: 0.0, origin: generic_default}
+      PID_POS_MAX_ROLL: {value: 55.0, origin: catalog_default}
+      PID_POS_MAX_PITCH: {value: 55.0, origin: catalog_default}
+      PID_ROLL_RPM_MAX: {value: 1800.0, origin: catalog_default}
+      PID_PITCH_RPM_MAX: {value: 1800.0, origin: catalog_default}
+      PID_ROLL_TORQUE_MAX: {value: 2.0, origin: catalog_default}
+      PID_PITCH_TORQUE_MAX: {value: 2.0, origin: catalog_default}
+      PID_YAW_TORQUE_MAX: {value: 0.5, origin: catalog_default}
+      PID_ROLL_Kp: {value: 5.0, origin: catalog_default}
+      PID_ROLL_Ki: {value: 0.0, origin: catalog_default}
+      PID_ROLL_Kd: {value: 0.0, origin: catalog_default}
+      PID_ROLL_RATE_Kp: {value: 3.0, origin: catalog_default}
+      PID_ROLL_RATE_Ki: {value: 0.0, origin: catalog_default}
+      PID_ROLL_RATE_Kd: {value: 0.2, origin: catalog_default}
+      PID_PITCH_Kp: {value: 5.0, origin: catalog_default}
+      PID_PITCH_Ki: {value: 0.0, origin: catalog_default}
+      PID_PITCH_Kd: {value: 0.0, origin: catalog_default}
+      PID_PITCH_RATE_Kp: {value: 3.0, origin: catalog_default}
+      PID_PITCH_RATE_Ki: {value: 0.0, origin: catalog_default}
+      PID_PITCH_RATE_Kd: {value: 0.2, origin: catalog_default}
+      PID_YAW_RPM_MAX: {value: 180.0, origin: catalog_default}
+      PID_YAW_Kp: {value: 0.1, origin: catalog_default}
+      PID_YAW_Ki: {value: 0.0, origin: catalog_default}
+      PID_YAW_Kd: {value: 0.0, origin: catalog_default}
+      PID_YAW_RATE_Kp: {value: 1.1, origin: catalog_default}
+      PID_YAW_RATE_Ki: {value: 0.0, origin: catalog_default}
+      PID_YAW_RATE_Kd: {value: 0.0, origin: catalog_default}
+      YAW_DELTA_VALUE_DEG: {value: 0.07, origin: generic_default}
+      ALT_DELTA_VALUE_M: {value: 0.001, origin: generic_default}
+      FLIP_CONTROL_ENABLE: {value: 0.0, origin: generic_default}
+      CTRLMODE_START_IN_HOVERING: {value: 1.0, origin: generic_default}
+      CTRLMODE_STARTUP_SETTLE_TIME_SEC: {value: 0.5, origin: generic_default}
+    metadata:
+      runtime_controller: RadioController
+      value_origin: generic_initial_values

@@ -1,0 +1,33 @@
+schema_version: 1
+kind: motor
+items:
+  - id: generic_2207_1850kv
+    name: Generic 2207 1850KV Motor
+    vendor: null
+    description: Generic simulation motor; values are illustrative and not a product specification.
+    mass_kg: 0.032
+    kv_rpm_per_v: 1850
+    max_current_a: 45
+    dynamics:
+      resistance_ohm: 0.115
+      torque_constant_nm_per_a: 0.00516
+      viscous_drag_nm_s_per_rad: 0.0
+      rotor_inertia_kg_m2: 0.000008
+      max_rad_per_sec: 2250
+    metadata:
+      value_origin: generic_example
+
+  - id: generic_2004_3000kv
+    name: Generic 2004 3000KV Motor
+    vendor: null
+    description: Generic high-KV example; maximum speed is intentionally left for documented approximation.
+    mass_kg: 0.018
+    kv_rpm_per_v: 3000
+    max_current_a: 28
+    dynamics:
+      resistance_ohm: 0.145
+      torque_constant_nm_per_a: 0.00318
+      viscous_drag_nm_s_per_rad: 0.0
+      rotor_inertia_kg_m2: 0.000004
+    metadata:
+      value_origin: generic_example

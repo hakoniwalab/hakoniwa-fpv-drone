@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hakoniwalab.github.io/hakoniwa-fpv-drone/recipe.schema.json",
+  "title": "Hakoniwa FPV vehicle recipe",
+  "type": "object",
+  "required": ["schema_version", "name", "type", "components", "controller"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "name": {"type": "string", "minLength": 1},
+    "type": {"const": "quad_x"},
+    "components": {
+      "type": "object",
+      "required": ["frame", "motors", "propeller", "battery", "camera"],
+      "properties": {
+        "frame": {"type": "string"},
+        "motors": {
+          "type": "object",
+          "required": ["product", "count"],
+          "properties": {"product": {"type": "string"}, "count": {"const": 4}}
+        },
+        "propeller": {"type": "string"},
+        "battery": {"type": "string"},
+        "camera": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "controller": {
+      "type": "object",
+      "required": ["product", "mode"],
+      "properties": {"product": {"type": "string"}, "mode": {"enum": ["rate", "angle"]}},
+      "additionalProperties": true
+    },
+    "placements": {"type": "object"},
+    "metadata": {"type": "object"}
+  },
+  "additionalProperties": true
+}

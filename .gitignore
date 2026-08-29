@@ -2,6 +2,13 @@
 __pycache__/
 *.py[codz]
 *$py.class
+.DS_Store
+
+# Generated FPV vehicle packages
+build/
+
+# Local tool environments
+.hako/
 
 # C extensions
 *.so

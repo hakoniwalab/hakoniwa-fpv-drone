@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hakoniwalab.github.io/hakoniwa-fpv-drone/catalog.schema.json",
+  "title": "Hakoniwa FPV component catalog",
+  "type": "object",
+  "required": ["schema_version", "kind", "items"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"enum": ["frame", "motor", "propeller", "battery", "camera", "controller"]},
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "description"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "name": {"type": "string", "minLength": 1},
+          "vendor": {"type": ["string", "null"]},
+          "description": {"type": "string"},
+          "metadata": {"type": "object"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

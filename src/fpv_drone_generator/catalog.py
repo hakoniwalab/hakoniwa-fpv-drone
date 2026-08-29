@@ -1,0 +1,256 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Generic, TypeVar
+
+from .errors import ResolutionError, ValidationError
+from .yaml_io import load_yaml
+
+
+Vector3 = tuple[float, float, float]
+
+
+def _number(value: Any, path: str, *, positive: bool = False) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValidationError(f"{path} must be a number")
+    result = float(value)
+    if positive and result <= 0.0:
+        raise ValidationError(f"{path} must be greater than zero")
+    return result
+
+
+def _vector3(value: Any, path: str, *, positive: bool = False) -> Vector3:
+    if not isinstance(value, list) or len(value) != 3:
+        raise ValidationError(f"{path} must contain three numbers")
+    return tuple(_number(item, f"{path}[{index}]", positive=positive) for index, item in enumerate(value))  # type: ignore[return-value]
+
+
+@dataclass(frozen=True)
+class Common:
+    id: str
+    name: str
+    vendor: str | None
+    description: str
+    metadata: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class Frame(Common):
+    mass_kg: float
+    dimensions_m: Vector3
+    wheelbase_m: float
+    inertia_kg_m2: Vector3 | None
+
+
+@dataclass(frozen=True)
+class Motor(Common):
+    mass_kg: float
+    kv_rpm_per_v: float
+    max_current_a: float | None
+    resistance_ohm: float
+    torque_constant_nm_per_a: float
+    viscous_drag_nm_s_per_rad: float
+    rotor_inertia_kg_m2: float
+    max_rad_per_sec: float | None
+
+
+@dataclass(frozen=True)
+class Propeller(Common):
+    mass_kg: float
+    diameter_m: float
+    pitch_m: float
+    blade_count: int
+    thrust_coefficient_ns2_rad2: float
+    torque_coefficient_nms2_rad2: float
+
+
+@dataclass(frozen=True)
+class Battery(Common):
+    mass_kg: float
+    dimensions_m: Vector3
+    cell_count: int
+    nominal_voltage_v: float
+    capacity_ah: float
+    internal_resistance_ohm: float | None
+
+
+@dataclass(frozen=True)
+class Camera(Common):
+    mass_kg: float
+    dimensions_m: Vector3
+    fov_deg: float | None
+
+
+@dataclass(frozen=True)
+class Controller(Common):
+    mass_kg: float
+    backend: str
+    supported_modes: tuple[str, ...]
+    default_mode: str
+    parameters: dict[str, float]
+    parameter_origins: dict[str, str]
+
+
+CatalogType = Frame | Motor | Propeller | Battery | Camera | Controller
+T = TypeVar("T", bound=CatalogType)
+
+
+@dataclass(frozen=True)
+class CatalogGroup(Generic[T]):
+    kind: str
+    items: dict[str, T]
+
+    def get(self, item_id: str) -> T:
+        try:
+            return self.items[item_id]
+        except KeyError as exc:
+            raise ResolutionError(f"unknown {self.kind} catalog id: {item_id}") from exc
+
+
+@dataclass(frozen=True)
+class CatalogStore:
+    root: Path
+    frames: CatalogGroup[Frame]
+    motors: CatalogGroup[Motor]
+    propellers: CatalogGroup[Propeller]
+    batteries: CatalogGroup[Battery]
+    cameras: CatalogGroup[Camera]
+    controllers: CatalogGroup[Controller]
+
+
+def _common(raw: dict[str, Any], path: str) -> Common:
+    item_id = raw.get("id")
+    name = raw.get("name")
+    if not isinstance(item_id, str) or not item_id:
+        raise ValidationError(f"{path}.id must be a non-empty string")
+    if not isinstance(name, str) or not name:
+        raise ValidationError(f"{path}.name must be a non-empty string")
+    vendor = raw.get("vendor")
+    if vendor is not None and not isinstance(vendor, str):
+        raise ValidationError(f"{path}.vendor must be a string or null")
+    description = raw.get("description", "")
+    if not isinstance(description, str):
+        raise ValidationError(f"{path}.description must be a string")
+    metadata = raw.get("metadata", {})
+    if not isinstance(metadata, dict):
+        raise ValidationError(f"{path}.metadata must be an object")
+    return Common(item_id, name, vendor, description, metadata)
+
+
+def _make_frame(raw: dict[str, Any], path: str) -> Frame:
+    common = _common(raw, path)
+    inertia = raw.get("inertia_kg_m2")
+    return Frame(**common.__dict__, mass_kg=_number(raw.get("mass_kg"), f"{path}.mass_kg", positive=True), dimensions_m=_vector3(raw.get("dimensions_m"), f"{path}.dimensions_m", positive=True), wheelbase_m=_number(raw.get("wheelbase_m"), f"{path}.wheelbase_m", positive=True), inertia_kg_m2=None if inertia is None else _vector3(inertia, f"{path}.inertia_kg_m2", positive=True))
+
+
+def _make_motor(raw: dict[str, Any], path: str) -> Motor:
+    common = _common(raw, path)
+    dynamics = raw.get("dynamics")
+    if not isinstance(dynamics, dict):
+        raise ValidationError(f"{path}.dynamics must be an object")
+    max_current = raw.get("max_current_a")
+    max_speed = dynamics.get("max_rad_per_sec")
+    return Motor(
+        **common.__dict__,
+        mass_kg=_number(raw.get("mass_kg"), f"{path}.mass_kg", positive=True),
+        kv_rpm_per_v=_number(raw.get("kv_rpm_per_v"), f"{path}.kv_rpm_per_v", positive=True),
+        max_current_a=None if max_current is None else _number(max_current, f"{path}.max_current_a", positive=True),
+        resistance_ohm=_number(dynamics.get("resistance_ohm"), f"{path}.dynamics.resistance_ohm", positive=True),
+        torque_constant_nm_per_a=_number(dynamics.get("torque_constant_nm_per_a"), f"{path}.dynamics.torque_constant_nm_per_a", positive=True),
+        viscous_drag_nm_s_per_rad=_number(dynamics.get("viscous_drag_nm_s_per_rad", 0.0), f"{path}.dynamics.viscous_drag_nm_s_per_rad"),
+        rotor_inertia_kg_m2=_number(dynamics.get("rotor_inertia_kg_m2"), f"{path}.dynamics.rotor_inertia_kg_m2", positive=True),
+        max_rad_per_sec=None if max_speed is None else _number(max_speed, f"{path}.dynamics.max_rad_per_sec", positive=True),
+    )
+
+
+def _make_propeller(raw: dict[str, Any], path: str) -> Propeller:
+    common = _common(raw, path)
+    blade_count = raw.get("blade_count")
+    if not isinstance(blade_count, int) or isinstance(blade_count, bool) or blade_count <= 0:
+        raise ValidationError(f"{path}.blade_count must be a positive integer")
+    return Propeller(**common.__dict__, mass_kg=_number(raw.get("mass_kg"), f"{path}.mass_kg", positive=True), diameter_m=_number(raw.get("diameter_m"), f"{path}.diameter_m", positive=True), pitch_m=_number(raw.get("pitch_m"), f"{path}.pitch_m", positive=True), blade_count=blade_count, thrust_coefficient_ns2_rad2=_number(raw.get("thrust_coefficient_ns2_rad2"), f"{path}.thrust_coefficient_ns2_rad2", positive=True), torque_coefficient_nms2_rad2=_number(raw.get("torque_coefficient_nms2_rad2"), f"{path}.torque_coefficient_nms2_rad2", positive=True))
+
+
+def _make_battery(raw: dict[str, Any], path: str) -> Battery:
+    common = _common(raw, path)
+    cells = raw.get("cell_count")
+    if not isinstance(cells, int) or isinstance(cells, bool) or cells <= 0:
+        raise ValidationError(f"{path}.cell_count must be a positive integer")
+    resistance = raw.get("internal_resistance_ohm")
+    return Battery(**common.__dict__, mass_kg=_number(raw.get("mass_kg"), f"{path}.mass_kg", positive=True), dimensions_m=_vector3(raw.get("dimensions_m"), f"{path}.dimensions_m", positive=True), cell_count=cells, nominal_voltage_v=_number(raw.get("nominal_voltage_v"), f"{path}.nominal_voltage_v", positive=True), capacity_ah=_number(raw.get("capacity_ah"), f"{path}.capacity_ah", positive=True), internal_resistance_ohm=None if resistance is None else _number(resistance, f"{path}.internal_resistance_ohm", positive=True))
+
+
+def _make_camera(raw: dict[str, Any], path: str) -> Camera:
+    common = _common(raw, path)
+    fov = raw.get("fov_deg")
+    return Camera(**common.__dict__, mass_kg=_number(raw.get("mass_kg"), f"{path}.mass_kg", positive=True), dimensions_m=_vector3(raw.get("dimensions_m"), f"{path}.dimensions_m", positive=True), fov_deg=None if fov is None else _number(fov, f"{path}.fov_deg", positive=True))
+
+
+def _make_controller(raw: dict[str, Any], path: str) -> Controller:
+    common = _common(raw, path)
+    backend = raw.get("backend")
+    if not isinstance(backend, str) or not backend:
+        raise ValidationError(f"{path}.backend must be a non-empty string")
+    modes = raw.get("supported_modes")
+    if not isinstance(modes, list) or not modes or not all(mode in ("rate", "angle") for mode in modes):
+        raise ValidationError(f"{path}.supported_modes must contain rate and/or angle")
+    default_mode = raw.get("default_mode")
+    if default_mode not in modes:
+        raise ValidationError(f"{path}.default_mode must be one of supported_modes")
+    parameters_raw = raw.get("parameters")
+    if not isinstance(parameters_raw, dict):
+        raise ValidationError(f"{path}.parameters must be an object")
+    parameters: dict[str, float] = {}
+    origins: dict[str, str] = {}
+    for key, entry in parameters_raw.items():
+        if not isinstance(key, str) or not isinstance(entry, dict):
+            raise ValidationError(f"{path}.parameters entries must be objects")
+        parameters[key] = _number(entry.get("value"), f"{path}.parameters.{key}.value")
+        origin = entry.get("origin", "catalog_default")
+        if origin not in ("catalog_default", "generated_initial", "generic_default"):
+            raise ValidationError(f"{path}.parameters.{key}.origin is invalid")
+        origins[key] = origin
+    return Controller(**common.__dict__, mass_kg=_number(raw.get("mass_kg"), f"{path}.mass_kg", positive=True), backend=backend, supported_modes=tuple(modes), default_mode=default_mode, parameters=parameters, parameter_origins=origins)
+
+
+_LOADERS = {
+    "frame": ("frames.yaml", _make_frame),
+    "motor": ("motors.yaml", _make_motor),
+    "propeller": ("propellers.yaml", _make_propeller),
+    "battery": ("batteries.yaml", _make_battery),
+    "camera": ("cameras.yaml", _make_camera),
+    "controller": ("controllers.yaml", _make_controller),
+}
+
+
+def _load_group(root: Path, kind: str) -> CatalogGroup[Any]:
+    filename, factory = _LOADERS[kind]
+    raw = load_yaml(root / filename)
+    if raw.get("schema_version") != 1 or raw.get("kind") != kind:
+        raise ValidationError(f"{filename} must declare schema_version: 1 and kind: {kind}")
+    entries = raw.get("items")
+    if not isinstance(entries, list):
+        raise ValidationError(f"{filename}.items must be an array")
+    items: dict[str, Any] = {}
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            raise ValidationError(f"{filename}.items[{index}] must be an object")
+        item = factory(entry, f"{filename}.items[{index}]")
+        if item.id in items:
+            raise ValidationError(f"duplicate {kind} catalog id: {item.id}")
+        items[item.id] = item
+    return CatalogGroup(kind, items)
+
+
+def load_catalogs(root: Path) -> CatalogStore:
+    root = root.resolve()
+    return CatalogStore(
+        root=root,
+        frames=_load_group(root, "frame"),
+        motors=_load_group(root, "motor"),
+        propellers=_load_group(root, "propeller"),
+        batteries=_load_group(root, "battery"),
+        cameras=_load_group(root, "camera"),
+        controllers=_load_group(root, "controller"),
+    )

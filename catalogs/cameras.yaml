@@ -1,0 +1,13 @@
+schema_version: 1
+kind: camera
+items:
+  - id: generic_fpv_camera
+    name: Generic FPV Camera
+    vendor: null
+    description: Generic camera mass, envelope and horizontal-use viewer FOV metadata.
+    mass_kg: 0.012
+    dimensions_m: [0.020, 0.020, 0.020]
+    fov_deg: 120
+    metadata:
+      viewer_backend: hakoniwa-threejs-drone
+      value_origin: generic_example

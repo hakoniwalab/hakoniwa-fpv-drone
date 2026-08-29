@@ -1,0 +1,30 @@
+schema_version: 1
+kind: propeller
+items:
+  - id: generic_5inch_3blade
+    name: Generic 5-inch 3-blade Propeller
+    vendor: null
+    description: Generic simulation propeller with Hakoniwa-compatible dimensional coefficients.
+    mass_kg: 0.0045
+    diameter_m: 0.127
+    pitch_m: 0.1016
+    blade_count: 3
+    thrust_coefficient_ns2_rad2: 0.0000010
+    torque_coefficient_nms2_rad2: 0.000000020
+    metadata:
+      coefficient_definition: thrust_N=Ct*omega_rad_s^2
+      value_origin: generic_example
+
+  - id: generic_4inch_3blade
+    name: Generic 4-inch 3-blade Propeller
+    vendor: null
+    description: Generic simulation propeller; not a commercial product specification.
+    mass_kg: 0.0032
+    diameter_m: 0.1016
+    pitch_m: 0.0889
+    blade_count: 3
+    thrust_coefficient_ns2_rad2: 0.00000070
+    torque_coefficient_nms2_rad2: 0.000000014
+    metadata:
+      coefficient_definition: thrust_N=Ct*omega_rad_s^2
+      value_origin: generic_example

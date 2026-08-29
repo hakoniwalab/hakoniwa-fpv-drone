@@ -1,0 +1,25 @@
+schema_version: 1
+kind: frame
+items:
+  - id: generic_5inch_x
+    name: Generic 5-inch X Frame
+    vendor: null
+    description: Generic example dimensions, not a specification for a commercial product.
+    mass_kg: 0.140
+    dimensions_m: [0.185, 0.185, 0.030]
+    wheelbase_m: 0.225
+    metadata:
+      class: 5-inch
+      value_origin: generic_example
+
+  - id: generic_4inch_x
+    name: Generic 4-inch X Frame
+    vendor: null
+    description: Smaller generic example frame with catalog-provided diagonal inertia.
+    mass_kg: 0.105
+    dimensions_m: [0.155, 0.155, 0.027]
+    wheelbase_m: 0.190
+    inertia_kg_m2: [0.00023, 0.00023, 0.00044]
+    metadata:
+      class: 4-inch
+      value_origin: generic_example

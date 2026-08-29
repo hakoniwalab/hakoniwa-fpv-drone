@@ -1,0 +1,26 @@
+schema_version: 1
+name: example-5inch-fpv
+type: quad_x
+
+components:
+  frame: generic_5inch_x
+  motors:
+    product: generic_2207_1850kv
+    count: 4
+  propeller: generic_5inch_3blade
+  battery: generic_6s_1300mah
+  camera: generic_fpv_camera
+
+controller:
+  product: hakoniwa_default
+  # Angle is the first runtime-verified path. Rate generation is supported,
+  # while the current Drone PRO Radio orchestrator still needs its Rate profile.
+  mode: angle
+
+placements:
+  battery_m: [0.0, 0.0, 0.025]
+  camera_m: [0.080, 0.0, 0.005]
+  controller_m: [0.0, 0.0, 0.005]
+
+metadata:
+  purpose: generic End-to-End example; not a commercial product build
