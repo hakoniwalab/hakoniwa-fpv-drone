@@ -1,0 +1,456 @@
+id: fpv-drone-design-angle-flight
+title: Catalog-driven FPV drone design and Angle flight
+recipe_version: 0.1
+
+goal:
+  user_request: Select FPV components, generate a virtual aircraft, tune it when licensed, and verify Angle-mode handling with a PS5 controller before building hardware.
+  description: >
+    Resolve a component-owned FPV Vehicle Recipe against the FPV catalogs, compile
+    a MuJoCo and Hakoniwa Generated Vehicle Package, and run the generated quad-X
+    aircraft with Hakoniwa Drone PRO. The Recipe keeps vehicle construction in this
+    repository while the Hakoniwa Business Pack Catalog provides ecosystem discovery.
+
+feasibility:
+  status: feasible
+  confidence: high
+  rationale:
+    - The sample component catalogs and 5-inch Vehicle Recipe generate a complete MuJoCo and Hakoniwa package.
+    - The generated aircraft has been flown locally in Angle mode with a PS5 DualSense controller.
+    - Hakoniwa Drone PRO provides an optional licensed Hover and Angle PID auto-tuning path for each generated vehicle profile.
+
+validation:
+  status: verified
+  summary: >
+    Catalog resolution, package generation, coordinate conversion, Launcher operation,
+    PID tuning integration, and PS5 Angle-mode flight were verified on macOS. The
+    physical approximations and generated PID values have not been validated against
+    a real FPV aircraft.
+  steps:
+    - id: generate_sample_vehicle
+      status: verified
+      evidence:
+        - repository: hakoniwalab/hakoniwa-fpv-drone
+          path: tests/test_generate.py
+          revision: 715225d0299640e1cc010af4ee6fcc50513728ed
+      notes:
+        - The generated package includes BOM, resolved components, MuJoCo XML, Drone configuration, controller parameters, and a provenance report.
+    - id: verify_angle_flight
+      status: verified
+      evidence:
+        - repository: hakoniwalab/hakoniwa-fpv-drone
+          path: README.md
+          revision: 715225d0299640e1cc010af4ee6fcc50513728ed
+        - source: user-runtime-confirmation
+          date: 2026-08-29
+      notes:
+        - The generated quad-X aircraft responded to PS5 input and maintained usable Angle-mode flight after tuning.
+    - id: verify_pid_tuning_connection
+      status: verified
+      evidence:
+        - repository: hakoniwalab/hakoniwa-fpv-drone
+          path: docs/pid-tuning-knowhow.md
+          revision: 715225d0299640e1cc010af4ee6fcc50513728ed
+      notes:
+        - Vehicle-specific tuning profiles and results remain ignored local artifacts and are not part of this Recipe source.
+
+constraints:
+  - simulation-only
+  - quad-x-only
+  - generic-example-component-data
+  - macos-runtime-verified
+  - ps5-human-operation
+  - no-betaflight-backend
+  - no-real-aircraft-validation
+  - mit-licensed-fpv-toolchain
+
+target_environment:
+  required_for: executable-demo
+  status: specified
+  os: macOS
+  os_version: current-supported-host
+  architecture: arm64
+  execution_mode: native
+  runtimes:
+    - name: Python
+      required: true
+      version: "3.12"
+      path: hakoniwa-business-pack/work/foundation/install/python
+    - name: MuJoCo
+      required: true
+      version: Drone-Core-compatible
+      path: hakoniwa-drone-pro/vendor/mujoco
+  hakoniwa:
+    install_prefix: hakoniwa-business-pack/work/foundation/install
+    components_built:
+      - hakoniwa-core-pro
+      - hakoniwa-pdu-python
+  notes:
+    - Linux and Windows generation remain possible design targets, but this runtime Recipe records only the verified macOS path.
+
+execution_environment:
+  required_for: executable-demo
+  status: specified
+  workspace:
+    mode: managed
+  os: macOS
+  os_version: current-supported-host
+  architecture: arm64
+  execution_mode: native
+  gui:
+    required: true
+    status: required
+  shared_memory:
+    required: true
+    access: local-host
+  devices:
+    - name: PS5 DualSense controller
+      required: true
+      available: human-confirmed
+  python:
+    environment: foundation-venv
+    hakopy_available: required
+  hakoniwa:
+    install_prefix: hakoniwa-business-pack/work/foundation/install
+    hako_cmd_access: required
+  notes:
+    - Normal termination uses tools/fpv.py stop and the Launcher control endpoint; kill -9 is not an accepted cleanup path.
+
+foundation_contract:
+  mode: required
+  reason: The runtime uses Hakoniwa shared memory and the Foundation Python Launcher lifecycle.
+
+foundation_requirements:
+  hakoniwa-core-pro:
+    capabilities:
+      shared_memory: true
+      hako_cmd: true
+      python_binding: true
+  hakoniwa-pdu-python:
+    version:
+      min: 1.6.5
+    capabilities:
+      hako_launcher: true
+      launcher_background_lifecycle: true
+      shm_backend: true
+
+recipe_local_requirements_schema_version: 1
+recipe_local_requirements:
+  hakoniwa-drone-pro:
+    root:
+      default_path: ../hakoniwa-drone-pro
+      override_env: HAKONIWA_DRONE_PRO_ROOT
+      relative_to: recipe_repository
+    source:
+      type: local
+    required_artifacts:
+      - path: .hako/install/bin/mac-main_hako_drone_service
+        kind: executable
+      - path: config/pdudef/drone-pdudef-1.json
+        kind: file
+      - path: drone_api/rc/rc-custom.py
+        kind: file
+      - path: drone_api/rc/rc_config/ps4-control.json
+        kind: file
+
+components:
+  - id: hakoniwa-fpv-drone
+    roles: [asset_generator, code_generator, integration_boundary]
+    purpose: Own the component catalogs, Vehicle Recipe, physical model compiler, Generated Vehicle Package, and FPV operator commands.
+  - id: hakoniwa-drone-core
+    roles: [physics_runtime, simulation_core, integration_boundary]
+    purpose: Supply the MuJoCo drone dynamics, rotor and mixer runtime, Radio Controller, Rate and Angle control, and licensed PID tuning path.
+  - id: hakoniwa-core-pro
+    roles: [simulation_core, time_sync]
+    purpose: Supply the shared-memory runtime, lifecycle, and simulation-time coordination.
+  - id: hakoniwa-pdu-python
+    roles: [language_binding, control_plane]
+    purpose: Supply the Foundation Python environment and background Launcher lifecycle.
+
+connections:
+  - from: hakoniwa-fpv-drone
+    to: hakoniwa-drone-core
+    interface: generated-artifact
+    data: [drone.xml, drone_config.json, control-param.txt]
+    contract:
+      status: verified
+      requires:
+        - MuJoCo Z-up to Drone PRO NED initial-position conversion
+        - MuJoCo to Drone PRO rotor-position Y-axis conversion
+        - Stable rotor index and direction correspondence
+      validation_notes:
+        - The generated example aircraft completed PS5 Angle-mode flight on 2026-08-29.
+  - from: hakoniwa-pdu-python
+    to: hakoniwa-drone-core
+    interface: command
+    data: [Launcher lifecycle, GameControllerOperation PDU]
+    contract:
+      status: verified
+      requires:
+        - Foundation Python with hakoniwa_pdu Launcher support
+        - Human-connected PS5 controller
+      validation_notes:
+        - The background Launcher started the service before the Radio Controller and terminated through its control endpoint.
+  - from: hakoniwa-drone-core
+    to: hakoniwa-core-pro
+    interface: pdu
+    data: [simulation lifecycle, simulation time, controller input, vehicle state]
+    contract:
+      status: verified
+      requires:
+        - Compatible Hakoniwa Core and Drone PRO build
+      validation_notes:
+        - The generated aircraft advanced under synchronized Hakoniwa simulation during the verified run.
+
+data_flow:
+  summary: Component catalogs and a Vehicle Recipe become a generated aircraft package, which Drone PRO simulates and a human operates with a PS5 controller.
+  steps:
+    - from: FPV component catalogs and Vehicle Recipe
+      to: hakoniwa-fpv-drone
+      data: [component IDs, physical parameters, placements, control mode]
+      description: Resolve one user-selected aircraft configuration into a typed physical vehicle model.
+    - from: hakoniwa-fpv-drone
+      to: hakoniwa-drone-core
+      data: [MuJoCo model, Drone PRO configuration, initial controller parameters]
+      description: Render the resolved vehicle into the existing runtime contracts.
+    - from: PS5 DualSense controller
+      to: hakoniwa-drone-core
+      data: [throttle, yaw, pitch, roll, Radio Control toggle]
+      description: A human closes the outer FPV control loop while Drone PRO performs Angle and angular-rate control.
+
+time_model:
+  mode: shared-simulation-time
+  components: [hakoniwa-drone-core, hakoniwa-core-pro, hakoniwa-pdu-python]
+  notes:
+    - The Drone service participates in Hakoniwa simulation time while the Launcher owns process lifecycle.
+
+artifact_sets:
+  physics_artifacts:
+    description: Vehicle mass, inertia, rotor geometry, thrust parameters, and MuJoCo model.
+    status: verified
+    artifacts: [resolved-components.yaml, drone.xml, report.json]
+    notes:
+      - Generic component values and declared approximations are not real-product measurements.
+  visualization_artifacts:
+    description: Native MuJoCo Viewer model and camera metadata.
+    status: partially_verified
+    artifacts: [drone.xml]
+    notes:
+      - Native MuJoCo visualization is verified; Three.js FPV visualization is a future adapter.
+  pdu_artifacts:
+    description: Existing Drone Core PDU definition used by the generated runtime.
+    status: verified
+    artifacts: [drone-pdudef-1.json]
+    notes:
+      - This repository does not invent an incompatible FPV-specific PDU contract.
+  runtime_artifacts:
+    description: Generated configuration, Launcher session, logs, and optional ignored PID tuning profile.
+    status: verified
+    artifacts: [drone_config_0.json, control-param.txt, launcher.json, launcher-session.json]
+    notes:
+      - PID profiles and results are local ignored artifacts and require an applicable Drone PRO license.
+
+artifacts:
+  - name: FPV Vehicle Recipe
+    kind: config
+    producer: hakoniwa-fpv-drone
+    consumer: [hakoniwa-fpv-drone]
+    path: recipes/examples/5inch-fpv.yaml
+  - name: Generated Vehicle Package
+    kind: source
+    producer: hakoniwa-fpv-drone
+    consumer: [hakoniwa-drone-core]
+    path: build/example-5inch
+  - name: Runtime Launcher
+    kind: command
+    producer: hakoniwa-fpv-drone
+    consumer: [hakoniwa-pdu-python]
+    path: build/example-5inch/runtime/launcher.json
+
+missing_pieces:
+  - Add and verify the Radio Controller Rate/Acro execution profile.
+  - Replace generic example catalogs with evidence-backed product data before representing a real build.
+  - Validate generated physics and tuned parameters against real-aircraft logs.
+  - Add the planned Three.js FPV camera and aircraft appearance adapter.
+
+agency_boundary:
+  agent_actions:
+    - id: generate_vehicle_package
+      description: Validate catalogs and Recipe and generate simulation-only vehicle artifacts.
+      autonomous: true
+      preconditions: [user_requested_execution]
+    - id: run_simulation
+      description: Start and inspect the simulation-only Angle-mode runtime.
+      autonomous: true
+      preconditions: [user_requested_execution, pro_runtime_available]
+  human_decisions:
+    - id: approve_model_fidelity
+      description: Decide whether Catalog evidence and physical approximations are adequate for the intended design comparison.
+      status: required
+      required_before: [design_acceptance]
+    - id: accept_tuned_candidate
+      description: Review tuning gates and waveforms before applying a generated PID candidate.
+      status: required
+      required_before: [ps5_flight_review]
+  human_actions:
+    - id: connect_and_operate_ps5
+      description: Connect the PS5 controller and operate the simulated aircraft.
+      status: required
+      confirmation_required: true
+      required_before: [ps5_flight_review]
+  required_permissions:
+    - id: hakoniwa_drone_pro_license
+      description: Confirm the applicable Hakoniwa Drone PRO entitlement for commercial runtime use.
+      status: required
+      required_before: [run_simulation]
+    - id: pid_auto_tuning_license
+      description: Confirm that the applicable Hakoniwa Drone PRO license includes PID auto-tuning before running tune-* commands.
+      status: required
+      required_before: [pid_auto_tuning]
+  notes:
+    - Simulation results and PID values do not authorize direct application to a physical aircraft.
+
+demo:
+  objective: Generate the generic 5-inch quad-X, optionally tune it under a PRO license, and confirm PS5 Angle-mode handling in MuJoCo.
+  readiness:
+    lifecycle_state:
+      source: build/example-5inch/runtime/launcher-session.json
+      required: RUNNING
+      sufficient: false
+    checks:
+      - id: generated-package-exists
+        kind: file
+        target: build/example-5inch/runtime/vehicle/drone_config_0.json
+        expected: The generated Drone PRO runtime configuration exists.
+      - id: launcher-session-running
+        kind: process
+        target: tools/fpv.py status
+        expected: The Launcher reports RUNNING.
+      - id: human-angle-response
+        kind: human_observation
+        target: MuJoCo Viewer
+        expected: The aircraft responds to PS5 Roll, Pitch, Yaw, and throttle without immediate divergence.
+    operator_handoff:
+      background: true
+      explain_command_return: true
+      next_actions: [operate-ps5, status, stop]
+  steps:
+    - order: 1
+      id: prepare_business_pack_foundation
+      component: hakoniwa-business-pack
+      action: Resolve the Foundation and verify the local Drone PRO checkout declared by this Recipe.
+      command: python tools/recipe.py configure --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
+      agency: agent_action
+      requires_gates: []
+    - order: 2
+      id: generate_fpv_vehicle
+      component: hakoniwa-fpv-drone
+      action: Resolve the component-owned 5-inch Vehicle Recipe and generate the runtime package.
+      command: python3.12 ../hakoniwa-fpv-drone/tools/fpv.py configure
+      agency: agent_action
+      requires_gates: [hakoniwa_drone_pro_license]
+    - order: 3
+      id: optional_pid_tuning
+      component: hakoniwa-drone-core
+      action: Follow README and the PID tuning know-how to tune Hover before Angle; review candidates before applying one.
+      command: python3.12 ../hakoniwa-fpv-drone/tools/fpv.py tune-prepare
+      agency: required_permission
+      requires_gates: [pid_auto_tuning_license, accept_tuned_candidate]
+    - order: 4
+      id: start_angle_runtime
+      component: hakoniwa-fpv-drone
+      action: Start the background Launcher and native MuJoCo Viewer.
+      command: python3.12 ../hakoniwa-fpv-drone/tools/fpv.py start
+      agency: agent_action
+      requires_gates: [hakoniwa_drone_pro_license]
+    - order: 5
+      id: operate_ps5
+      component: hakoniwa-drone-core
+      action: Toggle Radio Control and verify Angle-mode response with the PS5 controller.
+      command: null
+      agency: human_action
+      requires_gates: [connect_and_operate_ps5]
+    - order: 6
+      id: stop_runtime
+      component: hakoniwa-fpv-drone
+      action: Terminate the owned Launcher session through its control endpoint.
+      command: python3.12 ../hakoniwa-fpv-drone/tools/fpv.py stop
+      agency: agent_action
+      requires_gates: []
+  observability:
+    success_signals:
+      - The Generated Vehicle Package contains all declared files and report hashes.
+      - The Launcher reports RUNNING and detects the PS5 controller.
+      - The aircraft responds to Angle commands without the initial immediate divergence.
+    failure_signals:
+      - The private Drone PRO service or RC artifacts are missing.
+      - The generated model changes after a tuning profile is prepared.
+      - The service loads RadioController during offline tuning instead of TuningController.
+      - The vehicle remains on the ground and is incorrectly treated as a successful hover.
+    fixtures:
+      - Generic 5-inch Vehicle Recipe and catalogs included in this repository.
+      - PS5 DualSense controller using the verified ps4-control.json mapping.
+    automation:
+      - tools/fpv.py owns generation, Launcher materialization, lifecycle, and tuning-profile adaptation.
+  verification_checks:
+    lifecycle:
+      - tools/fpv.py status reports RUNNING after start and termination after stop.
+    behavior:
+      - Generated package tests pass and PS5 input produces stable visible attitude response.
+    logs:
+      - Launcher logs show the Drone service, Radio Control events, and controller initialization.
+  cleanup:
+    owner: hakoniwa-fpv-drone
+    provider: hakoniwa-pdu-python-launcher
+    mode: session-file-control-endpoint
+    target: build/example-5inch/runtime/launcher-session.json
+    trigger: end-of-test-or-failure
+    normal:
+      interactive: python3.12 ../hakoniwa-fpv-drone/tools/fpv.py stop
+      signal: Launcher terminate request
+    expected_behavior:
+      - The Launcher terminates both the Drone service and Radio Controller it owns.
+    verification_checks:
+      - tools/fpv.py status no longer reports RUNNING.
+      - No owned Drone service or Radio Controller process remains.
+    cautions:
+      - Do not use kill -9 during normal operation.
+
+expected_result: >
+  A user can select an FPV Vehicle Recipe, generate a traceable virtual quad-X,
+  optionally use licensed Drone PRO PID auto-tuning, and verify Angle-mode handling
+  with a PS5 controller before purchasing or assembling physical parts.
+
+source_catalogs:
+  - component_id: hakoniwa-fpv-drone
+    catalog_path: ../hakoniwa-business-pack/catalog/components/hakoniwa-fpv-drone.yaml
+  - component_id: hakoniwa-drone-core
+    catalog_path: ../hakoniwa-business-pack/catalog/components/hakoniwa-drone-core.yaml
+  - component_id: hakoniwa-core-pro
+    catalog_path: ../hakoniwa-business-pack/catalog/components/hakoniwa-core-pro.yaml
+  - component_id: hakoniwa-pdu-python
+    catalog_path: ../hakoniwa-business-pack/catalog/components/hakoniwa-pdu-python.yaml
+
+source_artifacts:
+  - repository: hakoniwalab/hakoniwa-fpv-drone
+    path: recipes/examples/5inch-fpv.yaml
+    revision: 715225d0299640e1cc010af4ee6fcc50513728ed
+    description: Component-owned FPV Vehicle Recipe used as the generation input.
+  - repository: hakoniwalab/hakoniwa-fpv-drone
+    path: docs/generated-package.md
+    revision: 715225d0299640e1cc010af4ee6fcc50513728ed
+    description: Generated Package and Drone PRO adapter contract.
+  - repository: toppers/hakoniwa-drone-core
+    path: README.md
+    revision: main
+    description: Public Drone Core capability and runtime reference.
+
+tags:
+  - fpv
+  - drone
+  - component-catalog
+  - vehicle-recipe
+  - mujoco
+  - angle-control
+  - pid-tuning
+  - ps5
+  - mit

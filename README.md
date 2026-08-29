@@ -87,6 +87,24 @@ controller:
 
 詳しくは[Catalog仕様](docs/catalog-spec.md)と[Recipe仕様](docs/recipe-spec.md)を参照してください。
 
+## Hakoniwa Business Packから利用する
+
+FPV固有のComponent CatalogとVehicle Recipeはこのリポジトリを正本とします。Business Pack側にはコンポーネントの検索Catalogだけを置き、システム構成Recipeもこのリポジトリの[FPV設計・Angle飛行Recipe](recipes/business-pack/fpv-drone-design-angle-flight.yaml)を参照します。これにより、FPVの設定や実行手順を二重管理しません。
+
+兄弟ディレクトリに`hakoniwa-business-pack`がある場合、Business Packの共通入口からガイド、診断、構築計画を利用できます。
+
+```bash
+cd ../hakoniwa-business-pack
+python3.12 tools/recipe.py guide \
+  --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
+python3.12 tools/recipe.py doctor \
+  --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
+python3.12 tools/recipe.py plan \
+  --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
+```
+
+Business Pack Recipeと`recipes/examples/5inch-fpv.yaml`は役割が異なります。前者はHakoniwaコンポーネント、Foundation、ライセンス境界、起動・停止を含むシステム構成で、後者はユーザーが組みたい一台のFPV機体構成です。
+
 ## Generated Package
 
 ```text
@@ -205,4 +223,6 @@ python3.12 tools/fpv.py start
 
 ## ライセンス
 
-現時点では非公開プロジェクトとして扱います。ライセンス条件は別途定義します。
+このリポジトリのソフトウェア、Catalog、Recipe、およびドキュメントは[MIT License](LICENSE)で提供します。
+
+MIT Licenseが適用されるのは`hakoniwa-fpv-drone`の成果物です。生成物を実行するHakoniwa Drone Core／PRO、PID自動チューニング、第三者の部品データ、モデル、ライブラリには、それぞれのライセンスと利用条件が適用されます。特にPID自動チューニングの実行には、有効な箱庭ドローンPROライセンスが必要です。
