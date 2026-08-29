@@ -12,7 +12,7 @@ Betaflightの再実装でも、操縦練習ゲームでもありません。部�
 
 - 本リポジトリ: Catalog、Recipe、物理モデルCompiler、生成Package
 - Drone PRO: MuJoCo機体物理、Rotor/Battery、Mixer、Radio Controller、Rate/Angle PID、箱庭連携
-- Three.js: FPVカメラ表示の将来backend。MVPではカメラの質量・外形・FOV・位置をメタデータとして生成します
+- Three.js: optionalなブラウザ表示backend。既存機体GLB、プロペラ回転、搭載カメラとFPVコース表示を利用します
 
 Drone PROは `drone_config.json` と `drone.xml` を使用します。コントローラの現在のランタイム形式はテキストパラメータなので、構造化された `control-param.json` と実行用 `control-param.txt` の両方を生成します。
 
@@ -94,6 +94,22 @@ controller:
 
 Drone PROで起動すると、機体の`fpv`カラを全面に、自由に操作できる客観カラをViewer左上のPiPに表示します。`Tab`キーで両者を入れ替え、`F`キーでPiPを表示・非表示できます。
 
+## optional Three.js Viewer
+
+通常のMuJoCo実行経路を変えず、`configure`へ`--threejs`を付けた場合だけ、Visual State Publisher、WebBridge、HTTP serverをLauncherへ追加できます。
+
+```bash
+python3.12 tools/fpv.py configure --threejs
+python3.12 tools/fpv.py start
+python3.12 tools/fpv.py open-viewer
+```
+
+`open-viewer`は生成済みURLを既定ブラウザで自動的に開きます。Three.jsではMuJoCo runtimeモデルの`fpv`カメラ位置・向き・FOVを正本として、主観映像をメイン、操作可能な客観映像を左上PiPに表示します。`Tab`で主・副画面を交換し、`F`でPiPを表示・非表示にできます。
+
+ブラウザでは既存のThree.js機体GLBを使い、`DroneVisualStateArray`の位置・姿勢・PWMから機体移動と4枚のプロペラ回転を表示します。外観モデル全体は、生成機体のモーター対角距離（wheelbase）とThree.js基準機体のwheelbaseから求めた倍率でスケールされます。世界座標やコースにはこの倍率を適用しません。
+
+FPVコースはGLBとして二重管理せず、World YAMLを正本として`fpv-course.json`へ生成します。Three.js側の`environment.type: fpv-course`は明示指定時だけ有効で、従来のGLB/MJCF環境には影響しません。`--threejs`なしの通常手順も従来どおりです。
+
 ## Hakoniwa Business Packから利用する
 
 FPV固有のComponent CatalogとVehicle Recipeはこのリポジトリを正本とします。Business Pack側にはコンポーネントの検索Catalogだけを置き、システム構成Recipeもこのリポジトリの[FPV設計・Angle飛行Recipe](recipes/business-pack/fpv-drone-design-angle-flight.yaml)を参照します。これにより、FPVの設定や実行手順を二重管理しません。
@@ -118,6 +134,7 @@ Business Pack Recipeと`recipes/examples/5inch-fpv.yaml`は役割が異なりま
 build/example-5inch/
 ├── recipe.yaml
 ├── world.yaml              # --world指定時
+├── fpv-course.json         # --world指定時、optional Three.js表示入力
 ├── resolved-components.yaml
 ├── bom.yaml
 ├── drone.xml

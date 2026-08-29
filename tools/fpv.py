@@ -4,11 +4,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import shutil
 import subprocess
 import sys
+import webbrowser
 from pathlib import Path
+from xml.etree import ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,7 +20,10 @@ DEFAULT_OUTPUT = ROOT / "build" / "example-5inch"
 DEFAULT_WORLD = ROOT / "recipes" / "environments" / "fpv-training-course.yaml"
 DEFAULT_VERIFIED_CONFIG = ROOT / "verified-configs" / "example-5inch-angle" / "drone-config"
 DEFAULT_DRONE_PRO = ROOT.parent / "hakoniwa-drone-pro"
+DEFAULT_THREEJS_ROOT = ROOT.parent / "hakoniwa-threejs-drone"
+DEFAULT_BUSINESS_PACK_ROOT = ROOT.parent / "hakoniwa-business-pack"
 DEFAULT_FOUNDATION_PYTHON = ROOT.parent / "hakoniwa-business-pack" / "work" / "foundation" / "install" / "python" / "bin" / "python3"
+BASE_THREEJS_WHEELBASE_M = math.hypot(0.47, 0.38)
 
 
 class RuntimeErrorWithMessage(RuntimeError):
@@ -44,6 +50,7 @@ def paths(args: argparse.Namespace) -> dict[str, Path]:
         "logs": runtime / "logs",
         "launcher": runtime / "launcher.json",
         "session": runtime / "launcher-session.json",
+        "viewer": runtime / "threejs",
     }
 
 
@@ -51,6 +58,151 @@ def require_file(path: Path, label: str) -> Path:
     if not path.is_file():
         raise RuntimeErrorWithMessage(f"{label} not found: {path}")
     return path
+
+
+def generated_wheelbase(report_path: Path) -> float:
+    report = json.loads(require_file(report_path, "generated report").read_text(encoding="utf-8"))
+    points = report["properties"]["motor_positions_m"]["value"]
+    distances = (
+        math.dist(first, second)
+        for index, first in enumerate(points)
+        for second in points[index + 1 :]
+    )
+    wheelbase = max(distances)
+    if not math.isfinite(wheelbase) or wheelbase <= 0:
+        raise RuntimeErrorWithMessage(f"invalid generated motor positions: {report_path}")
+    return wheelbase
+
+
+def mujoco_fpv_camera(model_path: Path) -> dict[str, object]:
+    root = ET.parse(require_file(model_path, "MuJoCo vehicle model")).getroot()
+    camera = root.find("./worldbody/body/camera[@name='fpv']")
+    if camera is None:
+        raise RuntimeErrorWithMessage(f"MuJoCo FPV camera not found: {model_path}")
+    position = [float(value) for value in camera.attrib.get("pos", "").split()]
+    if len(position) != 3 or any(not math.isfinite(value) for value in position):
+        raise RuntimeErrorWithMessage(f"invalid MuJoCo FPV camera position: {model_path}")
+    xyaxes = [float(value) for value in camera.attrib.get("xyaxes", "").split()]
+    if xyaxes != [0.0, -1.0, 0.0, 0.0, 0.0, 1.0]:
+        raise RuntimeErrorWithMessage(
+            "Three.js FPV adapter currently requires the generated forward-facing "
+            f"MuJoCo camera xyaxes='0 -1 0 0 0 1': {model_path}"
+        )
+    fov = float(camera.attrib.get("fovy", "90"))
+    if not math.isfinite(fov) or fov <= 0 or fov >= 180:
+        raise RuntimeErrorWithMessage(f"invalid MuJoCo FPV camera fovy: {model_path}")
+    return {"position_m": position, "fov_deg": fov}
+
+
+def materialize_threejs_viewer(resolved: dict[str, Path], threejs_root: Path) -> Path:
+    require_file(threejs_root / "index.html", "Three.js viewer")
+    require_file(threejs_root / "config" / "drone_types-quadrotor_base.json", "Three.js base drone type")
+    require_file(resolved["output"] / "fpv-course.json", "generated FPV course")
+    viewer = resolved["viewer"]
+    viewer.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(resolved["output"] / "fpv-course.json", viewer / "fpv-course.json")
+
+    wheelbase = generated_wheelbase(resolved["output"] / "report.json")
+    scale = wheelbase / BASE_THREEJS_WHEELBASE_M
+    fpv_camera = mujoco_fpv_camera(resolved["vehicle"] / "drone.xml")
+    camera_position = [value / scale for value in fpv_camera["position_m"]]
+    scene = {
+        "version": "1.0",
+        "format": "compact",
+        "environments": [{
+            "name": "fpv-training-course",
+            "type": "fpv-course",
+            "model": "./fpv-course.json",
+        }],
+        "main_camera": {
+            "fov": 80,
+            "near": 0.02,
+            "far": 1000,
+            "initialMode": "follow",
+            "followDistance": 3.0,
+            "followLerpPos": 8.0,
+            "followLerpTarget": 10.0,
+            "followToggleKey": "c",
+            "position": [-2.5, -2.0, 1.5],
+            "target": "Drone",
+        },
+        "droneTypesPath": "/hakoniwa-threejs-drone/config/drone_types-quadrotor_base.json",
+        "drones": [{
+            "name": "Drone",
+            "type": "quadrotor_base",
+            "scale": scale,
+            "pos": [0.0, 0.0, 0.25],
+            "hpr": [0.0, 0.0, 0.0],
+            # The visual root is scaled, so store the inverse-scaled offset;
+            # its resulting world-space mount matches MuJoCo exactly.
+            "cameras": [{
+                "name": "fpv",
+                "pos": camera_position,
+                "hpr": [0.0, 0.0, 0.0],
+                "fov": fpv_camera["fov_deg"],
+                "near": 0.02,
+                "far": 1000,
+                "window": {"x": 0.02, "y": 0.72, "width": 0.30, "height": 0.27},
+                "model": {
+                    "model_path": "/hakoniwa-threejs-drone/assets/models/base-drone-camera.glb",
+                    "pos": [0.0, 0.0, 0.0],
+                    "hpr": [0.0, 0.0, 180.0],
+                },
+            }],
+        }],
+    }
+    viewer_config = {
+        "version": "1.0",
+        "three": {"sceneConfigPath": "./scene-config.json"},
+        "pdu": {
+            "pduDefPath": "/hakoniwa-threejs-drone/config/pdudef-fleets.json",
+            "wsUri": "ws://127.0.0.1:8765",
+            "wireVersion": "v2",
+        },
+        "ui": {
+            "statePanelIntervalMsec": 50,
+            "enableAttachedCameras": True,
+            "enableMainCameraMouseControl": True,
+            "attachedCameraPresentation": "main",
+        },
+        "stateInput": {
+            "mode": "fleets",
+            "fleets": {"roleMap": {"visual_state_array": "hako_msgs/DroneVisualStateArray"}},
+        },
+    }
+    (viewer / "scene-config.json").write_text(json.dumps(scene, indent=2) + "\n", encoding="utf-8")
+    (viewer / "viewer-config.json").write_text(json.dumps(viewer_config, indent=2) + "\n", encoding="utf-8")
+    print(f"Three.js visual scale: {scale:.6f} (generated wheelbase={wheelbase:.3f} m)")
+    print(
+        "Three.js FPV camera: "
+        f"position={fpv_camera['position_m']} m, fov={fpv_camera['fov_deg']:.1f} deg "
+        "(MuJoCo runtime model)"
+    )
+    return viewer / "viewer-config.json"
+
+
+def viewer_url(resolved: dict[str, Path]) -> str:
+    config = require_file(
+        resolved["viewer"] / "viewer-config.json",
+        "Three.js viewer config (run configure --threejs)",
+    )
+    try:
+        relative = config.relative_to(ROOT.parent)
+    except ValueError as exc:
+        raise RuntimeErrorWithMessage(
+            f"Three.js output must be below {ROOT.parent} for the built-in HTTP server: {config}"
+        ) from exc
+    return (
+        "http://127.0.0.1:8000/hakoniwa-threejs-drone/index.html"
+        f"?viewerConfigPath=/{relative.as_posix()}"
+    )
+
+
+def open_viewer(resolved: dict[str, Path]) -> str:
+    url = viewer_url(resolved)
+    print(f"Opening browser: {url}")
+    webbrowser.open(url, new=2)
+    return url
 
 
 def tuning_input_digest(vehicle_dir: Path) -> str:
@@ -363,6 +515,8 @@ def configure(args: argparse.Namespace) -> int:
     rc_config = require_file(args.rc_config.resolve(), "RC config")
     require_file(drone_pro / "drone_api" / "rc" / "rc-custom.py", "RC client")
     rc_bootstrap = require_file(ROOT / "tools" / "fpv_rc_bootstrap.py", "FPV RC bootstrap")
+    threejs_root = args.threejs_root.resolve()
+    business_pack_root = args.business_pack_root.resolve()
 
     generator_env = os.environ.copy()
     existing_pythonpath = generator_env.get("PYTHONPATH")
@@ -380,7 +534,7 @@ def configure(args: argparse.Namespace) -> int:
     )
     resolved["vehicle"].mkdir(parents=True, exist_ok=True)
     resolved["logs"].mkdir(parents=True, exist_ok=True)
-    for filename in ("drone.xml", "control-param.json", "control-param.txt", "report.json", "bom.yaml", "resolved-components.yaml", "recipe.yaml", "world.yaml"):
+    for filename in ("drone.xml", "control-param.json", "control-param.txt", "report.json", "bom.yaml", "resolved-components.yaml", "recipe.yaml", "world.yaml", "fpv-course.json"):
         shutil.copy2(resolved["output"] / filename, resolved["vehicle"] / filename)
     runtime_config_path = resolved["vehicle"] / "drone_config_0.json"
     runtime_config = json.loads((resolved["output"] / "drone_config.json").read_text(encoding="utf-8"))
@@ -401,6 +555,9 @@ def configure(args: argparse.Namespace) -> int:
             print("No verified FPV config matches this Recipe and World; using generated defaults.")
     else:
         print("Using generated controller defaults (--generated-defaults).")
+
+    if args.threejs:
+        materialize_threejs_viewer(resolved, threejs_root)
 
     launcher = {
         "version": "0.1",
@@ -436,9 +593,63 @@ def configure(args: argparse.Namespace) -> int:
             },
         ],
     }
+    if args.threejs:
+        visual_state_publisher = require_file(
+            drone_pro / ".hako" / "install" / "bin" / "mac-drone_visual_state_publisher",
+            "Drone PRO visual-state publisher",
+        )
+        visual_state_config = require_file(
+            drone_pro / "config" / "assets" / "visual_state_publisher" / "visual_state_publisher-1.json",
+            "single-drone visual-state publisher config",
+        )
+        install_prefix = business_pack_root / "work" / "foundation" / "install"
+        web_bridge = require_file(install_prefix / "bin" / "hakoniwa-pdu-web-bridge", "WebBridge")
+        web_bridge_config = install_prefix / "share" / "hakoniwa-pdu-bridge" / "config" / "web_bridge_fleets"
+        require_file(web_bridge_config / "bridge" / "bridge.json", "WebBridge fleet config")
+        launcher["defaults"]["env"]["prepend"]["lib_path"].extend([
+            str(install_prefix / "lib"),
+            str(drone_pro / ".hako" / "install" / "lib"),
+        ])
+        launcher["defaults"]["env"]["prepend"]["PATH"].extend([
+            str(install_prefix / "bin"),
+            str(foundation_python.parent),
+        ])
+        assets = launcher["assets"]
+        assets.insert(1, {
+            "name": "fpv-visual-state-publisher",
+            "activation_timing": "before_start",
+            "command": str(visual_state_publisher),
+            "args": [str(visual_state_config)],
+            "cwd": str(drone_pro),
+            "depends_on": ["fpv-drone-service"],
+            "delay_sec": 1,
+        })
+        assets.insert(2, {
+            "name": "fpv-threejs-web-bridge",
+            "activation_timing": "before_start",
+            "command": str(web_bridge),
+            "args": [
+                "--config-root", str(web_bridge_config),
+                "--node-name", "web_bridge_fleets_node1",
+                "--delta-time-step-usec", "20000",
+                "--enable-ondemand",
+            ],
+            "cwd": str(ROOT),
+            "depends_on": ["fpv-visual-state-publisher"],
+        })
+        assets.append({
+            "name": "fpv-threejs-http-server",
+            "activation_timing": "after_start",
+            "command": str(foundation_python),
+            "args": ["-m", "http.server", "8000", "--bind", "127.0.0.1"],
+            "cwd": str(ROOT.parent),
+            "depends_on": ["fpv-threejs-web-bridge"],
+        })
     resolved["launcher"].write_text(json.dumps(launcher, indent=2) + "\n", encoding="utf-8")
     print(f"Configured Angle FPV runtime: {resolved['runtime']}")
     print(f"Launcher: {resolved['launcher']}")
+    if args.threejs:
+        print(f"Three.js: {viewer_url(resolved)}")
     return 0
 
 
@@ -468,7 +679,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument(
         "command",
         choices=(
-            "configure", "restore-verified-config", "start", "status", "stop",
+            "configure", "restore-verified-config", "start", "status", "stop", "open-viewer",
             "tune-build", "tune-prepare", "tune-hover", "tune-angle", "tune-apply",
         ),
     )
@@ -482,6 +693,9 @@ def parser() -> argparse.ArgumentParser:
         help="Do not auto-apply a verified config after generation.",
     )
     result.add_argument("--drone-pro-root", type=Path, default=DEFAULT_DRONE_PRO)
+    result.add_argument("--threejs", action="store_true", help="Add the optional Three.js viewer runtime.")
+    result.add_argument("--threejs-root", type=Path, default=DEFAULT_THREEJS_ROOT)
+    result.add_argument("--business-pack-root", type=Path, default=DEFAULT_BUSINESS_PACK_ROOT)
     result.add_argument("--foundation-python", type=Path, default=DEFAULT_FOUNDATION_PYTHON)
     result.add_argument("--rc-config", type=Path, default=DEFAULT_DRONE_PRO / "drone_api" / "rc" / "rc_config" / "ps4-control.json")
     return result
@@ -504,6 +718,9 @@ def main(argv: list[str] | None = None) -> int:
             return tune_phase(args, "angle")
         if args.command == "tune-apply":
             return tune_apply(args)
+        if args.command == "open-viewer":
+            open_viewer(paths(args))
+            return 0
         return launcher_command(args, args.command)
     except (RuntimeErrorWithMessage, subprocess.CalledProcessError) as exc:
         print(f"error: {exc}", file=sys.stderr)

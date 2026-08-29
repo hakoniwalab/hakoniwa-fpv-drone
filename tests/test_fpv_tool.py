@@ -3,6 +3,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 TOOL_PATH = Path(__file__).resolve().parents[1] / "tools" / "fpv.py"
@@ -40,6 +41,52 @@ class FpvToolTest(unittest.TestCase):
     def test_parser_exposes_only_sequential_tuning_steps(self):
         for command in ("tune-build", "tune-prepare", "tune-hover", "tune-angle", "tune-apply"):
             self.assertEqual(command, FPV_TOOL.parser().parse_args([command]).command)
+        self.assertEqual("open-viewer", FPV_TOOL.parser().parse_args(["open-viewer"]).command)
+        self.assertTrue(FPV_TOOL.parser().parse_args(["configure", "--threejs"]).threejs)
+
+    def test_generated_wheelbase_uses_motor_diagonal(self):
+        with tempfile.TemporaryDirectory() as directory:
+            report = Path(directory) / "report.json"
+            report.write_text(
+                json.dumps({
+                    "properties": {
+                        "motor_positions_m": {
+                            "value": [
+                                [0.1, 0.1, 0.0],
+                                [0.1, -0.1, 0.0],
+                                [-0.1, -0.1, 0.0],
+                                [-0.1, 0.1, 0.0],
+                            ]
+                        }
+                    }
+                }),
+                encoding="utf-8",
+            )
+            self.assertAlmostEqual(2 ** 0.5 * 0.2, FPV_TOOL.generated_wheelbase(report))
+
+    def test_mujoco_fpv_camera_is_runtime_source_of_truth(self):
+        with tempfile.TemporaryDirectory() as directory:
+            model = Path(directory) / "drone.xml"
+            model.write_text(
+                '<mujoco><worldbody><body><camera name="fpv" pos="0.08 0 0.005" '
+                'xyaxes="0 -1 0 0 0 1" fovy="120"/></body></worldbody></mujoco>',
+                encoding="utf-8",
+            )
+            camera = FPV_TOOL.mujoco_fpv_camera(model)
+            self.assertEqual([0.08, 0.0, 0.005], camera["position_m"])
+            self.assertEqual(120.0, camera["fov_deg"])
+
+    def test_open_viewer_launches_default_browser(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            viewer = output / "runtime" / "threejs"
+            viewer.mkdir(parents=True)
+            (viewer / "viewer-config.json").write_text("{}", encoding="utf-8")
+            resolved = {"viewer": viewer}
+            with mock.patch.object(FPV_TOOL, "viewer_url", return_value="http://example.test/viewer"):
+                with mock.patch.object(FPV_TOOL.webbrowser, "open", return_value=True) as browser:
+                    self.assertEqual("http://example.test/viewer", FPV_TOOL.open_viewer(resolved))
+            browser.assert_called_once_with("http://example.test/viewer", new=2)
 
     def test_restore_verified_config_materializes_portable_model_path(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -2,7 +2,7 @@
 
 Generated Packageは入力、解決結果、実行成果物、計算根拠を一つにまとめます。
 
-`--world`指定時は、入力World YAMLを`world.yaml`として同梱し、`drone.xml`へ背景、照明、地面、障害物を合成します。機体定義の由来とコース定義の由来は混ぜません。
+`--world`指定時は、入力World YAMLを`world.yaml`として同梱し、`drone.xml`へ背景、照明、地面、障害物を合成します。同じ検証済みWorldモデルからoptional Three.js adapter用の`fpv-course.json`も生成します。機体定義の由来とコース定義の由来は混ぜません。
 
 ## 実行成果物
 

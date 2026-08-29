@@ -10,6 +10,7 @@ from typing import Any
 from .generators.hakoniwa_control_param import generate_control_parameters
 from .generators.hakoniwa_drone_config import generate_drone_config
 from .generators.mujoco import generate_mujoco
+from .generators.threejs_course import generate_threejs_course
 from .model import ResolvedVehicle
 from .world import World
 from .yaml_io import dump_yaml
@@ -76,7 +77,7 @@ def build_report(vehicle: ResolvedVehicle) -> dict[str, Any]:
         "limitations": [
             "Generated controller gains are initial values and are not validated for a real aircraft.",
             "The MuJoCo frame uses a box collision/visual proxy, not a product CAD model.",
-            "Camera metadata targets future Three.js integration; the MVP does not generate a Three.js model.",
+            "Three.js uses an existing visual drone model scaled to the generated wheelbase; it is not product CAD.",
         ],
     }
 
@@ -88,6 +89,7 @@ def generate_package(vehicle: ResolvedVehicle, output: Path, world: World | None
     dump_yaml(output / "bom.yaml", build_bom(vehicle))
     if world is not None:
         shutil.copyfile(world.path, output / "world.yaml")
+        generate_threejs_course(world, output / "fpv-course.json")
     generate_mujoco(vehicle, output / "drone.xml", world)
     generate_drone_config(vehicle, output / "drone_config.json")
     generate_control_parameters(vehicle, output / "control-param.json", output / "control-param.txt")
@@ -95,7 +97,7 @@ def generate_package(vehicle: ResolvedVehicle, output: Path, world: World | None
     report["artifacts"] = {}
     artifacts = ["recipe.yaml", "resolved-components.yaml", "bom.yaml", "drone.xml", "drone_config.json", "control-param.json", "control-param.txt"]
     if world is not None:
-        artifacts.append("world.yaml")
+        artifacts.extend(("world.yaml", "fpv-course.json"))
         report["world"] = {
             "source": str(world.path),
             "obstacle_count": len(world.obstacles),

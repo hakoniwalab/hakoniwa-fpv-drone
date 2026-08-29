@@ -34,6 +34,7 @@ class CliTest(unittest.TestCase):
             )
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertTrue((world_output / "world.yaml").is_file())
+            self.assertTrue((world_output / "fpv-course.json").is_file())
 
 
 if __name__ == "__main__":
