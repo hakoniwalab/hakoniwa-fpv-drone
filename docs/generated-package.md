@@ -2,6 +2,8 @@
 
 Generated Packageは入力、解決結果、実行成果物、計算根拠を一つにまとめます。
 
+`--world`指定時は、入力World YAMLを`world.yaml`として同梱し、`drone.xml`へ背景、照明、地面、障害物を合成します。機体定義の由来とコース定義の由来は混ぜません。
+
 ## 実行成果物
 
 ### drone.xml
@@ -11,6 +13,7 @@ Generated Packageは入力、解決結果、実行成果物、計算根拠を一
 - Quad Xの `prop1`〜`prop4`
 - frameのbox proxy
 - FPV camera geomとMuJoCo camera
+- `--world`指定時の明るいskybox、照明、地面、FPVゲート等
 
 ### drone_config.json
 
@@ -64,4 +67,4 @@ MuJoCo Python bindingがある場合:
 python -m mujoco.viewer --mjcf build/example-5inch/drone.xml
 ```
 
-Viewer確認はモデル形状の確認であり、Drone PROのRotor/Mixer制御まで確認するものではありません。実制御E2EはDrone PRO起動Recipeを次段階で追加します。
+単体Viewer確認はモデル形状の確認であり、Drone PROのRotor/Mixer制御まで確認するものではありません。`tools/fpv.py start`で起動するDrone PRO Viewerは、機体固定`fpv`カラを全面、操作可能な客観カラを左上PiPとして表示します。

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from .support import ROOT, SAMPLE_RECIPE
+from .support import ROOT, SAMPLE_RECIPE, SAMPLE_WORLD
 
 
 class CliTest(unittest.TestCase):
@@ -26,6 +26,14 @@ class CliTest(unittest.TestCase):
             result = self._run("generate", str(SAMPLE_RECIPE), "--output", str(output))
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertTrue((output / "drone.xml").is_file())
+
+            world_output = Path(directory) / "world-package"
+            result = self._run(
+                "generate", str(SAMPLE_RECIPE), "--world", str(SAMPLE_WORLD),
+                "--output", str(world_output),
+            )
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertTrue((world_output / "world.yaml").is_file())
 
 
 if __name__ == "__main__":

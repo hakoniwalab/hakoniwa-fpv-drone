@@ -12,6 +12,7 @@ from .errors import FpvDroneError
 from .package import build_bom, generate_package
 from .recipe import load_recipe
 from .resolver import resolve_vehicle
+from .world import load_world
 
 
 def _default_catalogs() -> Path:
@@ -35,6 +36,7 @@ def _parser() -> argparse.ArgumentParser:
     generate = subparsers.add_parser("generate", help="generate a Hakoniwa/MuJoCo vehicle package")
     generate.add_argument("recipe", type=Path)
     generate.add_argument("--output", type=Path, required=True)
+    generate.add_argument("--world", type=Path, help="optional MuJoCo world/course YAML")
     return parser
 
 
@@ -47,7 +49,8 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "bom":
             print(yaml.safe_dump(build_bom(vehicle), sort_keys=False, allow_unicode=True), end="")
         elif args.command == "generate":
-            output = generate_package(vehicle, args.output.resolve())
+            world = load_world(args.world.resolve()) if args.world else None
+            output = generate_package(vehicle, args.output.resolve(), world)
             print(json.dumps({"ok": True, "vehicle": vehicle.recipe.name, "output": str(output)}, ensure_ascii=False))
         return 0
     except FpvDroneError as exc:

@@ -14,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RECIPE = ROOT / "recipes" / "examples" / "5inch-fpv.yaml"
 DEFAULT_OUTPUT = ROOT / "build" / "example-5inch"
+DEFAULT_WORLD = ROOT / "recipes" / "environments" / "fpv-training-course.yaml"
 DEFAULT_DRONE_PRO = ROOT.parent / "hakoniwa-drone-pro"
 DEFAULT_FOUNDATION_PYTHON = ROOT.parent / "hakoniwa-business-pack" / "work" / "foundation" / "install" / "python" / "bin" / "python3"
 
@@ -301,13 +302,14 @@ def configure(args: argparse.Namespace) -> int:
         [
             str(foundation_python), "-m", "fpv_drone_generator.cli",
             "generate", str(args.recipe.resolve()), "--output", str(resolved["output"]),
+            "--world", str(args.world.resolve()),
         ],
         cwd=ROOT,
         env=generator_env,
     )
     resolved["vehicle"].mkdir(parents=True, exist_ok=True)
     resolved["logs"].mkdir(parents=True, exist_ok=True)
-    for filename in ("drone.xml", "control-param.json", "control-param.txt", "report.json", "bom.yaml", "resolved-components.yaml", "recipe.yaml"):
+    for filename in ("drone.xml", "control-param.json", "control-param.txt", "report.json", "bom.yaml", "resolved-components.yaml", "recipe.yaml", "world.yaml"):
         shutil.copy2(resolved["output"] / filename, resolved["vehicle"] / filename)
     runtime_config_path = resolved["vehicle"] / "drone_config_0.json"
     runtime_config = json.loads((resolved["output"] / "drone_config.json").read_text(encoding="utf-8"))
@@ -334,7 +336,7 @@ def configure(args: argparse.Namespace) -> int:
                 "name": "fpv-drone-service",
                 "activation_timing": "before_start",
                 "command": str(service),
-                "args": [str(resolved["vehicle"]), str(pdudef), "--mujoco-viewer", "--real-sleep-msec", "1"],
+                "args": [str(resolved["vehicle"]), str(pdudef), "--mujoco-viewer", "--mujoco-fpv-pip", "--real-sleep-msec", "1"],
                 "cwd": str(drone_pro),
                 "delay_sec": 2,
             },
@@ -388,6 +390,7 @@ def parser() -> argparse.ArgumentParser:
     )
     result.add_argument("--recipe", type=Path, default=DEFAULT_RECIPE)
     result.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    result.add_argument("--world", type=Path, default=DEFAULT_WORLD)
     result.add_argument("--drone-pro-root", type=Path, default=DEFAULT_DRONE_PRO)
     result.add_argument("--foundation-python", type=Path, default=DEFAULT_FOUNDATION_PYTHON)
     result.add_argument("--rc-config", type=Path, default=DEFAULT_DRONE_PRO / "drone_api" / "rc" / "rc_config" / "ps4-control.json")

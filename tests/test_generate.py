@@ -10,8 +10,9 @@ from fpv_drone_generator.catalog import load_catalogs
 from fpv_drone_generator.package import generate_package
 from fpv_drone_generator.recipe import load_recipe
 from fpv_drone_generator.resolver import resolve_vehicle
+from fpv_drone_generator.world import load_world
 
-from .support import CATALOGS, SAMPLE_RECIPE
+from .support import CATALOGS, SAMPLE_RECIPE, SAMPLE_WORLD
 
 
 class GenerateTest(unittest.TestCase):
@@ -63,6 +64,31 @@ class GenerateTest(unittest.TestCase):
             output = generate_package(vehicle, Path(directory) / "vehicle")
             model = mujoco.MjModel.from_xml_path(str(output / "drone.xml"))
             self.assertGreater(model.nbody, 1)
+
+    def test_world_course_is_independent_and_generated_into_mujoco(self):
+        vehicle = resolve_vehicle(load_recipe(SAMPLE_RECIPE), load_catalogs(CATALOGS))
+        world = load_world(SAMPLE_WORLD)
+        with tempfile.TemporaryDirectory() as directory:
+            output = generate_package(vehicle, Path(directory) / "vehicle", world)
+            root = ET.parse(output / "drone.xml").getroot()
+            self.assertTrue((output / "world.yaml").is_file())
+            self.assertEqual(10, len(world.obstacles))
+            self.assertIsNotNone(root.find("./asset/texture[@type='skybox']"))
+            self.assertIsNotNone(root.find("./worldbody/body[@name='course_start-gate']"))
+            self.assertEqual(
+                4,
+                len(root.findall("./worldbody/body[@name='course_start-gate']/geom")),
+            )
+            frame = root.find("./worldbody/body[@name='drone_base']/geom[@name='frame']")
+            gate = root.find("./worldbody/body[@name='course_start-gate']/geom")
+            ground = root.find("./worldbody/geom[@name='ground']")
+            self.assertEqual("0.15 0.002 0.0001", frame.attrib["friction"])
+            self.assertEqual("0.15 0.002 0.0001", gate.attrib["friction"])
+            self.assertEqual("3", gate.attrib["condim"])
+            self.assertEqual("0.8 0.02 0.001", ground.attrib["friction"])
+            self.assertIsNone(root.find("./worldbody/body[@name='course_start-gate']/geom[@name='start-gate_center']"))
+            report = json.loads((output / "report.json").read_text(encoding="utf-8"))
+            self.assertEqual(10, report["world"]["obstacle_count"])
 
     def test_rate_recipe_generates_explicit_rate_flags(self):
         with tempfile.TemporaryDirectory() as directory:

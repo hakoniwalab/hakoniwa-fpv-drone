@@ -11,6 +11,7 @@ from .generators.hakoniwa_control_param import generate_control_parameters
 from .generators.hakoniwa_drone_config import generate_drone_config
 from .generators.mujoco import generate_mujoco
 from .model import ResolvedVehicle
+from .world import World
 from .yaml_io import dump_yaml
 
 
@@ -80,17 +81,27 @@ def build_report(vehicle: ResolvedVehicle) -> dict[str, Any]:
     }
 
 
-def generate_package(vehicle: ResolvedVehicle, output: Path) -> Path:
+def generate_package(vehicle: ResolvedVehicle, output: Path, world: World | None = None) -> Path:
     output.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(vehicle.recipe.path, output / "recipe.yaml")
     dump_yaml(output / "resolved-components.yaml", resolved_components(vehicle))
     dump_yaml(output / "bom.yaml", build_bom(vehicle))
-    generate_mujoco(vehicle, output / "drone.xml")
+    if world is not None:
+        shutil.copyfile(world.path, output / "world.yaml")
+    generate_mujoco(vehicle, output / "drone.xml", world)
     generate_drone_config(vehicle, output / "drone_config.json")
     generate_control_parameters(vehicle, output / "control-param.json", output / "control-param.txt")
     report = build_report(vehicle)
     report["artifacts"] = {}
-    for name in ("recipe.yaml", "resolved-components.yaml", "bom.yaml", "drone.xml", "drone_config.json", "control-param.json", "control-param.txt"):
+    artifacts = ["recipe.yaml", "resolved-components.yaml", "bom.yaml", "drone.xml", "drone_config.json", "control-param.json", "control-param.txt"]
+    if world is not None:
+        artifacts.append("world.yaml")
+        report["world"] = {
+            "source": str(world.path),
+            "obstacle_count": len(world.obstacles),
+            "light_count": len(world.lights),
+        }
+    for name in artifacts:
         report["artifacts"][name] = {"sha256": _sha256(output / name)}
     (output / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     return output

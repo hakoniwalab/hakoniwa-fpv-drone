@@ -45,6 +45,7 @@ fpv-drone validate recipes/examples/5inch-fpv.yaml
 fpv-drone bom recipes/examples/5inch-fpv.yaml
 fpv-drone generate \
   recipes/examples/5inch-fpv.yaml \
+  --world recipes/environments/fpv-training-course.yaml \
   --output build/example-5inch
 ```
 
@@ -87,6 +88,12 @@ controller:
 
 詳しくは[Catalog仕様](docs/catalog-spec.md)と[Recipe仕様](docs/recipe-spec.md)を参照してください。
 
+## FPV飛行コース
+
+機体Recipeとは独立した[FPV World YAML](docs/fpv-world.md)で、明るい空・照明・地面と、ゲート、パイロン、壁などの物理障害物を定義できます。既定コースは`recipes/environments/fpv-training-course.yaml`です。機体を変えても同じコースを再利用でき、コースだけを差し替えることもできます。
+
+Drone PROで起動すると、機体の`fpv`カラを全面に、自由に操作できる客観カラをViewer左上のPiPに表示します。`Tab`キーで両者を入れ替え、`F`キーでPiPを表示・非表示できます。
+
 ## Hakoniwa Business Packから利用する
 
 FPV固有のComponent CatalogとVehicle Recipeはこのリポジトリを正本とします。Business Pack側にはコンポーネントの検索Catalogだけを置き、システム構成Recipeもこのリポジトリの[FPV設計・Angle飛行Recipe](recipes/business-pack/fpv-drone-design-angle-flight.yaml)を参照します。これにより、FPVの設定や実行手順を二重管理しません。
@@ -110,6 +117,7 @@ Business Pack Recipeと`recipes/examples/5inch-fpv.yaml`は役割が異なりま
 ```text
 build/example-5inch/
 ├── recipe.yaml
+├── world.yaml              # --world指定時
 ├── resolved-components.yaml
 ├── bom.yaml
 ├── drone.xml

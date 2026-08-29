@@ -6,7 +6,7 @@
 
 ```text
 Catalog ─┐
-         ├─ Resolver ─> ResolvedVehicle ─┬─ MuJoCo renderer
+         ├─ Resolver ─> ResolvedVehicle ─┬─ MuJoCo renderer <─ World/Course YAML
 Recipe  ─┘                               ├─ Drone PRO config renderer
                                          ├─ Controller param renderer
                                          └─ BOM/report renderer
@@ -25,6 +25,10 @@ Recipe  ─┘                               ├─ Drone PRO config renderer
 ### Resolved Vehicle Model
 
 `ResolvedVehicle` はbackend非依存の中間表現です。Catalogの生dictをrendererへ渡しません。typed components、質量、重心、慣性、Rotor配置、推力推定、近似一覧を保持します。
+
+### World / Course
+
+World YAMLは、機体とは独立にMuJoCoの背景、照明、地面、物理障害物を定義します。同じ機体を複数コースで評価する場合も、同じコースで機体候補を比較する場合も、Vehicle Recipeを書き換えません。
 
 ### Generated Package
 
