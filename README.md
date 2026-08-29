@@ -199,11 +199,19 @@ python3.12 tools/fpv.py start
 
 `tune-apply`の適用先は`build/<package>/runtime/vehicle/control-param.txt`だけです。`configure`を再実行すると生成初期値へ戻ります。
 
+2026-08-29にPS5で確認したサンプル機体は、物理モデル・実行設定・PIDを`verified-configs/example-5inch-angle/`へ一体で固定しています。生成初期値ではなく、この検証済み構成を再現する場合は次の順で実行します。
+
+```bash
+python3.12 tools/fpv.py configure
+python3.12 tools/fpv.py restore-verified-config
+python3.12 tools/fpv.py start
+```
+
 結果は`hakoniwa-drone-pro/work/pid-tuning/fpv-<package>-<hash>/results/autotune/`へ出力されます。自動探索のbest candidateは採用決定ではありません。詳細な評価基準と生成物は、Drone PROの`pro-docs/control-link/pid-tuning.md`を正本とします。
 
 チューニング開始後は、質量、慣性、Ct/Cq、ローター位置・回転方向・最大回転数、制御周期、シミュレーション周期を変更しないでください。
 
-初回接続で判明したControllerの分離、地上静止の誤判定、MuJoCo／NED座標変換、FPV機向け探索範囲、結果判定の注意点は、[PIDチューニング接続ノウハウ](docs/pid-tuning-knowhow.md)にまとめています。機体固有のPID値、探索範囲、試行結果はコミット対象にしません。
+初回接続で判明したControllerの分離、地上静止の誤判定、MuJoCo／NED座標変換、FPV機向け探索範囲、結果判定の注意点は、[PIDチューニング接続ノウハウ](docs/pid-tuning-knowhow.md)にまとめています。探索範囲と試行結果はコミットしません。飛行確認済みPIDを保存する場合だけ、対応する物理モデル・実行設定と一体で`verified-configs/`へ固定します。
 
 ## 現在の制約
 

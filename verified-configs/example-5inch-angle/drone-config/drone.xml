@@ -1,0 +1,85 @@
+<mujoco model="example-5inch-fpv">
+  <compiler angle="degree" inertiafromgeom="false" />
+  <option timestep="0.001" density="1.204" viscosity="0.000018" integrator="RK4" />
+  <visual>
+    <global azimuth="135" elevation="-20" />
+    <rgba haze="0.72 0.84 0.96 1" />
+    <headlight ambient="0.55 0.55 0.55" diffuse="0.8 0.8 0.8" specular="0.25 0.25 0.25" />
+  </visual>
+  <asset>
+    <texture name="fpv_sky" type="skybox" builtin="gradient" rgb1="0.62 0.78 0.95" rgb2="0.78 0.94 1" width="512" height="3072" />
+  </asset>
+  <worldbody>
+    <light name="key-light" pos="0 -5 12" dir="0 0.25 -1" diffuse="0.95 0.95 0.92" ambient="0.25 0.25 0.25" directional="true" castshadow="true" />
+    <light name="fill-light" pos="8 4 7" dir="-0.7 -0.3 -1" diffuse="0.55 0.65 0.8" ambient="0.12 0.12 0.16" directional="true" castshadow="true" />
+    <geom name="ground" type="plane" size="30 30 0.1" rgba="0.3 0.42 0.25 1" friction="0.8 0.02 0.001" />
+    <body name="course_start-gate" pos="4 0 1.5" euler="0 0 0">
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="1 0.25 0.05 1" name="start-gate_left" type="box" pos="-1.29 0 0" size="0.09 0.125 1.28" />
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="1 0.25 0.05 1" name="start-gate_right" type="box" pos="1.29 0 0" size="0.09 0.125 1.28" />
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="1 0.25 0.05 1" name="start-gate_top" type="box" pos="0 0 1.19" size="1.2 0.125 0.09" />
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="1 0.25 0.05 1" name="start-gate_bottom" type="box" pos="0 0 -1.19" size="1.2 0.125 0.09" />
+    </body>
+    <body name="course_gate-left" pos="8 4 1.8" euler="0 0 35">
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.1 0.75 1 1" name="gate-left_left" type="box" pos="-1.19 0 0" size="0.09 0.125 1.48" />
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.1 0.75 1 1" name="gate-left_right" type="box" pos="1.19 0 0" size="0.09 0.125 1.48" />
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.1 0.75 1 1" name="gate-left_top" type="box" pos="0 0 1.39" size="1.1 0.125 0.09" />
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.1 0.75 1 1" name="gate-left_bottom" type="box" pos="0 0 -1.39" size="1.1 0.125 0.09" />
+    </body>
+    <body name="course_gate-right" pos="12 -2.5 1.4" euler="0 0 -30">
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.95 0.15 0.75 1" name="gate-right_left" type="box" pos="-1.08 0 0" size="0.08 0.125 1.16" />
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.95 0.15 0.75 1" name="gate-right_right" type="box" pos="1.08 0 0" size="0.08 0.125 1.16" />
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.95 0.15 0.75 1" name="gate-right_top" type="box" pos="0 0 1.08" size="1 0.125 0.08" />
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.95 0.15 0.75 1" name="gate-right_bottom" type="box" pos="0 0 -1.08" size="1 0.125 0.08" />
+    </body>
+    <body name="course_high-gate" pos="15 3 3.8" euler="0 0 15">
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.95 0.75 0.05 1" name="high-gate_left" type="box" pos="-1.35 0 0" size="0.1 0.15 1.3" />
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.95 0.75 0.05 1" name="high-gate_right" type="box" pos="1.35 0 0" size="0.1 0.15 1.3" />
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.95 0.75 0.05 1" name="high-gate_top" type="box" pos="0 0 1.2" size="1.25 0.15 0.1" />
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.95 0.75 0.05 1" name="high-gate_bottom" type="box" pos="0 0 -1.2" size="1.25 0.15 0.1" />
+    </body>
+    <body name="course_return-gate" pos="7 -6 2" euler="0 0 90">
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.35 1 0.25 1" name="return-gate_left" type="box" pos="-1.29 0 0" size="0.09 0.125 1.43" />
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.35 1 0.25 1" name="return-gate_right" type="box" pos="1.29 0 0" size="0.09 0.125 1.43" />
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.35 1 0.25 1" name="return-gate_top" type="box" pos="0 0 1.34" size="1.2 0.125 0.09" />
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.35 1 0.25 1" name="return-gate_bottom" type="box" pos="0 0 -1.34" size="1.2 0.125 0.09" />
+    </body>
+    <body name="course_slalom-1" pos="5.5 -3 1" euler="0 0 0">
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="1 0.45 0.05 1" name="slalom-1_geom" type="cylinder" size="0.15 1" />
+    </body>
+    <body name="course_slalom-2" pos="7.5 -3.8 1.25" euler="0 0 0">
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="1 0.85 0.05 1" name="slalom-2_geom" type="cylinder" size="0.15 1.25" />
+    </body>
+    <body name="course_slalom-3" pos="9.5 -4.5 1.5" euler="0 0 0">
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="1 0.45 0.05 1" name="slalom-3_geom" type="cylinder" size="0.15 1.5" />
+    </body>
+    <body name="course_low-bar" pos="11 3.5 0.65" euler="0 0 10">
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.2 0.3 0.9 1" name="low-bar_geom" type="box" size="1.75 0.15 0.65" />
+    </body>
+    <body name="course_tower" pos="17 -4 2.5" euler="0 0 20">
+      <geom contype="1" conaffinity="1" friction="0.15 0.002 0.0001" condim="3" rgba="0.35 0.38 0.45 1" name="tower_geom" type="box" size="0.6 0.6 2.5" />
+    </body>
+    <body name="drone_base" pos="0 0 0.25">
+      <freejoint name="drone_freejoint" />
+      <inertial pos="0.00177449168207 0 0.010674676525" mass="0.541" diaginertia="0.00141342665974 0.00148852314772 0.00272149232132" />
+      <geom name="frame" type="box" size="0.0925 0.0925 0.015" mass="0" rgba="0.12 0.12 0.14 1" friction="0.15 0.002 0.0001" />
+      <body name="prop1" pos="0.0795495128835 -0.0795495128835 0">
+        <geom name="prop1_geom" type="cylinder" size="0.0635 0.0015" mass="0" contype="0" conaffinity="0" rgba="0.18 0.18 0.20 0.55" />
+        <site name="prop1_axis" type="sphere" size="0.006" rgba="0.9 0.2 0.15 1" />
+      </body>
+      <body name="prop2" pos="0.0795495128835 0.0795495128835 0">
+        <geom name="prop2_geom" type="cylinder" size="0.0635 0.0015" mass="0" contype="0" conaffinity="0" rgba="0.18 0.18 0.20 0.55" />
+        <site name="prop2_axis" type="sphere" size="0.006" rgba="0.15 0.55 1 1" />
+      </body>
+      <body name="prop3" pos="-0.0795495128835 0.0795495128835 0">
+        <geom name="prop3_geom" type="cylinder" size="0.0635 0.0015" mass="0" contype="0" conaffinity="0" rgba="0.18 0.18 0.20 0.55" />
+        <site name="prop3_axis" type="sphere" size="0.006" rgba="0.9 0.2 0.15 1" />
+      </body>
+      <body name="prop4" pos="-0.0795495128835 -0.0795495128835 0">
+        <geom name="prop4_geom" type="cylinder" size="0.0635 0.0015" mass="0" contype="0" conaffinity="0" rgba="0.18 0.18 0.20 0.55" />
+        <site name="prop4_axis" type="sphere" size="0.006" rgba="0.15 0.55 1 1" />
+      </body>
+      <geom name="fpv_camera" type="box" pos="0.08 0 0.005" size="0.01 0.01 0.01" mass="0" contype="0" conaffinity="0" rgba="0.15 0.15 0.15 1" />
+      <camera name="fpv" pos="0.08 0 0.005" xyaxes="0 -1 0 0 0 1" fovy="120" />
+    </body>
+  </worldbody>
+</mujoco>

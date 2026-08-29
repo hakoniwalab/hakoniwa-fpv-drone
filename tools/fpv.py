@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RECIPE = ROOT / "recipes" / "examples" / "5inch-fpv.yaml"
 DEFAULT_OUTPUT = ROOT / "build" / "example-5inch"
 DEFAULT_WORLD = ROOT / "recipes" / "environments" / "fpv-training-course.yaml"
+DEFAULT_VERIFIED_CONFIG = ROOT / "verified-configs" / "example-5inch-angle" / "drone-config"
 DEFAULT_DRONE_PRO = ROOT.parent / "hakoniwa-drone-pro"
 DEFAULT_FOUNDATION_PYTHON = ROOT.parent / "hakoniwa-business-pack" / "work" / "foundation" / "install" / "python" / "bin" / "python3"
 
@@ -70,6 +71,29 @@ def tuning_runner(drone_pro: Path) -> Path:
 
 def tuning_marker(resolved: dict[str, Path]) -> Path:
     return resolved["runtime"] / "pid-tuning-profile.json"
+
+
+def restore_verified_config(args: argparse.Namespace) -> int:
+    """Restore one reviewed vehicle/controller snapshot into a runtime package."""
+    resolved = paths(args)
+    source = args.verified_config.resolve()
+    vehicle_dir = resolved["vehicle"]
+    vehicle_dir.mkdir(parents=True, exist_ok=True)
+    for filename in ("drone.xml", "drone_config_0.json", "control-param.txt"):
+        require_file(source / filename, f"verified FPV config {filename}")
+
+    shutil.copy2(source / "drone.xml", vehicle_dir / "drone.xml")
+    shutil.copy2(source / "control-param.txt", vehicle_dir / "control-param.txt")
+    config = json.loads((source / "drone_config_0.json").read_text(encoding="utf-8"))
+    config["components"]["droneDynamics"]["mujoco"]["modelPath"] = str(
+        vehicle_dir / "drone.xml"
+    )
+    (vehicle_dir / "drone_config_0.json").write_text(
+        json.dumps(config, indent=2) + "\n", encoding="utf-8"
+    )
+    print(f"Restored verified FPV drone config: {source}")
+    print(f"Runtime vehicle directory: {vehicle_dir}")
+    return 0
 
 
 def materialize_tuning_inputs(vehicle_dir: Path, output_dir: Path) -> Path:
@@ -292,6 +316,7 @@ def configure(args: argparse.Namespace) -> int:
     pdudef = require_file(drone_pro / "config" / "pdudef" / "drone-pdudef-1.json", "Drone PDU definition")
     rc_config = require_file(args.rc_config.resolve(), "RC config")
     require_file(drone_pro / "drone_api" / "rc" / "rc-custom.py", "RC client")
+    rc_bootstrap = require_file(ROOT / "tools" / "fpv_rc_bootstrap.py", "FPV RC bootstrap")
 
     generator_env = os.environ.copy()
     existing_pythonpath = generator_env.get("PYTHONPATH")
@@ -344,10 +369,13 @@ def configure(args: argparse.Namespace) -> int:
                 "name": "fpv-remote-controller",
                 "activation_timing": "after_start",
                 "command": str(foundation_python),
-                # Unbuffered output keeps joystick discovery and button-event
-                # diagnostics visible in the Launcher log.
-                "args": ["-u", "-m", "rc-custom", str(pdudef), str(rc_config)],
-                "cwd": str(drone_pro / "drone_api" / "rc"),
+                # Materialize a neutral GameControllerOperation before handing
+                # control to Drone PRO's unmodified stock RC client.
+                "args": [
+                    "-u", str(rc_bootstrap), str(pdudef), str(rc_config),
+                    "--rc-root", str(drone_pro / "drone_api" / "rc"),
+                ],
+                "cwd": str(ROOT),
                 "depends_on": ["fpv-drone-service"],
             },
         ],
@@ -384,13 +412,14 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument(
         "command",
         choices=(
-            "configure", "start", "status", "stop",
+            "configure", "restore-verified-config", "start", "status", "stop",
             "tune-build", "tune-prepare", "tune-hover", "tune-angle", "tune-apply",
         ),
     )
     result.add_argument("--recipe", type=Path, default=DEFAULT_RECIPE)
     result.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     result.add_argument("--world", type=Path, default=DEFAULT_WORLD)
+    result.add_argument("--verified-config", type=Path, default=DEFAULT_VERIFIED_CONFIG)
     result.add_argument("--drone-pro-root", type=Path, default=DEFAULT_DRONE_PRO)
     result.add_argument("--foundation-python", type=Path, default=DEFAULT_FOUNDATION_PYTHON)
     result.add_argument("--rc-config", type=Path, default=DEFAULT_DRONE_PRO / "drone_api" / "rc" / "rc_config" / "ps4-control.json")
@@ -402,6 +431,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "configure":
             return configure(args)
+        if args.command == "restore-verified-config":
+            return restore_verified_config(args)
         if args.command == "tune-build":
             return tune_build(args)
         if args.command == "tune-prepare":

@@ -13,6 +13,14 @@ SPEC.loader.exec_module(FPV_TOOL)
 
 
 class FpvToolTest(unittest.TestCase):
+    def test_rc_bootstrap_is_owned_by_fpv_repository(self):
+        bootstrap = FPV_TOOL.ROOT / "tools" / "fpv_rc_bootstrap.py"
+        self.assertTrue(bootstrap.is_file())
+        source = bootstrap.read_text(encoding="utf-8")
+        self.assertIn("neutral.axis = [0.0] * 6", source)
+        self.assertIn("neutral.button = [False] * 15", source)
+        self.assertIn('"-m",\n            "rc-custom"', source)
+
     def test_tuning_digest_is_deterministic_and_tracks_inputs(self):
         with tempfile.TemporaryDirectory() as directory:
             vehicle = Path(directory)
@@ -32,6 +40,42 @@ class FpvToolTest(unittest.TestCase):
     def test_parser_exposes_only_sequential_tuning_steps(self):
         for command in ("tune-build", "tune-prepare", "tune-hover", "tune-angle", "tune-apply"):
             self.assertEqual(command, FPV_TOOL.parser().parse_args([command]).command)
+
+    def test_restore_verified_config_materializes_portable_model_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            verified = root / "verified"
+            output = root / "output"
+            verified.mkdir()
+            (verified / "drone.xml").write_text("<mujoco/>", encoding="utf-8")
+            (verified / "control-param.txt").write_text("PID_POS_MAX_ROLL 55\n", encoding="utf-8")
+            (verified / "drone_config_0.json").write_text(
+                json.dumps(
+                    {
+                        "components": {
+                            "droneDynamics": {"mujoco": {"modelPath": "drone.xml"}}
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            args = FPV_TOOL.parser().parse_args(
+                [
+                    "restore-verified-config",
+                    "--output", str(output),
+                    "--verified-config", str(verified),
+                ]
+            )
+
+            self.assertEqual(0, FPV_TOOL.restore_verified_config(args))
+            vehicle = output.resolve() / "runtime" / "vehicle"
+            restored = json.loads((vehicle / "drone_config_0.json").read_text(encoding="utf-8"))
+            self.assertEqual(
+                str(vehicle / "drone.xml"),
+                restored["components"]["droneDynamics"]["mujoco"]["modelPath"],
+            )
+            self.assertEqual("<mujoco/>", (vehicle / "drone.xml").read_text(encoding="utf-8"))
+            self.assertIn("55", (vehicle / "control-param.txt").read_text(encoding="utf-8"))
 
     def test_parameter_overrides_preserve_comments_and_append_missing_keys(self):
         source = "# generated\nPID_ROLL_Kp 1\nPID_ROLL_Ki 0\n"

@@ -46,9 +46,25 @@ tuned control parameters
 
 PID自動チューニングのrunner、探索、評価、結果生成は箱庭ドローンPROの機能であり、その実行には有効な箱庭ドローンPROライセンスが必要です。
 
+## 検証済みDrone Configの復元
+
+`verified-configs/example-5inch-angle/drone-config/`には、2026-08-29にPS5 Angle飛行で確認したサンプル機体の`drone.xml`、`drone_config_0.json`、`control-param.txt`を固定しています。PID調整profile、探索空間、試行ログはDrone PROライセンス対象の作業情報であり、ここには含めません。
+
+`configure`はCatalogとRecipeから生成初期値を作り直します。検証済みPIDを含む構成へ戻す場合は、その直後に次を実行します。
+
+```bash
+python3.12 tools/fpv.py configure
+python3.12 tools/fpv.py restore-verified-config
+python3.12 tools/fpv.py start
+```
+
+Git上の`drone_config_0.json`は移植可能な`modelPath: drone.xml`を保持します。復元時に対象Runtimeの絶対パスへ変換されるため、clone先のディレクトリには依存しません。検証条件とファイルhashは`verified-configs/example-5inch-angle/receipt.json`を参照してください。
+
 現在のAngle実行Profileは高度方向に`AttiHover`を使うため、調整順序は必ずHover、目視レビュー、Angleです。チューナー、評価、探索範囲、採用判定の正本はDrone PRO側にあり、本リポジトリは入力を接続するだけです。
 
 FPV機体をこの経路へ接続するときの事前確認と既知の失敗パターンは、[PIDチューニング接続ノウハウ](pid-tuning-knowhow.md)を参照してください。
+
+FPV Launcherは、FPV側の`fpv_rc_bootstrap.py`でGameController PDUをニュートラル値として初期化してから、Drone PRO標準の`rc-custom.py`へ処理を引き渡します。起動直後の未初期化PDUと最初のPS5ボタン操作が競合してもDrone PRO本体を変更しないためのランタイム境界です。
 
 ## report.jsonの状態
 

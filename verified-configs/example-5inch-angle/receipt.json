@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "id": "example-5inch-angle-2026-08-29",
+  "source_recipe": "recipes/examples/5inch-fpv.yaml",
+  "source_world": "recipes/environments/fpv-training-course.yaml",
+  "verified_on": "2026-08-29",
+  "verification": {
+    "controller_backend": "adapter-hakoniwa",
+    "runtime_controller": "RadioController",
+    "mode": "angle",
+    "max_roll_deg": 55.0,
+    "max_pitch_deg": 55.0,
+    "pid_tuning": "Hakoniwa Drone PRO Hover then Angle; hard gates passed",
+    "manual_acceptance": "PS5 Angle-mode flight"
+  },
+  "scope": [
+    "simulation model and controller configuration only",
+    "not validated against a real aircraft",
+    "PID tuning profile, search space, trials, and logs are not included"
+  ],
+  "files": {
+    "drone-config/drone.xml": {
+      "sha256": "e1bf341a0c090c919fdae28331b137c04b1e90b1d9fd9aec9b8861a596a98b1d"
+    },
+    "drone-config/drone_config_0.json": {
+      "sha256": "d1e50908ef424f972616e222d78de90f9c356f8c4fec5d3c70a6686ac9e78c70"
+    },
+    "drone-config/control-param.txt": {
+      "sha256": "28b402f872d3b2138594908d24361122a43d212783f50cd643cef73c5461c38a"
+    }
+  }
+}
