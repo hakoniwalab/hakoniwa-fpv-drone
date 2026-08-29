@@ -50,15 +50,16 @@ PID自動チューニングのrunner、探索、評価、結果生成は箱庭�
 
 `verified-configs/example-5inch-angle/drone-config/`には、2026-08-29にPS5 Angle飛行で確認したサンプル機体の`drone.xml`、`drone_config_0.json`、`control-param.txt`を固定しています。PID調整profile、探索空間、試行ログはDrone PROライセンス対象の作業情報であり、ここには含めません。
 
-`configure`はCatalogとRecipeから生成初期値を作り直します。検証済みPIDを含む構成へ戻す場合は、その直後に次を実行します。
+`configure`はCatalogとRecipeから生成した後、RecipeとWorldのpathおよびSHA-256がReceiptと一致すれば、検証済み3ファイルを自動適用します。したがって通常手順は次のとおりです。
 
 ```bash
 python3.12 tools/fpv.py configure
-python3.12 tools/fpv.py restore-verified-config
 python3.12 tools/fpv.py start
 ```
 
-Git上の`drone_config_0.json`は移植可能な`modelPath: drone.xml`を保持します。復元時に対象Runtimeの絶対パスへ変換されるため、clone先のディレクトリには依存しません。検証条件とファイルhashは`verified-configs/example-5inch-angle/receipt.json`を参照してください。
+未調整の生成初期値を意図的に調べる場合だけ`configure --generated-defaults`を使用します。`restore-verified-config`は、既存Runtimeへ検証済み構成を明示的に戻す保守用コマンドとして残しています。
+
+Git上の`drone_config_0.json`は移植可能な`modelPath: drone.xml`を保持します。適用時に対象Runtimeの絶対パスへ変換されるため、clone先のディレクトリには依存しません。検証条件とファイルhashは`verified-configs/example-5inch-angle/receipt.json`を参照してください。
 
 現在のAngle実行Profileは高度方向に`AttiHover`を使うため、調整順序は必ずHover、目視レビュー、Angleです。チューナー、評価、探索範囲、採用判定の正本はDrone PRO側にあり、本リポジトリは入力を接続するだけです。
 

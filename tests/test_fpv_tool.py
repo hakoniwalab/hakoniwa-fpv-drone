@@ -44,9 +44,10 @@ class FpvToolTest(unittest.TestCase):
     def test_restore_verified_config_materializes_portable_model_path(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            verified = root / "verified"
+            package = root / "verified"
+            verified = package / "drone-config"
             output = root / "output"
-            verified.mkdir()
+            verified.mkdir(parents=True)
             (verified / "drone.xml").write_text("<mujoco/>", encoding="utf-8")
             (verified / "control-param.txt").write_text("PID_POS_MAX_ROLL 55\n", encoding="utf-8")
             (verified / "drone_config_0.json").write_text(
@@ -54,6 +55,19 @@ class FpvToolTest(unittest.TestCase):
                     {
                         "components": {
                             "droneDynamics": {"mujoco": {"modelPath": "drone.xml"}}
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (package / "receipt.json").write_text(
+                json.dumps(
+                    {
+                        "files": {
+                            f"drone-config/{name}": {
+                                "sha256": FPV_TOOL.sha256_file(verified / name)
+                            }
+                            for name in ("drone.xml", "drone_config_0.json", "control-param.txt")
                         }
                     }
                 ),
@@ -76,6 +90,15 @@ class FpvToolTest(unittest.TestCase):
             )
             self.assertEqual("<mujoco/>", (vehicle / "drone.xml").read_text(encoding="utf-8"))
             self.assertIn("55", (vehicle / "control-param.txt").read_text(encoding="utf-8"))
+
+    def test_default_recipe_discovers_reviewed_config(self):
+        self.assertEqual(
+            FPV_TOOL.DEFAULT_VERIFIED_CONFIG,
+            FPV_TOOL.discover_verified_config(
+                FPV_TOOL.DEFAULT_RECIPE,
+                FPV_TOOL.DEFAULT_WORLD,
+            ),
+        )
 
     def test_parameter_overrides_preserve_comments_and_append_missing_keys(self):
         source = "# generated\nPID_ROLL_Kp 1\nPID_ROLL_Ki 0\n"

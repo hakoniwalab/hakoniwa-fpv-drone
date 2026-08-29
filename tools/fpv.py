@@ -73,14 +73,28 @@ def tuning_marker(resolved: dict[str, Path]) -> Path:
     return resolved["runtime"] / "pid-tuning-profile.json"
 
 
-def restore_verified_config(args: argparse.Namespace) -> int:
-    """Restore one reviewed vehicle/controller snapshot into a runtime package."""
-    resolved = paths(args)
-    source = args.verified_config.resolve()
-    vehicle_dir = resolved["vehicle"]
-    vehicle_dir.mkdir(parents=True, exist_ok=True)
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def validate_verified_config(source: Path) -> None:
+    receipt_path = require_file(source.parent / "receipt.json", "verified FPV config receipt")
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    files = receipt.get("files")
+    if not isinstance(files, dict):
+        raise RuntimeErrorWithMessage(f"verified FPV config receipt has no files: {receipt_path}")
     for filename in ("drone.xml", "drone_config_0.json", "control-param.txt"):
-        require_file(source / filename, f"verified FPV config {filename}")
+        path = require_file(source / filename, f"verified FPV config {filename}")
+        key = f"drone-config/{filename}"
+        expected = files.get(key, {}).get("sha256")
+        if not isinstance(expected, str) or sha256_file(path) != expected:
+            raise RuntimeErrorWithMessage(f"verified FPV config hash mismatch: {path}")
+
+
+def materialize_verified_config(source: Path, vehicle_dir: Path) -> None:
+    source = source.resolve()
+    validate_verified_config(source)
+    vehicle_dir.mkdir(parents=True, exist_ok=True)
 
     shutil.copy2(source / "drone.xml", vehicle_dir / "drone.xml")
     shutil.copy2(source / "control-param.txt", vehicle_dir / "control-param.txt")
@@ -91,8 +105,40 @@ def restore_verified_config(args: argparse.Namespace) -> int:
     (vehicle_dir / "drone_config_0.json").write_text(
         json.dumps(config, indent=2) + "\n", encoding="utf-8"
     )
+
+
+def discover_verified_config(recipe: Path, world: Path) -> Path | None:
+    recipe = recipe.resolve()
+    world = world.resolve()
+    matches: list[Path] = []
+    for receipt_path in sorted((ROOT / "verified-configs").glob("*/receipt.json")):
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        source_recipe = receipt.get("source_recipe")
+        source_world = receipt.get("source_world")
+        inputs = receipt.get("inputs", {})
+        if not isinstance(source_recipe, str) or not isinstance(source_world, str):
+            continue
+        if (ROOT / source_recipe).resolve() != recipe or (ROOT / source_world).resolve() != world:
+            continue
+        if inputs.get("recipe_sha256") != sha256_file(recipe):
+            continue
+        if inputs.get("world_sha256") != sha256_file(world):
+            continue
+        matches.append(receipt_path.parent / "drone-config")
+    if len(matches) > 1:
+        raise RuntimeErrorWithMessage(
+            f"multiple verified FPV configs match recipe/world: {', '.join(map(str, matches))}"
+        )
+    return matches[0] if matches else None
+
+
+def restore_verified_config(args: argparse.Namespace) -> int:
+    """Restore one reviewed vehicle/controller snapshot into a runtime package."""
+    resolved = paths(args)
+    source = args.verified_config.resolve()
+    materialize_verified_config(source, resolved["vehicle"])
     print(f"Restored verified FPV drone config: {source}")
-    print(f"Runtime vehicle directory: {vehicle_dir}")
+    print(f"Runtime vehicle directory: {resolved['vehicle']}")
     return 0
 
 
@@ -346,6 +392,16 @@ def configure(args: argparse.Namespace) -> int:
     )
     runtime_config_path.write_text(json.dumps(runtime_config, indent=2) + "\n", encoding="utf-8")
 
+    if not args.generated_defaults:
+        verified_config = discover_verified_config(args.recipe, args.world)
+        if verified_config is not None:
+            materialize_verified_config(verified_config, resolved["vehicle"])
+            print(f"Applied verified FPV config automatically: {verified_config}")
+        else:
+            print("No verified FPV config matches this Recipe and World; using generated defaults.")
+    else:
+        print("Using generated controller defaults (--generated-defaults).")
+
     launcher = {
         "version": "0.1",
         "defaults": {
@@ -420,6 +476,11 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     result.add_argument("--world", type=Path, default=DEFAULT_WORLD)
     result.add_argument("--verified-config", type=Path, default=DEFAULT_VERIFIED_CONFIG)
+    result.add_argument(
+        "--generated-defaults",
+        action="store_true",
+        help="Do not auto-apply a verified config after generation.",
+    )
     result.add_argument("--drone-pro-root", type=Path, default=DEFAULT_DRONE_PRO)
     result.add_argument("--foundation-python", type=Path, default=DEFAULT_FOUNDATION_PYTHON)
     result.add_argument("--rc-config", type=Path, default=DEFAULT_DRONE_PRO / "drone_api" / "rc" / "rc_config" / "ps4-control.json")

@@ -199,13 +199,14 @@ python3.12 tools/fpv.py start
 
 `tune-apply`の適用先は`build/<package>/runtime/vehicle/control-param.txt`だけです。`configure`を再実行すると生成初期値へ戻ります。
 
-2026-08-29にPS5で確認したサンプル機体は、物理モデル・実行設定・PIDを`verified-configs/example-5inch-angle/`へ一体で固定しています。生成初期値ではなく、この検証済み構成を再現する場合は次の順で実行します。
+2026-08-29にPS5で確認したサンプル機体は、物理モデル・実行設定・PIDを`verified-configs/example-5inch-angle/`へ一体で固定しています。既定RecipeとWorldで`configure`すると、入力hashが一致する検証済み構成が自動適用されます。通常手順は次の2コマンドです。
 
 ```bash
 python3.12 tools/fpv.py configure
-python3.12 tools/fpv.py restore-verified-config
 python3.12 tools/fpv.py start
 ```
+
+生成直後の未調整PIDを調査するときだけ`configure --generated-defaults`を指定します。`restore-verified-config`は、検証済み3ファイルを明示的に戻す保守用コマンドです。
 
 結果は`hakoniwa-drone-pro/work/pid-tuning/fpv-<package>-<hash>/results/autotune/`へ出力されます。自動探索のbest candidateは採用決定ではありません。詳細な評価基準と生成物は、Drone PROの`pro-docs/control-link/pid-tuning.md`を正本とします。
 

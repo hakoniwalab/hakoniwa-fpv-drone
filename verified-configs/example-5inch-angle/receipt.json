@@ -3,6 +3,10 @@
   "id": "example-5inch-angle-2026-08-29",
   "source_recipe": "recipes/examples/5inch-fpv.yaml",
   "source_world": "recipes/environments/fpv-training-course.yaml",
+  "inputs": {
+    "recipe_sha256": "48653cf74b497b5030bf19ec3bb17792d24181689dd51fa119c30c00dcb7108d",
+    "world_sha256": "32af1265d55b2bf0030ebbd3091ba1c80361d25e3c442ecb2bcde99bba850a54"
+  },
   "verified_on": "2026-08-29",
   "verification": {
     "controller_backend": "adapter-hakoniwa",
