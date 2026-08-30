@@ -15,9 +15,9 @@ def _rotors(recipe: VehicleRecipe, wheelbase_m: float, positions: tuple[Vector3,
     if recipe.rotor_layout:
         if positions is not None:
             for index, entry in enumerate(recipe.rotor_layout):
-                if any(abs(entry.mujoco_position_flu_m[axis] - positions[index][axis]) > 1.0e-9 for axis in range(3)):
+                if any(abs(entry.position_flu_m[axis] - positions[index][axis]) > 1.0e-9 for axis in range(3)):
                     raise ResolutionError("frame motor mounts must match rotor_layout MuJoCo positions and order")
-        return tuple(Rotor(entry.name, entry.mujoco_position_flu_m, entry.drone_pro_position_frd_m, entry.rotation_direction) for entry in recipe.rotor_layout)
+        return tuple(Rotor(entry.name, entry.position_flu_m, None, entry.rotation_direction) for entry in recipe.rotor_layout)
     arm = wheelbase_m / (2.0 * math.sqrt(2.0))
     # Order and signs follow the existing Hakoniwa quad-X mixer fixtures.
     return (

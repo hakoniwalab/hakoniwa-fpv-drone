@@ -72,6 +72,17 @@ attachments:
 
 attachmentの`name`は一台のRecipe内で一意です。同じCatalog製品を複数回、異なるnameと取付姿勢で利用できます。初版の`parent`は`frame`だけを許可し、それ以外は明示的に拒否します。
 
+## v2: 初期接地高さ
+
+v2では固定の初期Zを使わず、全collision primitiveの最下点から機体bodyの初期Zを自動計算します。追加の隙間だけを指定できます。
+
+```yaml
+initial_pose:
+  ground_clearance_m: 0.01
+```
+
+省略値は1cmです。v1は生成互換性のため従来のMuJoCo Z=0.25mを維持します。
+
 v1 Recipeは変更なしで読み込めます。landing gearとattachmentsを省略した場合は従来生成経路になります。
 
 ## 可変ローター機
@@ -88,12 +99,11 @@ rotor_layout:
   contract: hakoniwa-drone-pro/rotor-layout-v1
   rotors:
     - name: prop1
-      mujoco_position_flu_m: [0.25, 0.0, 0.0]
-      drone_pro_position_frd_m: [0.25, 0.0, 0.0]
+      position_flu_m: [0.25, 0.0, 0.0]
       rotation_direction: 1
     # ... prop6まで同じ順序で記述
 ```
 
-Generatorは各entryを同じindexでMuJoCo `propNames`とDrone PRO `rotorPositions`へ出力します。FRD/FLU変換や回転方向を推測しません。`drone_pro_position_frd_m`はDrone PROへそのまま渡されます。
+Generatorは各entryを同じindexでMuJoCo `propNames`へ出力し、同梱されたDrone PRO target contractの変換行列に従ってFRD `rotorPositions`を生成します。座標変換をRecipe作者へ重複記述させません。
 
 Drone PRO契約上、FRDは`+X Forward, +Y Right, +Z Down`、`rotation_direction=+1`は上から見てCCW、`-1`はCWです。公開Generatorはこの意味を再定義せず、指定されたcontract versionに従うadapterです。

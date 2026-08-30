@@ -19,10 +19,10 @@ controller:
 rotor_layout:
   contract: hakoniwa-drone-pro/rotor-layout-v1
   rotors:
-    - {name: prop1, mujoco_position_flu_m: [0.1768, -0.1768, 0.02], drone_pro_position_frd_m: [0.1768, 0.1768, -0.02], rotation_direction: -1}
-    - {name: prop2, mujoco_position_flu_m: [0.1768, 0.1768, 0.02], drone_pro_position_frd_m: [0.1768, -0.1768, -0.02], rotation_direction: 1}
-    - {name: prop3, mujoco_position_flu_m: [-0.1768, 0.1768, 0.02], drone_pro_position_frd_m: [-0.1768, -0.1768, -0.02], rotation_direction: -1}
-    - {name: prop4, mujoco_position_flu_m: [-0.1768, -0.1768, 0.02], drone_pro_position_frd_m: [-0.1768, 0.1768, -0.02], rotation_direction: 1}
+    - {name: prop1, position_flu_m: [0.1768, -0.1768, 0.02], rotation_direction: -1}
+    - {name: prop2, position_flu_m: [0.1768, 0.1768, 0.02], rotation_direction: 1}
+    - {name: prop3, position_flu_m: [-0.1768, 0.1768, 0.02], rotation_direction: -1}
+    - {name: prop4, position_flu_m: [-0.1768, -0.1768, 0.02], rotation_direction: 1}
 
 placements:
   battery: {position_m: [0.0, 0.0, 0.04], rpy_deg: [0.0, 0.0, 0.0]}

@@ -85,8 +85,7 @@ class AttachmentReference:
 @dataclass(frozen=True)
 class RotorLayoutReference:
     name: str
-    mujoco_position_flu_m: Vector3
-    drone_pro_position_frd_m: Vector3
+    position_flu_m: Vector3
     rotation_direction: float
 
 
@@ -102,6 +101,7 @@ class VehicleRecipe:
     attachments: tuple[AttachmentReference, ...]
     rotor_contract: str | None
     rotor_layout: tuple[RotorLayoutReference, ...]
+    ground_clearance_m: float
     raw: dict[str, Any]
 
 
@@ -206,12 +206,17 @@ def load_recipe(path: Path) -> VehicleRecipe:
                 raise ValidationError(f"{entry_path}.rotation_direction must be -1 or 1")
             rotor_layout.append(RotorLayoutReference(
                 name=rotor_name,
-                mujoco_position_flu_m=_position(entry.get("mujoco_position_flu_m"), f"{entry_path}.mujoco_position_flu_m"),
-                drone_pro_position_frd_m=_position(entry.get("drone_pro_position_frd_m"), f"{entry_path}.drone_pro_position_frd_m"),
+                position_flu_m=_position(entry.get("position_flu_m"), f"{entry_path}.position_flu_m"),
                 rotation_direction=float(direction),
             ))
     if schema_version >= 2 and not rotor_layout:
         raise ValidationError("recipe schema v2 requires explicit rotor_layout")
+    initial_pose = raw.get("initial_pose", {})
+    if not isinstance(initial_pose, dict):
+        raise ValidationError("recipe.initial_pose must be an object")
+    ground_clearance = initial_pose.get("ground_clearance_m", 0.01)
+    if isinstance(ground_clearance, bool) or not isinstance(ground_clearance, (int, float)) or ground_clearance < 0.0:
+        raise ValidationError("recipe.initial_pose.ground_clearance_m must be a non-negative number")
     return VehicleRecipe(
         path=path,
         schema_version=schema_version,
@@ -237,5 +242,6 @@ def load_recipe(path: Path) -> VehicleRecipe:
         attachments=tuple(attachments),
         rotor_contract=rotor_contract,
         rotor_layout=tuple(rotor_layout),
+        ground_clearance_m=float(ground_clearance),
         raw=raw,
     )

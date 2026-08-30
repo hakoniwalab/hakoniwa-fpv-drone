@@ -100,8 +100,7 @@ torque_Nm = Cq * omega_rad_s^2
 fpv-drone \
   --catalogs ./catalogs \
   --catalogs ../hakoniwa-drone-pro/tuning/x500/vehicle/catalogs \
-  generate recipe.yaml --output build/vehicle \
-  --drone-pro-rotor-contract ../hakoniwa-drone-pro/config/contracts/rotor-layout-v1.json
+  generate recipe.yaml --output build/vehicle
 ```
 
 後続rootは必要なkindのYAMLだけを持つpartial catalogにできます。同じkindのitemは結合されます。同一IDの重複は暗黙にoverrideせずエラーにし、どちらの値が採用されたか曖昧になることを防ぎます。

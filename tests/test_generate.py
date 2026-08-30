@@ -10,7 +10,7 @@ from fpv_drone_generator.catalog import load_catalogs
 from fpv_drone_generator.package import generate_package
 from fpv_drone_generator.recipe import load_recipe
 from fpv_drone_generator.resolver import resolve_vehicle
-from fpv_drone_generator.target import load_drone_pro_rotor_contract
+from fpv_drone_generator.target import bundled_drone_pro_rotor_contract_path, load_drone_pro_rotor_contract
 from fpv_drone_generator.world import load_world
 
 from .support import CATALOGS, SAMPLE_RECIPE, SAMPLE_WORLD
@@ -18,7 +18,7 @@ from .support import CATALOGS, SAMPLE_RECIPE, SAMPLE_WORLD
 
 UTILITY_RECIPE = SAMPLE_RECIPE.parent / "utility-quad-with-skid.yaml"
 HEXA_RECIPE = SAMPLE_RECIPE.parent / "utility-hexa.yaml"
-ROTOR_CONTRACT = Path(__file__).parent / "fixtures" / "drone-pro-rotor-layout-v1.json"
+ROTOR_CONTRACT = bundled_drone_pro_rotor_contract_path()
 
 
 class GenerateTest(unittest.TestCase):
@@ -114,6 +114,7 @@ class GenerateTest(unittest.TestCase):
     def test_schema_v2_generates_deterministic_assemblies(self):
         vehicle = resolve_vehicle(load_recipe(UTILITY_RECIPE), load_catalogs(CATALOGS))
         contract = load_drone_pro_rotor_contract(ROTOR_CONTRACT)
+        self.assertEqual((1.0, -2.0, -3.0), contract.transform_position((1.0, 2.0, 3.0)))
         with tempfile.TemporaryDirectory() as directory:
             first = generate_package(vehicle, Path(directory) / "first", rotor_contract=contract)
             second = generate_package(vehicle, Path(directory) / "second", rotor_contract=contract)
@@ -126,6 +127,7 @@ class GenerateTest(unittest.TestCase):
             self.assertNotIn("timestamp", xml_text.lower())
             root = ET.parse(first / "drone.xml").getroot()
             body = root.find("./worldbody/body[@name='drone_base']")
+            self.assertAlmostEqual(0.178, float(body.attrib["pos"].split()[2]), places=9)
             self.assertIsNotNone(body.find("./geom[@name='frame_center_plate']"))
             self.assertIsNotNone(body.find("./geom[@name='landing_gear_left_skid_contact']"))
             self.assertIsNotNone(body.find("./geom[@name='attachment_telemetry_antenna_antenna']"))
@@ -143,6 +145,7 @@ class GenerateTest(unittest.TestCase):
             self.assertTrue(all("density" in geom.attrib for geom in inertial_geoms))
             report = json.loads((first / "report.json").read_text(encoding="utf-8"))
             self.assertEqual("delegated", report["properties"]["inertia_kg_m2"]["status"])
+            self.assertAlmostEqual(0.178, report["initial_pose"]["mujoco_z_m"], places=9)
             bom = yaml.safe_load((first / "bom.yaml").read_text(encoding="utf-8"))
             payload = next(item for item in bom["items"] if item.get("catalog_id") == "generic_payload_box")
             self.assertEqual(2, payload["quantity"])

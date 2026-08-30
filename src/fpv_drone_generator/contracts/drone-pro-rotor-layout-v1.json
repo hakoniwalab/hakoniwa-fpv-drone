@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "contract_id": "hakoniwa-drone-pro/rotor-layout-v1",
+  "rotor_count": {
+    "runtime_min": 1,
+    "controllable_min": 4,
+    "legacy": 4,
+    "max": 16
+  },
+  "position_transform": {
+    "source_frame": "FLU",
+    "target_frame": "FRD",
+    "matrix": [
+      [1, 0, 0],
+      [0, -1, 0],
+      [0, 0, -1]
+    ]
+  },
+  "rotation_direction": {
+    "semantic": "physical rotation viewed from above",
+    "positive": "CCW",
+    "negative": "CW",
+    "target_mapping": "identity"
+  },
+  "index_ordering": "Recipe rotors, MuJoCo propNames, Drone PRO rotorPositions, rotor dynamics, and actuator output share one index"
+}

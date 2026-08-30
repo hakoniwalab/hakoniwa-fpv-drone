@@ -73,6 +73,13 @@
         "additionalProperties": false
       }
     },
+    "initial_pose": {
+      "type": "object",
+      "properties": {
+        "ground_clearance_m": {"type": "number", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
     "rotor_layout": {
       "type": "object",
       "required": ["contract", "rotors"],
@@ -83,11 +90,10 @@
           "minItems": 4,
           "items": {
             "type": "object",
-            "required": ["name", "mujoco_position_flu_m", "drone_pro_position_frd_m", "rotation_direction"],
+            "required": ["name", "position_flu_m", "rotation_direction"],
             "properties": {
               "name": {"type": "string", "minLength": 1},
-              "mujoco_position_flu_m": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
-              "drone_pro_position_frd_m": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+              "position_flu_m": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
               "rotation_direction": {"enum": [-1, 1]}
             },
             "additionalProperties": false

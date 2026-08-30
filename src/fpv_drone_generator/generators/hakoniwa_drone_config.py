@@ -4,9 +4,10 @@ import json
 from pathlib import Path
 
 from ..model import ResolvedVehicle
+from ..target import DroneProRotorContract
 
 
-def generate_drone_config(vehicle: ResolvedVehicle, output: Path) -> None:
+def generate_drone_config(vehicle: ResolvedVehicle, output: Path, rotor_contract: DroneProRotorContract | None = None, initial_z_m: float = 0.25) -> None:
     propeller = vehicle.components.propeller
     motor = vehicle.components.motor
     battery = vehicle.components.battery
@@ -44,7 +45,7 @@ def generate_drone_config(vehicle: ResolvedVehicle, output: Path) -> None:
                 # MuJoCo world is Z-up while Drone PRO's vehicle state uses
                 # NED/ROS-PDU convention here. The XML body starts at +0.25 m,
                 # so its corresponding configured down position is -0.25 m.
-                "position_meter": [0.0, 0.0, -0.25],
+                "position_meter": [0.0, 0.0, -initial_z_m],
                 "angle_degree": [0.0, 0.0, 0.0],
                 "body_boundary_disturbance_power": 1.0,
             },
@@ -79,7 +80,11 @@ def generate_drone_config(vehicle: ResolvedVehicle, output: Path) -> None:
                 # opposite sign. Preserve rotor index/name correspondence.
                 "rotorPositions": [
                     {
-                        "position": list(rotor.drone_pro_position_frd_m),
+                        "position": list(
+                            rotor_contract.transform_position(rotor.position_m)
+                            if rotor_contract is not None
+                            else rotor.legacy_drone_pro_position_frd_m
+                        ),
                         "rotationDirection": rotor.rotation_direction,
                     }
                     for rotor in vehicle.rotors

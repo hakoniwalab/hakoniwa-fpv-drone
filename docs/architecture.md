@@ -48,7 +48,7 @@ deterministic generated vehicle package
 
 Generatorは機体名で分岐しません。新しい機体はCatalog assembly、取付位置、Recipeで表現します。生成XMLには時刻や絶対パスを埋め込まず、同じ入力からbyte-identicalなMJCFを生成できます。
 
-ローター配置の契約はこの公開ツールの独自仕様にしません。Recipe v2の`rotor_layout`は、Drone PROが所有するmachine-readable contractを`--drone-pro-rotor-contract`で受け取り、FRD位置・回転方向・最大数を検証して出力するtarget adapterです。公開テスト内のcontract JSONはadapterのfixtureであり、運用上の正本ではありません。
+Drone PRO接続用のtarget contractは公開Generatorに同梱します。Recipe v2は正規FLU位置を一度だけ記述し、target adapterがcontractの変換行列に従ってFRD位置を生成します。`--drone-pro-rotor-contract`は新しい契約を検証するための明示overrideで、通常生成では同梱contractを使います。
 
 ## Drone PRO調査結果
 

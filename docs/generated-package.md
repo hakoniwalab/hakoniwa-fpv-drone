@@ -24,9 +24,9 @@ Drone PRO既存形式です。主要な接続点は次の通りです。
 - `physicsEquation: MuJoCo`
 - `mujoco.modelPath: drone.xml`
 - `mujoco.modelName: drone_base`
-- MuJoCo `Z=+0.25 m` に対応するDrone PRO初期位置: NED `Z=-0.25 m`
+- v1はMuJoCo `Z=+0.25 m`、v2はcollision最下点と`ground_clearance_m`から自動算出。Drone PRO初期位置は対応するNED Z
 - `rotor.dynamics_constants`: Motor/Propeller Catalog由来
-- `thruster.rotorPositions`: Recipe v2のDrone PRO-owned rotor contract値を同じindex順で出力（v1のみlegacy Quad変換）
+- `thruster.rotorPositions`: Recipe v2のFLU位置を同梱Drone PRO target contractでFRDへ変換し、同じindex順で出力（v1のみlegacy Quad変換）
 - `controller.backendType: adapter-hakoniwa`
 - `controller.paramFilePath: control-param.txt`
 

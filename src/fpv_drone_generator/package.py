@@ -11,6 +11,7 @@ from .errors import ValidationError
 from .generators.hakoniwa_control_param import generate_control_parameters
 from .generators.hakoniwa_drone_config import generate_drone_config
 from .generators.mujoco import generate_mujoco
+from .geometry_bounds import vehicle_collision_lower_bound
 from .generators.threejs_course import generate_threejs_course
 from .model import ResolvedVehicle
 from .target import DroneProRotorContract
@@ -90,7 +91,11 @@ def resolved_components(vehicle: ResolvedVehicle) -> dict[str, Any]:
     }
 
 
-def build_report(vehicle: ResolvedVehicle) -> dict[str, Any]:
+def build_report(vehicle: ResolvedVehicle, rotor_contract: DroneProRotorContract | None = None) -> dict[str, Any]:
+    drone_pro_positions = [
+        list(rotor_contract.transform_position(rotor.position_m) if rotor_contract is not None else rotor.legacy_drone_pro_position_frd_m)
+        for rotor in vehicle.rotors
+    ]
     return {
         "schema_version": 1,
         "vehicle": vehicle.recipe.name,
@@ -107,7 +112,7 @@ def build_report(vehicle: ResolvedVehicle) -> dict[str, Any]:
                 else {"status": "approximation", "value": list(vehicle.inertia_kg_m2), "reason": "legacy v1 frame inertia or uniform box plus non-frame point masses"}
             ),
             "motor_positions_m": {"status": "resolved", "value": [list(rotor.position_m) for rotor in vehicle.rotors], "source": "explicit rotor_layout or legacy quad-X wheelbase mapping"},
-            "drone_pro_rotor_positions_frd_m": {"status": "resolved", "value": [list(rotor.drone_pro_position_frd_m) for rotor in vehicle.rotors], "source": vehicle.recipe.rotor_contract or "legacy quad adapter mapping"},
+            "drone_pro_rotor_positions_frd_m": {"status": "resolved", "value": drone_pro_positions, "source": vehicle.recipe.rotor_contract or "legacy quad adapter mapping"},
             "maximum_rotor_speed_rad_s": {"status": "catalog" if vehicle.max_rad_per_sec_source == "catalog" else "approximation", "value": vehicle.max_rad_per_sec, "source": vehicle.max_rad_per_sec_source},
             "estimated_maximum_thrust_n": {"status": "estimate", "value": vehicle.estimated_max_thrust_n, "reason": f"{len(vehicle.rotors)} * catalog Ct * maximum rotor speed squared"},
             "thrust_to_weight_ratio": {"status": "estimate", "value": vehicle.thrust_to_weight_ratio, "reason": "estimated maximum thrust / catalog-derived weight"},
@@ -125,19 +130,21 @@ def build_report(vehicle: ResolvedVehicle) -> dict[str, Any]:
 def generate_package(vehicle: ResolvedVehicle, output: Path, world: World | None = None, rotor_contract: DroneProRotorContract | None = None) -> Path:
     if vehicle.recipe.schema_version >= 2:
         if rotor_contract is None:
-            raise ValidationError("schema v2 package generation requires the Drone PRO-owned rotor contract")
+            raise ValidationError("schema v2 package generation requires a Drone PRO target contract")
         rotor_contract.validate(vehicle)
     output.mkdir(parents=True, exist_ok=True)
+    initial_z_m = 0.25 if vehicle.recipe.schema_version == 1 else -vehicle_collision_lower_bound(vehicle) + vehicle.recipe.ground_clearance_m
     shutil.copyfile(vehicle.recipe.path, output / "recipe.yaml")
     dump_yaml(output / "resolved-components.yaml", resolved_components(vehicle))
     dump_yaml(output / "bom.yaml", build_bom(vehicle))
     if world is not None:
         shutil.copyfile(world.path, output / "world.yaml")
         generate_threejs_course(world, output / "fpv-course.json")
-    generate_mujoco(vehicle, output / "drone.xml", world)
-    generate_drone_config(vehicle, output / "drone_config.json")
+    generate_mujoco(vehicle, output / "drone.xml", world, initial_z_m)
+    generate_drone_config(vehicle, output / "drone_config.json", rotor_contract, initial_z_m)
     generate_control_parameters(vehicle, output / "control-param.json", output / "control-param.txt")
-    report = build_report(vehicle)
+    report = build_report(vehicle, rotor_contract)
+    report["initial_pose"] = {"mujoco_z_m": initial_z_m, "ground_clearance_m": vehicle.recipe.ground_clearance_m}
     report["artifacts"] = {}
     artifacts = ["recipe.yaml", "resolved-components.yaml", "bom.yaml", "drone.xml", "drone_config.json", "control-param.json", "control-param.txt"]
     if world is not None:

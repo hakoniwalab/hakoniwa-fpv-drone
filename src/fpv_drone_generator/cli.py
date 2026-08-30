@@ -12,7 +12,7 @@ from .errors import FpvDroneError
 from .package import build_bom, generate_package
 from .recipe import load_recipe
 from .resolver import resolve_vehicle
-from .target import load_drone_pro_rotor_contract
+from .target import bundled_drone_pro_rotor_contract_path, load_drone_pro_rotor_contract
 from .world import load_world
 
 
@@ -38,7 +38,7 @@ def _parser() -> argparse.ArgumentParser:
     generate.add_argument("recipe", type=Path)
     generate.add_argument("--output", type=Path, required=True)
     generate.add_argument("--world", type=Path, help="optional MuJoCo world/course YAML")
-    generate.add_argument("--drone-pro-rotor-contract", type=Path, help="Drone PRO-owned rotor layout contract (required for schema v2)")
+    generate.add_argument("--drone-pro-rotor-contract", type=Path, help="override the bundled Drone PRO target contract")
     return parser
 
 
@@ -52,7 +52,8 @@ def main(argv: list[str] | None = None) -> int:
             print(yaml.safe_dump(build_bom(vehicle), sort_keys=False, allow_unicode=True), end="")
         elif args.command == "generate":
             world = load_world(args.world.resolve()) if args.world else None
-            contract = load_drone_pro_rotor_contract(args.drone_pro_rotor_contract) if args.drone_pro_rotor_contract else None
+            contract_path = args.drone_pro_rotor_contract or bundled_drone_pro_rotor_contract_path()
+            contract = load_drone_pro_rotor_contract(contract_path)
             output = generate_package(vehicle, args.output.resolve(), world, contract)
             print(json.dumps({"ok": True, "vehicle": vehicle.recipe.name, "output": str(output)}, ensure_ascii=False))
         return 0

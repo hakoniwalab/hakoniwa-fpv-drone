@@ -145,7 +145,7 @@ def _add_obstacle(worldbody: ET.Element, obstacle: Obstacle, world_config: World
             })
 
 
-def generate_mujoco(vehicle: ResolvedVehicle, output: Path, world_config: World | None = None) -> None:
+def generate_mujoco(vehicle: ResolvedVehicle, output: Path, world_config: World | None = None, initial_z_m: float = 0.25) -> None:
     frame = vehicle.components.frame
     camera = vehicle.components.camera
     root = ET.Element("mujoco", {"model": vehicle.recipe.name})
@@ -207,7 +207,7 @@ def generate_mujoco(vehicle: ResolvedVehicle, output: Path, world_config: World 
     if world_config is not None:
         for obstacle in world_config.obstacles:
             _add_obstacle(world, obstacle, world_config)
-    body = ET.SubElement(world, "body", {"name": "drone_base", "pos": "0 0 0.25"})
+    body = ET.SubElement(world, "body", {"name": "drone_base", "pos": f"0 0 {initial_z_m:.12g}"})
     ET.SubElement(body, "freejoint", {"name": "drone_freejoint"})
     if vehicle.recipe.schema_version == 1:
         assert vehicle.center_of_mass_m is not None and vehicle.inertia_kg_m2 is not None

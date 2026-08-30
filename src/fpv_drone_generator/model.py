@@ -10,7 +10,7 @@ from .recipe import VehicleRecipe
 class Rotor:
     name: str
     position_m: Vector3
-    drone_pro_position_frd_m: Vector3
+    legacy_drone_pro_position_frd_m: Vector3 | None
     rotation_direction: float
 
 
