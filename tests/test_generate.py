@@ -10,9 +10,15 @@ from fpv_drone_generator.catalog import load_catalogs
 from fpv_drone_generator.package import generate_package
 from fpv_drone_generator.recipe import load_recipe
 from fpv_drone_generator.resolver import resolve_vehicle
+from fpv_drone_generator.target import load_drone_pro_rotor_contract
 from fpv_drone_generator.world import load_world
 
 from .support import CATALOGS, SAMPLE_RECIPE, SAMPLE_WORLD
+
+
+UTILITY_RECIPE = SAMPLE_RECIPE.parent / "utility-quad-with-skid.yaml"
+HEXA_RECIPE = SAMPLE_RECIPE.parent / "utility-hexa.yaml"
+ROTOR_CONTRACT = Path(__file__).parent / "fixtures" / "drone-pro-rotor-layout-v1.json"
 
 
 class GenerateTest(unittest.TestCase):
@@ -104,6 +110,67 @@ class GenerateTest(unittest.TestCase):
             control = json.loads((output / "control-param.json").read_text(encoding="utf-8"))
             self.assertEqual(0.0, control["parameters"]["ANGLE_CONTROL_ENABLE"]["value"])
             self.assertEqual(1.0, control["parameters"]["ANGLE_RATE_CONTROL_ENABLE"]["value"])
+
+    def test_schema_v2_generates_deterministic_assemblies(self):
+        vehicle = resolve_vehicle(load_recipe(UTILITY_RECIPE), load_catalogs(CATALOGS))
+        contract = load_drone_pro_rotor_contract(ROTOR_CONTRACT)
+        with tempfile.TemporaryDirectory() as directory:
+            first = generate_package(vehicle, Path(directory) / "first", rotor_contract=contract)
+            second = generate_package(vehicle, Path(directory) / "second", rotor_contract=contract)
+            self.assertEqual(
+                (first / "drone.xml").read_bytes(),
+                (second / "drone.xml").read_bytes(),
+            )
+            xml_text = (first / "drone.xml").read_text(encoding="utf-8")
+            self.assertNotIn(str(Path.home()), xml_text)
+            self.assertNotIn("timestamp", xml_text.lower())
+            root = ET.parse(first / "drone.xml").getroot()
+            body = root.find("./worldbody/body[@name='drone_base']")
+            self.assertIsNotNone(body.find("./geom[@name='frame_center_plate']"))
+            self.assertIsNotNone(body.find("./geom[@name='landing_gear_left_skid_contact']"))
+            self.assertIsNotNone(body.find("./geom[@name='attachment_telemetry_antenna_antenna']"))
+            contact = body.find("./geom[@name='landing_gear_left_skid_contact']")
+            self.assertEqual("1", contact.attrib["contype"])
+            self.assertEqual("0 0 0 0", contact.attrib["rgba"])
+            self.assertEqual(4, len(vehicle.rotors))
+            self.assertEqual((0.1768, -0.1768, 0.02), vehicle.rotors[0].position_m)
+            self.assertIsNone(body.find("./inertial"))
+            compiler = root.find("./compiler")
+            self.assertEqual("true", compiler.attrib["inertiafromgeom"])
+            self.assertEqual("5 5", compiler.attrib["inertiagrouprange"])
+            inertial_geoms = body.findall("./geom[@group='5']")
+            self.assertGreater(len(inertial_geoms), 0)
+            self.assertTrue(all("density" in geom.attrib for geom in inertial_geoms))
+            report = json.loads((first / "report.json").read_text(encoding="utf-8"))
+            self.assertEqual("delegated", report["properties"]["inertia_kg_m2"]["status"])
+            bom = yaml.safe_load((first / "bom.yaml").read_text(encoding="utf-8"))
+            payload = next(item for item in bom["items"] if item.get("catalog_id") == "generic_payload_box")
+            self.assertEqual(2, payload["quantity"])
+            self.assertEqual(["payload_left", "payload_right"], payload["instance_names"])
+
+            try:
+                import mujoco
+            except ImportError:
+                return
+            model = mujoco.MjModel.from_xml_path(str(first / "drone.xml"))
+            body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "drone_base")
+            self.assertAlmostEqual(vehicle.total_mass_kg, model.body_subtreemass[body_id], places=9)
+
+    def test_six_rotors_follow_the_drone_pro_owned_layout_contract(self):
+        vehicle = resolve_vehicle(load_recipe(HEXA_RECIPE), load_catalogs(CATALOGS))
+        contract = load_drone_pro_rotor_contract(ROTOR_CONTRACT)
+        with tempfile.TemporaryDirectory() as directory:
+            output = generate_package(vehicle, Path(directory) / "hexa", rotor_contract=contract)
+            root = ET.parse(output / "drone.xml").getroot()
+            config = json.loads((output / "drone_config.json").read_text(encoding="utf-8"))
+            self.assertEqual(6, len(root.findall("./worldbody/body/body")))
+            self.assertEqual([f"prop{index}" for index in range(1, 7)], config["components"]["droneDynamics"]["mujoco"]["propNames"])
+            self.assertEqual(6, len(config["components"]["thruster"]["rotorPositions"]))
+            self.assertEqual(
+                [0.125, 0.216506, 0.0],
+                config["components"]["thruster"]["rotorPositions"][5]["position"],
+            )
+            self.assertEqual(-1.0, config["components"]["thruster"]["rotorPositions"][5]["rotationDirection"])
 
 
 if __name__ == "__main__":

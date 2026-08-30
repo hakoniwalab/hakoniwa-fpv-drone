@@ -1,0 +1,30 @@
+schema_version: 2
+name: example-utility-hexa
+type: multirotor
+
+components:
+  frame: generic_utility_hexa_frame
+  motors: {product: generic_2207_1850kv, count: 6}
+  propeller: generic_5inch_3blade
+  battery: generic_6s_1300mah
+  camera: generic_fpv_camera
+
+controller: {product: hakoniwa_default, mode: angle}
+
+rotor_layout:
+  contract: hakoniwa-drone-pro/rotor-layout-v1
+  rotors:
+    - {name: prop1, mujoco_position_flu_m: [0.25, 0.0, 0.0], drone_pro_position_frd_m: [0.25, 0.0, 0.0], rotation_direction: 1}
+    - {name: prop2, mujoco_position_flu_m: [0.125, 0.216506, 0.0], drone_pro_position_frd_m: [0.125, -0.216506, 0.0], rotation_direction: -1}
+    - {name: prop3, mujoco_position_flu_m: [-0.125, 0.216506, 0.0], drone_pro_position_frd_m: [-0.125, -0.216506, 0.0], rotation_direction: 1}
+    - {name: prop4, mujoco_position_flu_m: [-0.25, 0.0, 0.0], drone_pro_position_frd_m: [-0.25, 0.0, 0.0], rotation_direction: -1}
+    - {name: prop5, mujoco_position_flu_m: [-0.125, -0.216506, 0.0], drone_pro_position_frd_m: [-0.125, 0.216506, 0.0], rotation_direction: 1}
+    - {name: prop6, mujoco_position_flu_m: [0.125, -0.216506, 0.0], drone_pro_position_frd_m: [0.125, 0.216506, 0.0], rotation_direction: -1}
+
+placements:
+  battery: {position_m: [0.0, 0.0, 0.04], rpy_deg: [0.0, 0.0, 0.0]}
+  camera: {position_m: [0.10, 0.0, 0.02], rpy_deg: [0.0, 0.0, 0.0]}
+  controller: {position_m: [0.0, 0.0, 0.02], rpy_deg: [0.0, 0.0, 0.0]}
+
+metadata:
+  purpose: public six-rotor contract fixture; not a commercial product build

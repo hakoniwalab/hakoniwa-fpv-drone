@@ -24,7 +24,7 @@ Recipe  ─┘                               ├─ Drone PRO config renderer
 
 ### Resolved Vehicle Model
 
-`ResolvedVehicle` はbackend非依存の中間表現です。Catalogの生dictをrendererへ渡しません。typed components、質量、重心、慣性、Rotor配置、推力推定、近似一覧を保持します。
+`ResolvedVehicle` はbackend非依存の中間表現です。Catalogの生dictをrendererへ渡しません。typed components、BOM総質量、配置、Rotor配置、推力推定、近似一覧を保持します。v2の剛体COM・慣性はここで計算せず、MuJoCoへ委譲します。
 
 ### World / Course
 
@@ -33,6 +33,22 @@ World YAMLは、機体とは独立にMuJoCoの背景、照明、地面、物理�
 ### Generated Package
 
 実行backend固有の成果物です。現行MVPはMuJoCoとHakoniwa Drone PROを対象にします。将来のBetaflightやThree.js接続は新renderer/adapterとして追加し、CatalogとRecipeを変更しません。
+
+## 公開ツールと非公開機体定義の境界
+
+Generator、スキーマ、汎用fixtureはこのMITリポジトリで管理します。製品固有・非公開の機体値は外部Catalog rootとRecipeから入力でき、公開Catalogへコピーする必要はありません。
+
+```text
+public generator + schema
+          +
+private catalogs + recipe
+          ↓
+deterministic generated vehicle package
+```
+
+Generatorは機体名で分岐しません。新しい機体はCatalog assembly、取付位置、Recipeで表現します。生成XMLには時刻や絶対パスを埋め込まず、同じ入力からbyte-identicalなMJCFを生成できます。
+
+ローター配置の契約はこの公開ツールの独自仕様にしません。Recipe v2の`rotor_layout`は、Drone PROが所有するmachine-readable contractを`--drone-pro-rotor-contract`で受け取り、FRD位置・回転方向・最大数を検証して出力するtarget adapterです。公開テスト内のcontract JSONはadapterのfixtureであり、運用上の正本ではありません。
 
 ## Drone PRO調査結果
 

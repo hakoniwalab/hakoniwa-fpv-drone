@@ -23,3 +23,62 @@ items:
     metadata:
       class: 4-inch
       value_origin: generic_example
+
+  - id: generic_utility_quad_frame
+    name: Generic Utility Quad Frame
+    vendor: null
+    description: Generic assembly-based frame used to validate non-FPV vehicle generation.
+    mass_kg: 0.300
+    dimensions_m: [0.50, 0.50, 0.08]
+    wheelbase_m: 0.50
+    motor_mount_positions_m:
+      - [0.1768, -0.1768, 0.02]
+      - [0.1768, 0.1768, 0.02]
+      - [-0.1768, 0.1768, 0.02]
+      - [-0.1768, -0.1768, 0.02]
+    metadata:
+      class: utility-quad
+      value_origin: generic_example
+    geometry:
+      visual:
+        - name: center_plate
+          type: box
+          center_m: [0.0, 0.0, 0.0]
+          dimensions_m: [0.15, 0.15, 0.04]
+          rpy_deg: [0.0, 0.0, 0.0]
+          rgba: [0.18, 0.22, 0.25, 1.0]
+      collision:
+        - name: center_plate_contact
+          type: box
+          center_m: [0.0, 0.0, 0.0]
+          dimensions_m: [0.15, 0.15, 0.04]
+          rpy_deg: [0.0, 0.0, 0.0]
+          rgba: [0.0, 0.0, 0.0, 0.0]
+          friction: [0.8, 0.02, 0.001]
+      inertial:
+        - {name: mass_proxy, type: box, dimensions_m: [0.30, 0.30, 0.06]}
+
+  - id: generic_utility_hexa_frame
+    name: Generic Utility Hexa Frame
+    vendor: null
+    description: Generic six-rotor frame used only to verify the variable-rotor toolchain.
+    mass_kg: 0.420
+    dimensions_m: [0.60, 0.52, 0.08]
+    wheelbase_m: 0.50
+    motor_mount_positions_m:
+      - [0.25, 0.0, 0.0]
+      - [0.125, 0.216506, 0.0]
+      - [-0.125, 0.216506, 0.0]
+      - [-0.25, 0.0, 0.0]
+      - [-0.125, -0.216506, 0.0]
+      - [0.125, -0.216506, 0.0]
+    metadata:
+      class: utility-hexa
+      value_origin: generic_example
+    geometry:
+      visual:
+        - {name: center_plate, type: cylinder, radius_m: 0.09, length_m: 0.04, rgba: [0.18, 0.22, 0.25, 1.0]}
+      collision:
+        - {name: center_plate_contact, type: cylinder, radius_m: 0.09, length_m: 0.04, rgba: [0.0, 0.0, 0.0, 0.0], friction: [0.8, 0.02, 0.001]}
+      inertial:
+        - {name: mass_proxy, type: cylinder, radius_m: 0.24, length_m: 0.06}

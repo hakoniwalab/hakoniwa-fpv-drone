@@ -1,14 +1,92 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+from ..catalog import GeometryAssembly, GeometryPrimitive, Vector3
 from ..model import ResolvedVehicle
+from ..transforms import multiply_quaternions, quaternion_from_rpy_deg, transform_point
 from ..world import Obstacle, World
 
 
 def _numbers(values: tuple[float, ...]) -> str:
     return " ".join(f"{value:.12g}" for value in values)
+
+
+def _primitive_size(primitive: GeometryPrimitive) -> str:
+    if primitive.primitive_type == "box":
+        assert primitive.dimensions_m is not None
+        return _numbers(tuple(value / 2.0 for value in primitive.dimensions_m))
+    if primitive.primitive_type == "sphere":
+        assert primitive.radius_m is not None
+        return f"{primitive.radius_m:.12g}"
+    assert primitive.radius_m is not None and primitive.length_m is not None
+    return f"{primitive.radius_m:.12g} {primitive.length_m / 2.0:.12g}"
+
+
+def _primitive_volume(primitive: GeometryPrimitive) -> float:
+    if primitive.primitive_type == "box":
+        assert primitive.dimensions_m is not None
+        return primitive.dimensions_m[0] * primitive.dimensions_m[1] * primitive.dimensions_m[2]
+    assert primitive.radius_m is not None
+    if primitive.primitive_type == "sphere":
+        return 4.0 * math.pi * primitive.radius_m ** 3 / 3.0
+    assert primitive.length_m is not None
+    cylinder = math.pi * primitive.radius_m ** 2 * primitive.length_m
+    if primitive.primitive_type == "capsule":
+        return cylinder + 4.0 * math.pi * primitive.radius_m ** 3 / 3.0
+    return cylinder
+
+
+def _add_assembly(
+    body: ET.Element,
+    prefix: str,
+    assembly: GeometryAssembly,
+    position_m: Vector3 = (0.0, 0.0, 0.0),
+    rpy_deg: Vector3 = (0.0, 0.0, 0.0),
+    default_friction: tuple[float, float, float] = (0.8, 0.1, 0.1),
+    physical_mass_kg: float | None = None,
+) -> None:
+    mount_rotation = quaternion_from_rpy_deg(rpy_deg)
+    inertial_volume = sum(_primitive_volume(primitive) for primitive in assembly.inertial)
+    density = None
+    if physical_mass_kg is not None:
+        if inertial_volume <= 0.0:
+            raise ValueError(f"{prefix} requires non-empty positive-volume inertial geometry")
+        density = physical_mass_kg / inertial_volume
+    for role, primitives in (("visual", assembly.visual), ("collision", assembly.collision), ("inertial", assembly.inertial)):
+        for primitive in primitives:
+            primitive_rotation = quaternion_from_rpy_deg(primitive.rpy_deg)
+            attributes = {
+                "name": f"{prefix}_{primitive.name}",
+                "type": primitive.primitive_type,
+                "pos": _numbers(transform_point(position_m, mount_rotation, primitive.center_m)),
+                "quat": _numbers(multiply_quaternions(mount_rotation, primitive_rotation)),
+                "size": _primitive_size(primitive),
+                "rgba": _numbers(primitive.rgba),
+            }
+            if role == "visual":
+                attributes.update({"mass": "0", "group": "1", "contype": "0", "conaffinity": "0"})
+            elif role == "collision":
+                attributes.update({
+                    "mass": "0",
+                    "group": "2",
+                    "contype": "1",
+                    "conaffinity": "1",
+                    "friction": _numbers(primitive.friction or default_friction),
+                })
+            else:
+                if density is None:
+                    continue
+                attributes.update({
+                    "density": f"{density:.12g}",
+                    "group": "5",
+                    "contype": "0",
+                    "conaffinity": "0",
+                    "rgba": "0 0 0 0",
+                })
+            ET.SubElement(body, "geom", attributes)
 
 
 def _add_obstacle(worldbody: ET.Element, obstacle: Obstacle, world_config: World) -> None:
@@ -71,7 +149,10 @@ def generate_mujoco(vehicle: ResolvedVehicle, output: Path, world_config: World 
     frame = vehicle.components.frame
     camera = vehicle.components.camera
     root = ET.Element("mujoco", {"model": vehicle.recipe.name})
-    ET.SubElement(root, "compiler", {"angle": "degree", "inertiafromgeom": "false"})
+    compiler = {"angle": "degree", "inertiafromgeom": "false"}
+    if vehicle.recipe.schema_version >= 2:
+        compiler.update({"inertiafromgeom": "true", "inertiagrouprange": "5 5"})
+    ET.SubElement(root, "compiler", compiler)
     ET.SubElement(root, "option", {"timestep": "0.001", "density": "1.204", "viscosity": "0.000018", "integrator": "RK4"})
     visual = ET.SubElement(root, "visual")
     ET.SubElement(visual, "global", {"azimuth": "135", "elevation": "-20"})
@@ -128,9 +209,47 @@ def generate_mujoco(vehicle: ResolvedVehicle, output: Path, world_config: World 
             _add_obstacle(world, obstacle, world_config)
     body = ET.SubElement(world, "body", {"name": "drone_base", "pos": "0 0 0.25"})
     ET.SubElement(body, "freejoint", {"name": "drone_freejoint"})
-    ET.SubElement(body, "inertial", {"pos": _numbers(vehicle.center_of_mass_m), "mass": f"{vehicle.total_mass_kg:.12g}", "diaginertia": _numbers(vehicle.inertia_kg_m2)})
+    if vehicle.recipe.schema_version == 1:
+        assert vehicle.center_of_mass_m is not None and vehicle.inertia_kg_m2 is not None
+        ET.SubElement(body, "inertial", {"pos": _numbers(vehicle.center_of_mass_m), "mass": f"{vehicle.total_mass_kg:.12g}", "diaginertia": _numbers(vehicle.inertia_kg_m2)})
     vehicle_friction = world_config.contact.vehicle_friction if world_config is not None else (0.8, 0.1, 0.1)
-    ET.SubElement(body, "geom", {"name": "frame", "type": "box", "size": _numbers(tuple(value / 2.0 for value in frame.dimensions_m)), "mass": "0", "rgba": "0.12 0.12 0.14 1", "friction": _numbers(vehicle_friction)})
+    if frame.geometry is None:
+        ET.SubElement(body, "geom", {"name": "frame", "type": "box", "size": _numbers(tuple(value / 2.0 for value in frame.dimensions_m)), "mass": "0", "rgba": "0.12 0.12 0.14 1", "friction": _numbers(vehicle_friction)})
+    else:
+        _add_assembly(body, "frame", frame.geometry, default_friction=vehicle_friction, physical_mass_kg=frame.mass_kg if vehicle.recipe.schema_version >= 2 else None)
+    if vehicle.recipe.schema_version >= 2:
+        for rotor in vehicle.rotors:
+            assert vehicle.components.motor.geometry is not None
+            assert vehicle.components.propeller.geometry is not None
+            _add_assembly(body, f"motor_{rotor.name}", vehicle.components.motor.geometry, rotor.position_m, physical_mass_kg=vehicle.components.motor.mass_kg)
+            _add_assembly(body, f"propeller_{rotor.name}", vehicle.components.propeller.geometry, rotor.position_m, physical_mass_kg=vehicle.components.propeller.mass_kg)
+        for name, component, placement in (
+            ("battery", vehicle.components.battery, vehicle.recipe.placements.battery),
+            ("camera", vehicle.components.camera, vehicle.recipe.placements.camera),
+            ("controller", vehicle.components.controller, vehicle.recipe.placements.controller),
+        ):
+            assert component.geometry is not None
+            _add_assembly(body, name, component.geometry, placement.position_m, placement.rpy_deg, physical_mass_kg=component.mass_kg)
+    if vehicle.components.landing_gear is not None:
+        _add_assembly(
+            body,
+            "landing_gear",
+            vehicle.components.landing_gear.geometry,
+            vehicle.recipe.placements.landing_gear_m,
+            vehicle.recipe.placements.landing_gear_rpy_deg,
+            vehicle_friction,
+            vehicle.components.landing_gear.mass_kg if vehicle.recipe.schema_version >= 2 else None,
+        )
+    for attachment in vehicle.attachments:
+        _add_assembly(
+            body,
+            f"attachment_{attachment.name}",
+            attachment.component.geometry,
+            attachment.position_m,
+            attachment.rpy_deg,
+            vehicle_friction,
+            attachment.component.mass_kg if vehicle.recipe.schema_version >= 2 and attachment.component.physical_role == "physical" else None,
+        )
     for rotor in vehicle.rotors:
         rotor_body = ET.SubElement(body, "body", {"name": rotor.name, "pos": _numbers(rotor.position_m)})
         ET.SubElement(rotor_body, "geom", {"name": f"{rotor.name}_geom", "type": "cylinder", "size": f"{vehicle.components.propeller.diameter_m / 2.0:.12g} 0.0015", "mass": "0", "contype": "0", "conaffinity": "0", "rgba": "0.18 0.18 0.20 0.55"})

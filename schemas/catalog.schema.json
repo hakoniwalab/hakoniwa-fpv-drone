@@ -2,11 +2,40 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://hakoniwalab.github.io/hakoniwa-fpv-drone/catalog.schema.json",
   "title": "Hakoniwa FPV component catalog",
+  "$defs": {
+    "vector3": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+    "rgba": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number"}},
+    "primitive": {
+      "type": "object",
+      "required": ["name", "type"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "type": {"enum": ["box", "cylinder", "capsule", "sphere"]},
+        "center_m": {"$ref": "#/$defs/vector3"},
+        "rpy_deg": {"$ref": "#/$defs/vector3"},
+        "dimensions_m": {"$ref": "#/$defs/vector3"},
+        "radius_m": {"type": "number", "exclusiveMinimum": 0},
+        "length_m": {"type": "number", "exclusiveMinimum": 0},
+        "rgba": {"$ref": "#/$defs/rgba"},
+        "friction": {"$ref": "#/$defs/vector3"}
+      },
+      "additionalProperties": true
+    },
+    "geometry": {
+      "type": "object",
+      "properties": {
+        "visual": {"type": "array", "items": {"$ref": "#/$defs/primitive"}},
+        "collision": {"type": "array", "items": {"$ref": "#/$defs/primitive"}},
+        "inertial": {"type": "array", "items": {"$ref": "#/$defs/primitive"}}
+      },
+      "additionalProperties": false
+    }
+  },
   "type": "object",
   "required": ["schema_version", "kind", "items"],
   "properties": {
     "schema_version": {"const": 1},
-    "kind": {"enum": ["frame", "motor", "propeller", "battery", "camera", "controller"]},
+    "kind": {"enum": ["frame", "motor", "propeller", "battery", "camera", "controller", "landing_gear", "attachment"]},
     "items": {
       "type": "array",
       "items": {
@@ -17,7 +46,14 @@
           "name": {"type": "string", "minLength": 1},
           "vendor": {"type": ["string", "null"]},
           "description": {"type": "string"},
-          "metadata": {"type": "object"}
+          "metadata": {"type": "object"},
+          "geometry": {"$ref": "#/$defs/geometry"},
+          "motor_mount_positions_m": {
+            "type": "array",
+            "minItems": 4,
+            "items": {"$ref": "#/$defs/vector3"}
+          },
+          "physical_role": {"enum": ["physical", "visual_only"]}
         },
         "additionalProperties": true
       }

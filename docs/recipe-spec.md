@@ -1,4 +1,4 @@
-# Recipe仕様 v1
+# Recipe仕様 v1 / v2
 
 Recipeはユーザーが作りたい一台の機体を表し、Catalog IDを参照します。
 
@@ -32,13 +32,68 @@ MVPのRecipe座標は機体body座標です。
 - +Z: 上方
 - 単位: meter
 
-`placements` は質量・重心・慣性計算に使います。Camera位置はMuJoCo cameraおよびThree.js向けメタデータにも渡します。
+`placements` は部品の取付位置・姿勢です。v2のCOMと慣性は配置されたinertial geometryからMuJoCoが導出します。Camera位置はMuJoCo cameraおよびThree.js向けメタデータにも渡します。
 
 ## 制約
 
-- `type` は `quad_x` のみ
-- motor countは4固定
+- v1の`quad_x`はmotor count 4固定
+- v2の`multirotor`は可変数。frame Catalogに同数の`motor_mount_positions_m`、Recipeに同数の明示`rotor_layout`が必須。最大数は公開スキーマに複製せずDrone PRO contractで検証
 - modeは `angle` または `rate`
 - 参照先IDが存在し、Controllerがmodeをsupportする必要がある
 
 未知のmetadataや将来拡張キーは許容します。物理的に必要な値が不足した場合、Catalog resolverはエラーにし、根拠のない値を黙って生成しません。
+
+## v2: landing gearとattachment
+
+v2はv1の必須部品を保ったまま、着陸装置と任意個の取付部品を追加します。
+
+```yaml
+schema_version: 2
+components:
+  frame: generic_utility_quad_frame
+  motors: {product: generic_motor, count: 4}
+  propeller: generic_propeller
+  battery: generic_battery
+  camera: generic_camera
+  landing_gear: generic_quad_skid
+
+placements:
+  landing_gear:
+    position_m: [0.0, 0.0, 0.0]
+    rpy_deg: [0.0, 0.0, 0.0]
+
+attachments:
+  - name: telemetry_antenna
+    product: generic_antenna
+    parent: frame
+    position_m: [-0.06, 0.04, 0.03]
+    rpy_deg: [0.0, 15.0, 0.0]
+```
+
+attachmentの`name`は一台のRecipe内で一意です。同じCatalog製品を複数回、異なるnameと取付姿勢で利用できます。初版の`parent`は`frame`だけを許可し、それ以外は明示的に拒否します。
+
+v1 Recipeは変更なしで読み込めます。landing gearとattachmentsを省略した場合は従来生成経路になります。
+
+## 可変ローター機
+
+Drone PROのgeneric control allocationへ渡す機体では、ローター位置・順序・回転方向をRecipeの`rotor_layout`へ明示します。意味上の正本はHakoniwa Drone PROの`components.thruster.rotorPositions`契約です。
+
+```yaml
+schema_version: 2
+name: example-hexa
+type: multirotor
+components:
+  motors: {product: generic_motor, count: 6}
+rotor_layout:
+  contract: hakoniwa-drone-pro/rotor-layout-v1
+  rotors:
+    - name: prop1
+      mujoco_position_flu_m: [0.25, 0.0, 0.0]
+      drone_pro_position_frd_m: [0.25, 0.0, 0.0]
+      rotation_direction: 1
+    # ... prop6まで同じ順序で記述
+```
+
+Generatorは各entryを同じindexでMuJoCo `propNames`とDrone PRO `rotorPositions`へ出力します。FRD/FLU変換や回転方向を推測しません。`drone_pro_position_frd_m`はDrone PROへそのまま渡されます。
+
+Drone PRO契約上、FRDは`+X Forward, +Y Right, +Z Down`、`rotation_direction=+1`は上から見てCCW、`-1`はCWです。公開Generatorはこの意味を再定義せず、指定されたcontract versionに従うadapterです。

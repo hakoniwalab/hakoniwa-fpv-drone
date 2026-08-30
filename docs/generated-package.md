@@ -9,7 +9,7 @@ Generated Packageは入力、解決結果、実行成果物、計算根拠を一
 ### drone.xml
 
 - `drone_base` free body
-- Catalog/Recipeから計算したmass、center of mass、diagonal inertia
+- v1では従来互換の明示inertial、v2ではCatalogのinertial geometryとMuJoCo `inertiafromgeom`
 - Quad Xの `prop1`〜`prop4`
 - frameのbox proxy
 - FPV camera geomとMuJoCo camera
@@ -26,7 +26,7 @@ Drone PRO既存形式です。主要な接続点は次の通りです。
 - `mujoco.modelName: drone_base`
 - MuJoCo `Z=+0.25 m` に対応するDrone PRO初期位置: NED `Z=-0.25 m`
 - `rotor.dynamics_constants`: Motor/Propeller Catalog由来
-- `thruster.rotorPositions`: Resolved VehicleのMuJoCo座標から、Drone PRO機体座標へY符号を反転して生成
+- `thruster.rotorPositions`: Recipe v2のDrone PRO-owned rotor contract値を同じindex順で出力（v1のみlegacy Quad変換）
 - `controller.backendType: adapter-hakoniwa`
 - `controller.paramFilePath: control-param.txt`
 
@@ -73,6 +73,7 @@ FPV Launcherは、FPV側の`fpv_rc_bootstrap.py`でGameController PDUをニュ�
 - `approximation`: 明記した物理近似を使用
 - `estimate`: Catalog係数に基づく性能推定
 - `not_calculated`: 必要なモデルがなく、値を生成していない
+- `delegated`: MuJoCoコンパイラへ導出を委譲
 
 MVPでは飛行時間を未計算としてnullにします。適当な消費電流を置いて数値だけ埋めることはしません。
 

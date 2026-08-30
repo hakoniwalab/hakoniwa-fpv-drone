@@ -75,3 +75,6 @@ items:
     metadata:
       runtime_controller: RadioController
       value_origin: generic_initial_values
+    geometry:
+      inertial:
+        - {name: mass_proxy, type: box, dimensions_m: [0.036, 0.036, 0.008]}

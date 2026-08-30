@@ -1,0 +1,37 @@
+schema_version: 1
+kind: attachment
+items:
+  - id: generic_antenna
+    name: Generic Antenna
+    vendor: null
+    description: Generic visual antenna; it has no independent physical mass.
+    mass_kg: 0.0
+    physical_role: visual_only
+    metadata:
+      value_origin: generic_example
+    geometry:
+      visual:
+        - name: antenna
+          type: cylinder
+          center_m: [0.0, 0.0, 0.03]
+          radius_m: 0.003
+          length_m: 0.06
+          rpy_deg: [0.0, 0.0, 0.0]
+          rgba: [0.05, 0.05, 0.05, 1.0]
+      collision: []
+      inertial: []
+
+  - id: generic_payload_box
+    name: Generic Payload Box
+    vendor: null
+    description: Fictional physical payload used to validate repeated mounted components.
+    mass_kg: 0.010
+    physical_role: physical
+    metadata:
+      value_origin: generic_example
+    geometry:
+      visual:
+        - {name: case, type: box, dimensions_m: [0.025, 0.018, 0.012], rgba: [0.20, 0.35, 0.50, 1.0]}
+      collision: []
+      inertial:
+        - {name: mass_proxy, type: box, dimensions_m: [0.025, 0.018, 0.012]}

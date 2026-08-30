@@ -16,6 +16,9 @@ items:
       max_rad_per_sec: 2250
     metadata:
       value_origin: generic_example
+    geometry:
+      inertial:
+        - {name: mass_proxy, type: cylinder, radius_m: 0.014, length_m: 0.018}
 
   - id: generic_2004_3000kv
     name: Generic 2004 3000KV Motor
@@ -31,3 +34,6 @@ items:
       rotor_inertia_kg_m2: 0.000004
     metadata:
       value_origin: generic_example
+    geometry:
+      inertial:
+        - {name: mass_proxy, type: cylinder, radius_m: 0.012, length_m: 0.016}

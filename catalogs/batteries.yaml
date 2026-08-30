@@ -13,6 +13,11 @@ items:
     internal_resistance_ohm: 0.030
     metadata:
       value_origin: generic_example
+    geometry:
+      visual:
+        - {name: case, type: box, dimensions_m: [0.075, 0.038, 0.040], rgba: [0.10, 0.10, 0.11, 1.0]}
+      inertial:
+        - {name: mass_proxy, type: box, dimensions_m: [0.075, 0.038, 0.040]}
 
   - id: generic_4s_1500mah
     name: Generic 4S 1500mAh Battery
@@ -26,3 +31,8 @@ items:
     internal_resistance_ohm: 0.025
     metadata:
       value_origin: generic_example
+    geometry:
+      visual:
+        - {name: case, type: box, dimensions_m: [0.073, 0.035, 0.036], rgba: [0.10, 0.10, 0.11, 1.0]}
+      inertial:
+        - {name: mass_proxy, type: box, dimensions_m: [0.073, 0.035, 0.036]}

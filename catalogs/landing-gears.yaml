@@ -1,0 +1,56 @@
+schema_version: 1
+kind: landing_gear
+items:
+  - id: generic_quad_skid
+    name: Generic Quad Skid
+    vendor: null
+    description: Generic primitive landing skid used to exercise the public assembly schema.
+    mass_kg: 0.030
+    metadata:
+      value_origin: generic_example
+    geometry:
+      visual:
+        - name: left_skid
+          type: capsule
+          center_m: [0.0, 0.09, -0.16]
+          radius_m: 0.008
+          length_m: 0.24
+          rpy_deg: [0.0, 90.0, 0.0]
+          rgba: [0.08, 0.08, 0.09, 1.0]
+        - name: right_skid
+          type: capsule
+          center_m: [0.0, -0.09, -0.16]
+          radius_m: 0.008
+          length_m: 0.24
+          rpy_deg: [0.0, 90.0, 0.0]
+          rgba: [0.08, 0.08, 0.09, 1.0]
+      collision:
+        - name: left_skid_contact
+          type: capsule
+          center_m: [0.0, 0.09, -0.16]
+          radius_m: 0.008
+          length_m: 0.24
+          rpy_deg: [0.0, 90.0, 0.0]
+          rgba: [0.0, 0.0, 0.0, 0.0]
+          friction: [1.0, 0.02, 0.001]
+        - name: right_skid_contact
+          type: capsule
+          center_m: [0.0, -0.09, -0.16]
+          radius_m: 0.008
+          length_m: 0.24
+          rpy_deg: [0.0, 90.0, 0.0]
+          rgba: [0.0, 0.0, 0.0, 0.0]
+          friction: [1.0, 0.02, 0.001]
+      inertial:
+        - name: left_mass_proxy
+          type: capsule
+          center_m: [0.0, 0.09, -0.16]
+          radius_m: 0.008
+          length_m: 0.24
+          rpy_deg: [0.0, 90.0, 0.0]
+        - name: right_mass_proxy
+          type: capsule
+          center_m: [0.0, -0.09, -0.16]
+          radius_m: 0.008
+          length_m: 0.24
+          rpy_deg: [0.0, 90.0, 0.0]

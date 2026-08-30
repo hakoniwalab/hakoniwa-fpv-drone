@@ -36,7 +36,9 @@ def generate_drone_config(vehicle: ResolvedVehicle, output: Path) -> None:
                 "enable_disturbance": True,
                 "manual_control": False,
                 "airFrictionCoefficient": [0.5, 0.0],
-                "inertia": list(vehicle.inertia_kg_m2),
+                # Required only by the legacy BodyFrame path. MuJoCo derives
+                # rigid-body inertia from MJCF geoms and ignores this setter.
+                "inertia": list(vehicle.inertia_kg_m2 or (0.0, 0.0, 0.0)),
                 "mass_kg": vehicle.total_mass_kg,
                 "body_size": list(vehicle.components.frame.dimensions_m),
                 # MuJoCo world is Z-up while Drone PRO's vehicle state uses
@@ -77,7 +79,7 @@ def generate_drone_config(vehicle: ResolvedVehicle, output: Path) -> None:
                 # opposite sign. Preserve rotor index/name correspondence.
                 "rotorPositions": [
                     {
-                        "position": [rotor.position_m[0], -rotor.position_m[1], rotor.position_m[2]],
+                        "position": list(rotor.drone_pro_position_frd_m),
                         "rotationDirection": rotor.rotation_direction,
                     }
                     for rotor in vehicle.rotors

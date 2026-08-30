@@ -2,12 +2,24 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://hakoniwalab.github.io/hakoniwa-fpv-drone/recipe.schema.json",
   "title": "Hakoniwa FPV vehicle recipe",
+  "$defs": {
+    "vector3": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+    "placement": {
+      "type": "object",
+      "properties": {
+        "parent": {"const": "frame"},
+        "position_m": {"$ref": "#/$defs/vector3"},
+        "rpy_deg": {"$ref": "#/$defs/vector3"}
+      },
+      "additionalProperties": false
+    }
+  },
   "type": "object",
   "required": ["schema_version", "name", "type", "components", "controller"],
   "properties": {
-    "schema_version": {"const": 1},
+    "schema_version": {"enum": [1, 2]},
     "name": {"type": "string", "minLength": 1},
-    "type": {"const": "quad_x"},
+    "type": {"enum": ["quad_x", "multirotor"]},
     "components": {
       "type": "object",
       "required": ["frame", "motors", "propeller", "battery", "camera"],
@@ -16,11 +28,12 @@
         "motors": {
           "type": "object",
           "required": ["product", "count"],
-          "properties": {"product": {"type": "string"}, "count": {"const": 4}}
+          "properties": {"product": {"type": "string"}, "count": {"type": "integer", "minimum": 4}}
         },
         "propeller": {"type": "string"},
         "battery": {"type": "string"},
-        "camera": {"type": "string"}
+        "camera": {"type": "string"},
+        "landing_gear": {"type": ["string", "object"]}
       },
       "additionalProperties": true
     },
@@ -30,7 +43,59 @@
       "properties": {"product": {"type": "string"}, "mode": {"enum": ["rate", "angle"]}},
       "additionalProperties": true
     },
-    "placements": {"type": "object"},
+    "placements": {
+      "type": "object",
+      "properties": {
+        "battery": {"$ref": "#/$defs/placement"},
+        "camera": {"$ref": "#/$defs/placement"},
+        "controller": {"$ref": "#/$defs/placement"},
+        "landing_gear": {"$ref": "#/$defs/placement"},
+        "battery_m": {"$ref": "#/$defs/vector3"},
+        "camera_m": {"$ref": "#/$defs/vector3"},
+        "controller_m": {"$ref": "#/$defs/vector3"},
+        "landing_gear_m": {"$ref": "#/$defs/vector3"},
+        "landing_gear_rpy_deg": {"$ref": "#/$defs/vector3"}
+      },
+      "additionalProperties": false
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "product"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "product": {"type": "string", "minLength": 1},
+          "parent": {"const": "frame"},
+          "position_m": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+          "rpy_deg": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}}
+        },
+        "additionalProperties": false
+      }
+    },
+    "rotor_layout": {
+      "type": "object",
+      "required": ["contract", "rotors"],
+      "properties": {
+        "contract": {"type": "string", "minLength": 1},
+        "rotors": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "object",
+            "required": ["name", "mujoco_position_flu_m", "drone_pro_position_frd_m", "rotation_direction"],
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "mujoco_position_flu_m": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+              "drone_pro_position_frd_m": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+              "rotation_direction": {"enum": [-1, 1]}
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "metadata": {"type": "object"}
   },
   "additionalProperties": true

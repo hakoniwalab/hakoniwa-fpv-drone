@@ -12,6 +12,7 @@ from .errors import FpvDroneError
 from .package import build_bom, generate_package
 from .recipe import load_recipe
 from .resolver import resolve_vehicle
+from .target import load_drone_pro_rotor_contract
 from .world import load_world
 
 
@@ -19,15 +20,15 @@ def _default_catalogs() -> Path:
     return Path(__file__).resolve().parents[2] / "catalogs"
 
 
-def _load(recipe_path: Path, catalog_path: Path):
-    catalogs = load_catalogs(catalog_path)
+def _load(recipe_path: Path, catalog_paths: list[Path]):
+    catalogs = load_catalogs(catalog_paths)
     recipe = load_recipe(recipe_path)
     return resolve_vehicle(recipe, catalogs)
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fpv-drone", description="Compile catalog parts and an FPV recipe into a vehicle package.")
-    parser.add_argument("--catalogs", type=Path, default=_default_catalogs(), help="catalog directory (default: repository catalogs/)")
+    parser.add_argument("--catalogs", type=Path, action="append", help="catalog directory; repeat to compose public and private catalogs")
     subparsers = parser.add_subparsers(dest="command", required=True)
     validate = subparsers.add_parser("validate", help="validate and resolve a recipe")
     validate.add_argument("recipe", type=Path)
@@ -37,20 +38,22 @@ def _parser() -> argparse.ArgumentParser:
     generate.add_argument("recipe", type=Path)
     generate.add_argument("--output", type=Path, required=True)
     generate.add_argument("--world", type=Path, help="optional MuJoCo world/course YAML")
+    generate.add_argument("--drone-pro-rotor-contract", type=Path, help="Drone PRO-owned rotor layout contract (required for schema v2)")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
-        vehicle = _load(args.recipe, args.catalogs)
+        vehicle = _load(args.recipe, args.catalogs or [_default_catalogs()])
         if args.command == "validate":
             print(f"OK: {vehicle.recipe.name} ({vehicle.recipe.vehicle_type}, {vehicle.total_mass_kg:.3f} kg)")
         elif args.command == "bom":
             print(yaml.safe_dump(build_bom(vehicle), sort_keys=False, allow_unicode=True), end="")
         elif args.command == "generate":
             world = load_world(args.world.resolve()) if args.world else None
-            output = generate_package(vehicle, args.output.resolve(), world)
+            contract = load_drone_pro_rotor_contract(args.drone_pro_rotor_contract) if args.drone_pro_rotor_contract else None
+            output = generate_package(vehicle, args.output.resolve(), world, contract)
             print(json.dumps({"ok": True, "vehicle": vehicle.recipe.name, "output": str(output)}, ensure_ascii=False))
         return 0
     except FpvDroneError as exc:

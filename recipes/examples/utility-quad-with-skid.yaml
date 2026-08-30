@@ -1,0 +1,51 @@
+schema_version: 2
+name: example-utility-quad-with-skid
+type: quad_x
+
+components:
+  frame: generic_utility_quad_frame
+  motors:
+    product: generic_2207_1850kv
+    count: 4
+  propeller: generic_5inch_3blade
+  battery: generic_6s_1300mah
+  camera: generic_fpv_camera
+  landing_gear: generic_quad_skid
+
+controller:
+  product: hakoniwa_default
+  mode: angle
+
+rotor_layout:
+  contract: hakoniwa-drone-pro/rotor-layout-v1
+  rotors:
+    - {name: prop1, mujoco_position_flu_m: [0.1768, -0.1768, 0.02], drone_pro_position_frd_m: [0.1768, 0.1768, -0.02], rotation_direction: -1}
+    - {name: prop2, mujoco_position_flu_m: [0.1768, 0.1768, 0.02], drone_pro_position_frd_m: [0.1768, -0.1768, -0.02], rotation_direction: 1}
+    - {name: prop3, mujoco_position_flu_m: [-0.1768, 0.1768, 0.02], drone_pro_position_frd_m: [-0.1768, -0.1768, -0.02], rotation_direction: -1}
+    - {name: prop4, mujoco_position_flu_m: [-0.1768, -0.1768, 0.02], drone_pro_position_frd_m: [-0.1768, 0.1768, -0.02], rotation_direction: 1}
+
+placements:
+  battery: {position_m: [0.0, 0.0, 0.04], rpy_deg: [0.0, 0.0, 0.0]}
+  camera: {position_m: [0.10, 0.0, 0.02], rpy_deg: [0.0, 0.0, 0.0]}
+  controller: {position_m: [0.0, 0.0, 0.02], rpy_deg: [0.0, 0.0, 0.0]}
+  landing_gear: {position_m: [0.0, 0.0, 0.0], rpy_deg: [0.0, 0.0, 0.0]}
+
+attachments:
+  - name: telemetry_antenna
+    product: generic_antenna
+    parent: frame
+    position_m: [-0.06, 0.04, 0.03]
+    rpy_deg: [0.0, 15.0, 0.0]
+  - name: payload_left
+    product: generic_payload_box
+    parent: frame
+    position_m: [-0.04, 0.05, 0.025]
+    rpy_deg: [0.0, 0.0, 20.0]
+  - name: payload_right
+    product: generic_payload_box
+    parent: frame
+    position_m: [-0.04, -0.05, 0.025]
+    rpy_deg: [0.0, 0.0, -20.0]
+
+metadata:
+  purpose: public schema fixture; not a commercial product build

@@ -14,6 +14,9 @@ items:
     metadata:
       coefficient_definition: thrust_N=Ct*omega_rad_s^2
       value_origin: generic_example
+    geometry:
+      inertial:
+        - {name: mass_proxy, type: cylinder, radius_m: 0.0635, length_m: 0.003}
 
   - id: generic_4inch_3blade
     name: Generic 4-inch 3-blade Propeller
@@ -28,3 +31,6 @@ items:
     metadata:
       coefficient_definition: thrust_N=Ct*omega_rad_s^2
       value_origin: generic_example
+    geometry:
+      inertial:
+        - {name: mass_proxy, type: cylinder, radius_m: 0.0508, length_m: 0.003}
