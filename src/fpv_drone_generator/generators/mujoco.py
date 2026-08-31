@@ -96,8 +96,11 @@ def _add_obstacle(worldbody: ET.Element, obstacle: Obstacle, world_config: World
         "euler": f"0 0 {obstacle.yaw_deg:.12g}",
     })
     common = {
-        "contype": "1",
-        "conaffinity": "1",
+        # With propeller contact enabled, preserve normal vehicle contact (bit 1)
+        # and add a dedicated propeller/obstacle pair (bits 2 and 4).  This keeps
+        # propeller disks from colliding with the ground or their own airframe.
+        "contype": "5" if world_config.contact.propeller_obstacle_collision else "1",
+        "conaffinity": "3" if world_config.contact.propeller_obstacle_collision else "1",
         "friction": _numbers(world_config.contact.obstacle_friction),
         "condim": str(world_config.contact.obstacle_condim),
         "rgba": _numbers(obstacle.rgba),
@@ -252,7 +255,16 @@ def generate_mujoco(vehicle: ResolvedVehicle, output: Path, world_config: World 
         )
     for rotor in vehicle.rotors:
         rotor_body = ET.SubElement(body, "body", {"name": rotor.name, "pos": _numbers(rotor.position_m)})
-        ET.SubElement(rotor_body, "geom", {"name": f"{rotor.name}_geom", "type": "cylinder", "size": f"{vehicle.components.propeller.diameter_m / 2.0:.12g} 0.0015", "mass": "0", "contype": "0", "conaffinity": "0", "rgba": "0.18 0.18 0.20 0.55"})
+        propeller_collision = world_config is not None and world_config.contact.propeller_obstacle_collision
+        ET.SubElement(rotor_body, "geom", {
+            "name": f"{rotor.name}_geom",
+            "type": "cylinder",
+            "size": f"{vehicle.components.propeller.diameter_m / 2.0:.12g} 0.0015",
+            "mass": "0",
+            "contype": "2" if propeller_collision else "0",
+            "conaffinity": "4" if propeller_collision else "0",
+            "rgba": "0.18 0.18 0.20 0.55",
+        })
         ET.SubElement(rotor_body, "site", {"name": f"{rotor.name}_axis", "type": "sphere", "size": "0.006", "rgba": "0.9 0.2 0.15 1" if rotor.rotation_direction < 0 else "0.15 0.55 1 1"})
     camera_position = vehicle.recipe.placements.camera_m
     ET.SubElement(body, "geom", {"name": "fpv_camera", "type": "box", "pos": _numbers(camera_position), "size": _numbers(tuple(value / 2.0 for value in camera.dimensions_m)), "mass": "0", "contype": "0", "conaffinity": "0", "rgba": "0.15 0.15 0.15 1"})

@@ -40,6 +40,7 @@ class ContactPolicy:
     vehicle_friction: tuple[float, float, float]
     obstacle_friction: tuple[float, float, float]
     obstacle_condim: int
+    propeller_obstacle_collision: bool
 
 
 @dataclass(frozen=True)
@@ -157,6 +158,9 @@ def load_world(path: Path) -> World:
     obstacle_condim = int(contact.get("obstacle_condim", 3))
     if obstacle_condim not in (1, 3, 4, 6):
         raise FpvDroneError("contact.obstacle_condim must be 1, 3, 4, or 6")
+    propeller_obstacle_collision = contact.get("propeller_obstacle_collision", False)
+    if not isinstance(propeller_obstacle_collision, bool):
+        raise FpvDroneError("contact.propeller_obstacle_collision must be a boolean")
 
     return World(
         path=path,
@@ -171,6 +175,7 @@ def load_world(path: Path) -> World:
             vehicle_friction=_nonnegative_sequence(contact.get("vehicle_friction", [0.15, 0.002, 0.0001]), 3, "contact.vehicle_friction"),
             obstacle_friction=_nonnegative_sequence(contact.get("obstacle_friction", [0.15, 0.002, 0.0001]), 3, "contact.obstacle_friction"),
             obstacle_condim=obstacle_condim,
+            propeller_obstacle_collision=propeller_obstacle_collision,
         ),
         lights=tuple(lights),
         obstacles=tuple(obstacles),

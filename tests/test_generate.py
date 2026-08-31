@@ -94,10 +94,45 @@ class GenerateTest(unittest.TestCase):
             self.assertEqual("0.15 0.002 0.0001", frame.attrib["friction"])
             self.assertEqual("0.15 0.002 0.0001", gate.attrib["friction"])
             self.assertEqual("3", gate.attrib["condim"])
+            self.assertEqual("1", gate.attrib["contype"])
+            self.assertEqual("1", gate.attrib["conaffinity"])
             self.assertEqual("0.8 0.02 0.001", ground.attrib["friction"])
             self.assertIsNone(root.find("./worldbody/body[@name='course_start-gate']/geom[@name='start-gate_center']"))
             report = json.loads((output / "report.json").read_text(encoding="utf-8"))
             self.assertEqual(10, report["world"]["obstacle_count"])
+
+    def test_world_can_enable_propeller_obstacle_collisions(self):
+        vehicle = resolve_vehicle(load_recipe(HEXA_RECIPE), load_catalogs(CATALOGS))
+        with tempfile.TemporaryDirectory() as directory:
+            world_path = Path(directory) / "world.yaml"
+            world_path.write_text(
+                """schema_version: 1
+visual: {}
+ground: {}
+contact:
+  propeller_obstacle_collision: true
+obstacles:
+  - name: test-pylon
+    type: pylon
+    center_m: [3, 0, 1]
+    radius_m: 0.2
+    height_m: 2
+""",
+                encoding="utf-8",
+            )
+            output = generate_package(
+                vehicle,
+                Path(directory) / "vehicle",
+                load_world(world_path),
+                load_drone_pro_rotor_contract(ROTOR_CONTRACT),
+            )
+            root = ET.parse(output / "drone.xml").getroot()
+            propeller = root.find("./worldbody/body/body[@name='prop1']/geom")
+            obstacle = root.find("./worldbody/body[@name='course_test-pylon']/geom")
+            self.assertEqual("2", propeller.attrib["contype"])
+            self.assertEqual("4", propeller.attrib["conaffinity"])
+            self.assertEqual("5", obstacle.attrib["contype"])
+            self.assertEqual("3", obstacle.attrib["conaffinity"])
 
     def test_rate_recipe_generates_explicit_rate_flags(self):
         with tempfile.TemporaryDirectory() as directory:
