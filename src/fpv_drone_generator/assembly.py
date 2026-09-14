@@ -65,6 +65,14 @@ class ResolvedAssembly:
     connections: tuple[AssemblyConnection, ...]
 
 
+@dataclass(frozen=True)
+class AssemblyPose:
+    """A component pose in the frame-rooted Catalog FLU coordinate system."""
+
+    position_m: Vector3
+    rotation: tuple[float, float, float, float]
+
+
 def load_assembly_graph(path: Path) -> AssemblyGraph:
     raw = load_yaml(path)
     if raw.get("schema_version") != 1:
@@ -231,6 +239,58 @@ def resolve_assembly(graph: AssemblyGraph, catalogs: CatalogStore, interface_roo
     return ResolvedAssembly(graph, nodes, components, graph.connections)
 
 
+def resolve_assembly_poses(resolved: ResolvedAssembly) -> dict[str, AssemblyPose]:
+    """Resolve every Assembly Graph node into the frame's FLU coordinate system.
+
+    The relative child transform is the same rigid transform used by Recipe
+    projection: provider port × connection adjustment × inverse(consumer port).
+    Keeping this calculation here lets visual exporters and physical projection
+    share one interpretation of an Assembly Graph.
+    """
+    frame = next(node for node in resolved.graph.nodes if node.kind == "frame")
+    poses = {frame.id: AssemblyPose((0.0, 0.0, 0.0), (1.0, 0.0, 0.0, 0.0))}
+    pending = list(resolved.connections)
+    while pending:
+        next_pending: list[AssemblyConnection] = []
+        progressed = False
+        for connection in pending:
+            provider_pose = poses.get(connection.provider_node)
+            if provider_pose is None:
+                next_pending.append(connection)
+                continue
+            provider = _port(
+                resolved.components[connection.provider_node],
+                connection.provider_port,
+                "provider",
+                connection.provider_node,
+            )
+            consumer = _port(
+                resolved.components[connection.consumer_node],
+                connection.consumer_port,
+                "consumer",
+                connection.consumer_node,
+            )
+            relative_position, relative_rotation = _component_transform(provider, consumer, connection)
+            position, rotation = compose_transform(
+                provider_pose.position_m,
+                provider_pose.rotation,
+                relative_position,
+                relative_rotation,
+            )
+            if connection.consumer_node in poses:
+                raise ResolutionError(f"assembly node {connection.consumer_node} has multiple parent connections")
+            poses[connection.consumer_node] = AssemblyPose(position, rotation)
+            progressed = True
+        if not progressed:
+            unresolved = ", ".join(connection.consumer_node for connection in next_pending)
+            raise ResolutionError(f"assembly connections are not rooted at the frame: {unresolved}")
+        pending = next_pending
+    if len(poses) != len(resolved.nodes):
+        missing = ", ".join(sorted(set(resolved.nodes) - set(poses)))
+        raise ResolutionError(f"assembly nodes have no frame-rooted pose: {missing}")
+    return poses
+
+
 def project_recipe(resolved: ResolvedAssembly) -> dict[str, Any]:
     graph = resolved.graph
     by_kind: dict[str, list[AssemblyNode]] = {}
@@ -316,6 +376,7 @@ def project_recipe(resolved: ResolvedAssembly) -> dict[str, Any]:
         rotor_layout.append({
             "name": motor.rotor_name,
             "position_flu_m": list(rotor_position),
+            "motor_position_flu_m": list(motor_position),
             "rotation_direction": motor.rotation_direction,
         })
     components: dict[str, Any] = {

@@ -26,8 +26,10 @@ class AssemblyProjectionTest(unittest.TestCase):
         graph = load_assembly_graph(ROOT / 'recipes/examples/master3x-visual-demo.assembly.json')
         projected = project_recipe(resolve_assembly(graph, catalogs))
         self.assertEqual(4, len(projected['rotor_layout']['rotors']))
+        self.assertEqual([0.06046, -0.06046, 0.0], projected['rotor_layout']['rotors'][0]['motor_position_flu_m'])
+        self.assertEqual([0.06046, -0.06046, 0.008], projected['rotor_layout']['rotors'][0]['position_flu_m'])
         battery_position = projected['placements']['battery']['position_m']
-        self.assertAlmostEqual(0.032, battery_position[2])
+        self.assertAlmostEqual(0.0375, battery_position[2])
         battery = catalogs.batteries.get('generic_4s_850mah')
         self.assertGreaterEqual(battery_position[2] - battery.dimensions_m[2] / 2, 0.016)
         self.assertEqual([0.067, 0.0, 0.014], projected['placements']['camera']['position_m'])

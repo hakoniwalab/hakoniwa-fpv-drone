@@ -128,6 +128,19 @@ item:
       - {name: foot_front_left, type: cylinder, center_m: [0.06046, 0.06046, -0.004], radius_m: 0.0105, length_m: 0.004, rgba: [0.95, 0.67, 0.025, 1]}
       - {name: motor_pad_front_left, type: cylinder, center_m: [0.06046, 0.06046, 0], radius_m: 0.010, length_m: 0.004, rgba: [0.055, 0.065, 0.075, 1]}
       - {name: wire_guard_front_left, type: box, center_m: [0.03990, 0.03990, 0.003], dimensions_m: [0.029, 0.006, 0.003], rpy_deg: [0, 0, 45], rgba: [0.95, 0.67, 0.025, 1]}
+    collision:
+      # Deliberately coarse contact proxies. They cover the plate stack, arms,
+      # and motor feet without making each visual detail a collision surface.
+      # Their lower face establishes the automatic ground-placement reference.
+      - {name: core_contact, type: box, center_m: [0.000, 0, 0.008], dimensions_m: [0.100, 0.040, 0.018]}
+      - {name: arm_front_right_contact, type: box, center_m: [0.037, -0.037, 0], dimensions_m: [0.0664, 0.010, 0.005], rpy_deg: [0, 0, -45]}
+      - {name: arm_front_left_contact, type: box, center_m: [0.037, 0.037, 0], dimensions_m: [0.0664, 0.010, 0.005], rpy_deg: [0, 0, 45]}
+      - {name: arm_rear_left_contact, type: box, center_m: [-0.037, 0.037, 0], dimensions_m: [0.0664, 0.010, 0.005], rpy_deg: [0, 0, -45]}
+      - {name: arm_rear_right_contact, type: box, center_m: [-0.037, -0.037, 0], dimensions_m: [0.0664, 0.010, 0.005], rpy_deg: [0, 0, 45]}
+      - {name: foot_front_right_contact, type: cylinder, center_m: [0.06046, -0.06046, -0.004], radius_m: 0.0105, length_m: 0.004}
+      - {name: foot_front_left_contact, type: cylinder, center_m: [0.06046, 0.06046, -0.004], radius_m: 0.0105, length_m: 0.004}
+      - {name: foot_rear_left_contact, type: cylinder, center_m: [-0.06046, 0.06046, -0.004], radius_m: 0.0105, length_m: 0.004}
+      - {name: foot_rear_right_contact, type: cylinder, center_m: [-0.06046, -0.06046, -0.004], radius_m: 0.0105, length_m: 0.004}
     inertial:
       # Keep the existing inertial proxy unchanged until mass distribution is evidenced.
       - {name: mass_proxy, type: box, dimensions_m: [0.120, 0.120, 0.018]}

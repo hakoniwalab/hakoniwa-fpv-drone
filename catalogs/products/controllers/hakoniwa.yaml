@@ -74,6 +74,16 @@ items:
       FLIP_CONTROL_ENABLE: {value: 0.0, origin: generic_default}
       CTRLMODE_START_IN_HOVERING: {value: 1.0, origin: generic_default}
       CTRLMODE_STARTUP_SETTLE_TIME_SEC: {value: 0.5, origin: generic_default}
+      # Keep small gamepad-axis drift from being interpreted as a landing
+      # request immediately after switching to ATTI. Heights are relative to
+      # the initial ground reference maintained by RadioController.
+      CTRLMODE_LANDING_TRIGGER_ALTITUDE_M: {value: 0.2, origin: catalog_default}
+      CTRLMODE_LANDING_TRIGGER_THROTTLE_VALUE: {value: 0.3, origin: catalog_default}
+      CTRLMODE_LANDING_TRIGGER_HOLD_SEC: {value: 0.1, origin: catalog_default}
+      CTRLMODE_LANDING_ACTION_TARGET_SPEED_M_S: {value: 0.1, origin: catalog_default}
+      CTRLMODE_LANDING_COMPLETION_ALTITUDE_M: {value: 0.05, origin: catalog_default}
+      CTRLMODE_LANDING_COMPLETION_STABLE_ANGLE_DEG: {value: 1.0, origin: catalog_default}
+      CTRLMODE_LANDING_COMPLETION_STABLE_DURATION_SEC: {value: 1.0, origin: catalog_default}
     metadata:
       runtime_controller: RadioController
       value_origin: generic_initial_values

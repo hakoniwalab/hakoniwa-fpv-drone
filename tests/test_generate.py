@@ -55,6 +55,8 @@ class GenerateTest(unittest.TestCase):
             control = json.loads((output / "control-param.json").read_text(encoding="utf-8"))
             self.assertEqual(1.0, control["parameters"]["ANGLE_CONTROL_ENABLE"]["value"])
             self.assertEqual("generated_initial", control["parameters"]["MASS"]["origin"])
+            self.assertEqual(1.0, control["parameters"]["CTRLMODE_START_IN_HOVERING"]["value"])
+            self.assertEqual(0.3, control["parameters"]["CTRLMODE_LANDING_TRIGGER_THROTTLE_VALUE"]["value"])
 
             report = json.loads((output / "report.json").read_text(encoding="utf-8"))
             self.assertEqual("approximation", report["properties"]["inertia_kg_m2"]["status"])

@@ -87,6 +87,7 @@ class RotorLayoutReference:
     name: str
     position_flu_m: Vector3
     rotation_direction: float
+    motor_position_flu_m: Vector3 | None = None
 
 
 @dataclass(frozen=True)
@@ -208,6 +209,11 @@ def load_recipe(path: Path) -> VehicleRecipe:
                 name=rotor_name,
                 position_flu_m=_position(entry.get("position_flu_m"), f"{entry_path}.position_flu_m"),
                 rotation_direction=float(direction),
+                motor_position_flu_m=(
+                    None
+                    if entry.get("motor_position_flu_m") is None
+                    else _position(entry["motor_position_flu_m"], f"{entry_path}.motor_position_flu_m")
+                ),
             ))
     if schema_version >= 2 and not rotor_layout:
         raise ValidationError("recipe schema v2 requires explicit rotor_layout")

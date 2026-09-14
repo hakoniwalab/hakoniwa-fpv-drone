@@ -112,6 +112,7 @@ def build_report(vehicle: ResolvedVehicle, rotor_contract: DroneProRotorContract
                 else {"status": "approximation", "value": list(vehicle.inertia_kg_m2), "reason": "legacy v1 frame inertia or uniform box plus non-frame point masses"}
             ),
             "motor_positions_m": {"status": "resolved", "value": [list(rotor.position_m) for rotor in vehicle.rotors], "source": "explicit rotor_layout or legacy quad-X wheelbase mapping"},
+            "motor_mount_positions_m": {"status": "resolved", "value": [list(rotor.motor_position_m or rotor.position_m) for rotor in vehicle.rotors], "source": "Assembly motor frame_mount pose when available; otherwise rotor position"},
             "drone_pro_rotor_positions_frd_m": {"status": "resolved", "value": drone_pro_positions, "source": vehicle.recipe.rotor_contract or "legacy quad adapter mapping"},
             "maximum_rotor_speed_rad_s": {"status": "catalog" if vehicle.max_rad_per_sec_source == "catalog" else "approximation", "value": vehicle.max_rad_per_sec, "source": vehicle.max_rad_per_sec_source},
             "estimated_maximum_thrust_n": {"status": "estimate", "value": vehicle.estimated_max_thrust_n, "reason": f"{len(vehicle.rotors)} * catalog Ct * maximum rotor speed squared"},

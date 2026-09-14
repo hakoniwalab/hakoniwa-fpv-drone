@@ -94,18 +94,85 @@ def mujoco_fpv_camera(model_path: Path) -> dict[str, object]:
     return {"position_m": position, "fov_deg": fov}
 
 
-def materialize_threejs_viewer(resolved: dict[str, Path], threejs_root: Path) -> Path:
+def materialize_threejs_viewer(
+    resolved: dict[str, Path],
+    threejs_root: Path,
+    *,
+    assembly: Path | None = None,
+    catalogs: Path | None = None,
+    asset_python: Path | None = None,
+    asset_env: dict[str, str] | None = None,
+) -> Path:
     require_file(threejs_root / "index.html", "Three.js viewer")
-    require_file(threejs_root / "config" / "drone_types-quadrotor_base.json", "Three.js base drone type")
     require_file(resolved["output"] / "fpv-course.json", "generated FPV course")
     viewer = resolved["viewer"]
     viewer.mkdir(parents=True, exist_ok=True)
     shutil.copy2(resolved["output"] / "fpv-course.json", viewer / "fpv-course.json")
 
-    wheelbase = generated_wheelbase(resolved["output"] / "report.json")
-    scale = wheelbase / BASE_THREEJS_WHEELBASE_M
     fpv_camera = mujoco_fpv_camera(resolved["vehicle"] / "drone.xml")
-    camera_position = [value / scale for value in fpv_camera["position_m"]]
+    custom_assets = assembly is not None
+    if custom_assets:
+        asset_dir = viewer / "assets"
+        run(
+            [
+                str(asset_python or Path(sys.executable)),
+                str(ROOT / "tools" / "fpv-threejs-assets.py"),
+                str(assembly.resolve()),
+                "--catalogs", str((catalogs or ROOT / "catalogs").resolve()),
+                "--output-dir", str(asset_dir),
+            ],
+            cwd=ROOT,
+            env=asset_env,
+        )
+        drone_types_path = asset_dir / "drone-types.json"
+        drone_types = json.loads(drone_types_path.read_text(encoding="utf-8"))
+        type_name = next(iter(drone_types))
+        # The Catalog Assembly locates the visible camera housing.  The
+        # generated MuJoCo model remains authoritative for the render camera.
+        runtime_camera = drone_types[type_name]["cameras"][0]
+        runtime_camera.update({
+            "pos": fpv_camera["position_m"],
+            "hpr": [0.0, 0.0, 0.0],
+            "fov": fpv_camera["fov_deg"],
+            "near": 0.02,
+            "far": 1000,
+            "window": {"x": 0.02, "y": 0.72, "width": 0.30, "height": 0.27},
+        })
+        drone_types_path.write_text(json.dumps(drone_types, indent=2) + "\n", encoding="utf-8")
+        scale = 1.0
+        camera_position = fpv_camera["position_m"]
+        drone_types_reference = "./assets/drone-types.json"
+    else:
+        require_file(threejs_root / "config" / "drone_types-quadrotor_base.json", "Three.js base drone type")
+        wheelbase = generated_wheelbase(resolved["output"] / "report.json")
+        scale = wheelbase / BASE_THREEJS_WHEELBASE_M
+        camera_position = [value / scale for value in fpv_camera["position_m"]]
+        type_name = "quadrotor_base"
+        drone_types_reference = "/hakoniwa-threejs-drone/config/drone_types-quadrotor_base.json"
+    drone_instance = {
+        "name": "Drone",
+        "type": type_name,
+        "scale": scale,
+        "pos": [0.0, 0.0, 0.25],
+        "hpr": [0.0, 0.0, 0.0],
+    }
+    if not custom_assets:
+        # The visual root is scaled for legacy generic assets, so store the
+        # inverse-scaled offset; its world-space mount matches MuJoCo exactly.
+        drone_instance["cameras"] = [{
+            "name": "fpv",
+            "pos": camera_position,
+            "hpr": [0.0, 0.0, 0.0],
+            "fov": fpv_camera["fov_deg"],
+            "near": 0.02,
+            "far": 1000,
+            "window": {"x": 0.02, "y": 0.72, "width": 0.30, "height": 0.27},
+            "model": {
+                "model_path": "/hakoniwa-threejs-drone/assets/models/base-drone-camera.glb",
+                "pos": [0.0, 0.0, 0.0],
+                "hpr": [0.0, 0.0, 180.0],
+            },
+        }]
     scene = {
         "version": "1.0",
         "format": "compact",
@@ -126,30 +193,8 @@ def materialize_threejs_viewer(resolved: dict[str, Path], threejs_root: Path) ->
             "position": [-2.5, -2.0, 1.5],
             "target": "Drone",
         },
-        "droneTypesPath": "/hakoniwa-threejs-drone/config/drone_types-quadrotor_base.json",
-        "drones": [{
-            "name": "Drone",
-            "type": "quadrotor_base",
-            "scale": scale,
-            "pos": [0.0, 0.0, 0.25],
-            "hpr": [0.0, 0.0, 0.0],
-            # The visual root is scaled, so store the inverse-scaled offset;
-            # its resulting world-space mount matches MuJoCo exactly.
-            "cameras": [{
-                "name": "fpv",
-                "pos": camera_position,
-                "hpr": [0.0, 0.0, 0.0],
-                "fov": fpv_camera["fov_deg"],
-                "near": 0.02,
-                "far": 1000,
-                "window": {"x": 0.02, "y": 0.72, "width": 0.30, "height": 0.27},
-                "model": {
-                    "model_path": "/hakoniwa-threejs-drone/assets/models/base-drone-camera.glb",
-                    "pos": [0.0, 0.0, 0.0],
-                    "hpr": [0.0, 0.0, 180.0],
-                },
-            }],
-        }],
+        "droneTypesPath": drone_types_reference,
+        "drones": [drone_instance],
     }
     viewer_config = {
         "version": "1.0",
@@ -172,7 +217,11 @@ def materialize_threejs_viewer(resolved: dict[str, Path], threejs_root: Path) ->
     }
     (viewer / "scene-config.json").write_text(json.dumps(scene, indent=2) + "\n", encoding="utf-8")
     (viewer / "viewer-config.json").write_text(json.dumps(viewer_config, indent=2) + "\n", encoding="utf-8")
-    print(f"Three.js visual scale: {scale:.6f} (generated wheelbase={wheelbase:.3f} m)")
+    if custom_assets:
+        print(f"Three.js Assembly assets: {viewer / 'assets'}")
+        print("Three.js visual scale: 1.000000 (Catalog Assembly GLBs are already in metres)")
+    else:
+        print(f"Three.js visual scale: {scale:.6f} (generated wheelbase={wheelbase:.3f} m)")
     print(
         "Three.js FPV camera: "
         f"position={fpv_camera['position_m']} m, fov={fpv_camera['fov_deg']:.1f} deg "
@@ -203,6 +252,28 @@ def open_viewer(resolved: dict[str, Path]) -> str:
     print(f"Opening browser: {url}")
     webbrowser.open(url, new=2)
     return url
+
+
+def materialize_assembly_recipe(
+    assembly: Path,
+    catalogs: Path,
+    output: Path,
+    foundation_python: Path,
+    generator_env: dict[str, str],
+) -> Path:
+    """Project an Assembly Graph once for the existing Python Generator."""
+    output.mkdir(parents=True, exist_ok=True)
+    recipe_path = output / "assembly-projected-recipe.yaml"
+    run(
+        [
+            str(foundation_python), "-m", "fpv_drone_generator.cli",
+            "--catalogs", str(catalogs.resolve()),
+            "project-assembly", str(assembly.resolve()), "--output", str(recipe_path),
+        ],
+        cwd=ROOT,
+        env=generator_env,
+    )
+    return recipe_path
 
 
 def tuning_input_digest(vehicle_dir: Path) -> str:
@@ -333,6 +404,104 @@ def materialize_tuning_inputs(vehicle_dir: Path, output_dir: Path) -> Path:
     return output_dir
 
 
+def tuning_audit(args: argparse.Namespace) -> int:
+    """Record and validate the frozen plant/controller contract before tuning."""
+    resolved = paths(args)
+    foundation_python = require_file(args.foundation_python.absolute(), "Foundation Python")
+    output = resolved["vehicle"] / "tuning-input-audit.json"
+    run(
+        [
+            str(foundation_python), str(ROOT / "tools" / "fpv-tuning-audit.py"),
+            str(resolved["vehicle"]), "--output", str(output),
+        ],
+        cwd=ROOT,
+    )
+    print(f"Tuning inputs are internally consistent: {output}")
+    return 0
+
+
+def configure_fpv_hover_profile(profile: Path, hover_trials: int) -> None:
+    """Apply the conservative FPV hover seed after Drone PRO creates a profile.
+
+    The canonical X500 template intentionally fixes the vertical-speed D term
+    to zero.  That is too restrictive for a light, low-inertia FPV vehicle,
+    so retain the same TuningController pipeline while making D searchable.
+    """
+    if hover_trials <= 0:
+        raise RuntimeErrorWithMessage("--hover-trials must be positive")
+    seed = {
+        "PID_ALT_Kp": 4.0,
+        "PID_ALT_Kd": 2.0,
+        "PID_ALT_SPD_Kp": 2.0,
+        "PID_ALT_SPD_Ki": 0.0,
+        "PID_ALT_SPD_Kd": 1.0,
+    }
+    controller_path = require_file(
+        profile / "controller" / "controller-params.txt",
+        "PID tuning profile controller parameters",
+    )
+    controller_path.write_text(
+        apply_parameter_overrides(controller_path.read_text(encoding="utf-8"), seed),
+        encoding="utf-8",
+    )
+    search_path = require_file(
+        profile / "search-space" / "hover-optuna.json",
+        "PID tuning hover search space",
+    )
+    search = json.loads(search_path.read_text(encoding="utf-8"))
+    parameters = search["parameters"]
+    parameters["PID_ALT_SPD_Kp"] = {"min": 0.5, "max": 4.0, "step": 0.25}
+    parameters["PID_ALT_SPD_Ki"] = {"value": 0.0}
+    parameters["PID_ALT_SPD_Kd"] = {"min": 0.0, "max": 2.0, "step": 0.25}
+    search["description"] = (
+        "FPV hover sanity search: retain the canonical attitude search and "
+        "explore vertical-speed proportional and derivative gains."
+    )
+    search_path.write_text(json.dumps(search, indent=2) + "\n", encoding="utf-8")
+    manifest_path = require_file(profile / "manifests" / "01-hover.json", "PID tuning hover manifest")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    hover_phase = next(
+        (phase for phase in manifest["phases"] if phase.get("name") == "hover"), None
+    )
+    if hover_phase is None:
+        raise RuntimeErrorWithMessage(f"hover phase is absent from tuning manifest: {manifest_path}")
+    hover_phase.setdefault("args", {})["trials"] = hover_trials
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+
+def configure_fpv_angle_profile(profile: Path, angle_trials: int, *, refine: bool = False) -> None:
+    """Configure the Angle trial count and optional FPV refinement search."""
+    if angle_trials <= 0:
+        raise RuntimeErrorWithMessage("--angle-trials must be positive")
+    if refine:
+        search_path = require_file(
+            profile / "search-space" / "angle-optuna.json",
+            "PID tuning angle search space",
+        )
+        search = json.loads(search_path.read_text(encoding="utf-8"))
+        parameters = search["parameters"]
+        parameters["PID_ROLL_RATE_Kp"] = {"min": 2.5, "max": 3.0, "step": 0.25}
+        parameters["PID_ROLL_RATE_Ki"] = {"min": 0.1, "max": 0.5, "step": 0.1}
+        parameters["PID_ROLL_RATE_Kd"] = {"min": 0.09, "max": 0.15, "step": 0.01}
+        parameters["PID_ROLL_Kp"] = {"min": 14.0, "max": 18.0, "step": 1.0}
+        parameters["PID_ROLL_Ki"] = {"min": 0.0, "max": 1.0, "step": 0.5}
+        parameters["PID_ROLL_Kd"] = {"min": 1.5, "max": 2.5, "step": 0.25}
+        search["description"] = (
+            "FPV Angle refinement around Master3X trial 59: preserve low-frequency "
+            "tracking while extending rate derivative damping."
+        )
+        search_path.write_text(json.dumps(search, indent=2) + "\n", encoding="utf-8")
+    manifest_path = require_file(profile / "manifests" / "02-angle.json", "PID tuning angle manifest")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    angle_phase = next(
+        (phase for phase in manifest["phases"] if phase.get("name") == "angle_roll"), None
+    )
+    if angle_phase is None:
+        raise RuntimeErrorWithMessage(f"angle_roll phase is absent from tuning manifest: {manifest_path}")
+    angle_phase.setdefault("args", {})["trials"] = angle_trials
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+
 def tune_build(args: argparse.Namespace) -> int:
     print("NOTICE: PID auto-tuning requires a valid Hakoniwa Drone PRO license.")
     drone_pro = args.drone_pro_root.resolve()
@@ -370,12 +539,16 @@ def tune_prepare(args: argparse.Namespace) -> int:
     require_file(tuning_runner(drone_pro), "Drone PRO PID tuning runner (run tune-build first)")
 
     vehicle_dir = resolved["vehicle"]
+    tuning_audit(args)
     source_digest = tuning_input_digest(vehicle_dir)
     tuning_inputs = materialize_tuning_inputs(
         vehicle_dir, resolved["runtime"] / "pid-tuning-input"
     )
     profile_digest = tuning_input_digest(tuning_inputs)
-    profile = drone_pro / "work" / "pid-tuning" / f"fpv-{resolved['output'].name}-{profile_digest[:12]}"
+    # The suffix separates the FPV-specific hover tuning policy from the
+    # unmodified canonical template, and prevents stale Optuna trials from a
+    # previous policy contaminating this run.
+    profile = drone_pro / "work" / "pid-tuning" / f"fpv-{resolved['output'].name}-{profile_digest[:12]}-hover-v2"
     creator = require_file(
         drone_pro / "tuning" / "tools" / "create_pid_tuning_profile.py",
         "Drone PRO PID tuning profile creator",
@@ -388,6 +561,8 @@ def tune_prepare(args: argparse.Namespace) -> int:
         ],
         cwd=drone_pro,
     )
+    configure_fpv_hover_profile(profile, args.hover_trials)
+    configure_fpv_angle_profile(profile, args.angle_trials, refine=args.angle_refine)
     marker = {
         "schema_version": 1,
         "adapter": "hakoniwa",
@@ -397,6 +572,9 @@ def tune_prepare(args: argparse.Namespace) -> int:
         "profile_env": str(profile / "profile.env"),
         "hover_manifest": str(profile / "manifests" / "01-hover.json"),
         "angle_manifest": str(profile / "manifests" / "02-angle.json"),
+        "hover_trials": args.hover_trials,
+        "angle_trials": args.angle_trials,
+        "hover_policy": "fpv-hover-v2: vertical-speed Kp/Kd search with conservative FPV seed",
         "policy": "Run hover and review it before running angle.",
     }
     tuning_marker(resolved).write_text(json.dumps(marker, indent=2) + "\n", encoding="utf-8")
@@ -417,6 +595,10 @@ def tune_phase(args: argparse.Namespace, phase: str) -> int:
     if current_digest != marker["source_input_sha256"]:
         raise RuntimeErrorWithMessage(
             "generated vehicle changed after tune-prepare; create a new frozen tuning profile"
+        )
+    if phase == "angle":
+        configure_fpv_angle_profile(
+            Path(marker["profile_dir"]), args.angle_trials, refine=args.angle_refine
         )
     manifest = require_file(Path(marker[f"{phase}_manifest"]), f"{phase} tuning manifest")
     pipeline = require_file(
@@ -517,16 +699,27 @@ def configure(args: argparse.Namespace) -> int:
     rc_bootstrap = require_file(ROOT / "tools" / "fpv_rc_bootstrap.py", "FPV RC bootstrap")
     threejs_root = args.threejs_root.resolve()
     business_pack_root = args.business_pack_root.resolve()
+    assembly = args.assembly.resolve() if args.assembly is not None else None
+    catalogs = args.catalogs.resolve()
+    if assembly is not None and not args.threejs:
+        raise RuntimeErrorWithMessage("--assembly requires --threejs so its Catalog visual assets are materialized")
 
     generator_env = os.environ.copy()
     existing_pythonpath = generator_env.get("PYTHONPATH")
     generator_env["PYTHONPATH"] = str(ROOT / "src") + (
         os.pathsep + existing_pythonpath if existing_pythonpath else ""
     )
+    effective_recipe = (
+        materialize_assembly_recipe(
+            assembly, catalogs, resolved["output"], foundation_python, generator_env,
+        )
+        if assembly is not None
+        else args.recipe.resolve()
+    )
     run(
         [
             str(foundation_python), "-m", "fpv_drone_generator.cli",
-            "generate", str(args.recipe.resolve()), "--output", str(resolved["output"]),
+            "generate", str(effective_recipe), "--output", str(resolved["output"]),
             "--world", str(args.world.resolve()),
         ],
         cwd=ROOT,
@@ -547,7 +740,7 @@ def configure(args: argparse.Namespace) -> int:
     runtime_config_path.write_text(json.dumps(runtime_config, indent=2) + "\n", encoding="utf-8")
 
     if not args.generated_defaults:
-        verified_config = discover_verified_config(args.recipe, args.world)
+        verified_config = None if assembly is not None else discover_verified_config(effective_recipe, args.world)
         if verified_config is not None:
             materialize_verified_config(verified_config, resolved["vehicle"])
             print(f"Applied verified FPV config automatically: {verified_config}")
@@ -557,7 +750,14 @@ def configure(args: argparse.Namespace) -> int:
         print("Using generated controller defaults (--generated-defaults).")
 
     if args.threejs:
-        materialize_threejs_viewer(resolved, threejs_root)
+        materialize_threejs_viewer(
+            resolved,
+            threejs_root,
+            assembly=assembly,
+            catalogs=catalogs,
+            asset_python=foundation_python,
+            asset_env=generator_env,
+        )
 
     launcher = {
         "version": "0.1",
@@ -680,10 +880,16 @@ def parser() -> argparse.ArgumentParser:
         "command",
         choices=(
             "configure", "restore-verified-config", "start", "status", "stop", "open-viewer",
-            "tune-build", "tune-prepare", "tune-hover", "tune-angle", "tune-apply",
+            "tune-build", "tune-audit", "tune-prepare", "tune-hover", "tune-angle", "tune-apply",
         ),
     )
     result.add_argument("--recipe", type=Path, default=DEFAULT_RECIPE)
+    result.add_argument(
+        "--assembly",
+        type=Path,
+        help="Assembly Graph to project and use for a Catalog-derived Three.js vehicle (requires --threejs)",
+    )
+    result.add_argument("--catalogs", type=Path, default=ROOT / "catalogs", help="Catalog root for --assembly")
     result.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     result.add_argument("--world", type=Path, default=DEFAULT_WORLD)
     result.add_argument("--verified-config", type=Path, default=DEFAULT_VERIFIED_CONFIG)
@@ -698,6 +904,18 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--business-pack-root", type=Path, default=DEFAULT_BUSINESS_PACK_ROOT)
     result.add_argument("--foundation-python", type=Path, default=DEFAULT_FOUNDATION_PYTHON)
     result.add_argument("--rc-config", type=Path, default=DEFAULT_DRONE_PRO / "drone_api" / "rc" / "rc_config" / "ps4-control.json")
+    result.add_argument(
+        "--hover-trials", type=int, default=40,
+        help="Number of Hover trials in the FPV tuning profile (default: 40)",
+    )
+    result.add_argument(
+        "--angle-trials", type=int, default=60,
+        help="Number of Angle trials for tune-angle (default: 60)",
+    )
+    result.add_argument(
+        "--angle-refine", action="store_true",
+        help="Use the focused FPV Angle search around the best broad-search candidate",
+    )
     return result
 
 
@@ -710,6 +928,8 @@ def main(argv: list[str] | None = None) -> int:
             return restore_verified_config(args)
         if args.command == "tune-build":
             return tune_build(args)
+        if args.command == "tune-audit":
+            return tuning_audit(args)
         if args.command == "tune-prepare":
             return tune_prepare(args)
         if args.command == "tune-hover":

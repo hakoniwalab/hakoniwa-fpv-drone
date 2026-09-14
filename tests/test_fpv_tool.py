@@ -39,7 +39,7 @@ class FpvToolTest(unittest.TestCase):
             self.assertNotEqual(first, FPV_TOOL.tuning_input_digest(vehicle))
 
     def test_parser_exposes_only_sequential_tuning_steps(self):
-        for command in ("tune-build", "tune-prepare", "tune-hover", "tune-angle", "tune-apply"):
+        for command in ("tune-build", "tune-audit", "tune-prepare", "tune-hover", "tune-angle", "tune-apply"):
             self.assertEqual(command, FPV_TOOL.parser().parse_args([command]).command)
         self.assertEqual("open-viewer", FPV_TOOL.parser().parse_args(["open-viewer"]).command)
         self.assertTrue(FPV_TOOL.parser().parse_args(["configure", "--threejs"]).threejs)
@@ -75,6 +75,42 @@ class FpvToolTest(unittest.TestCase):
             camera = FPV_TOOL.mujoco_fpv_camera(model)
             self.assertEqual([0.08, 0.0, 0.005], camera["position_m"])
             self.assertEqual(120.0, camera["fov_deg"])
+
+    def test_assembly_threejs_viewer_uses_generated_three_asset_drone_type(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "output"
+            vehicle = output / "runtime" / "vehicle"
+            viewer = output / "runtime" / "threejs"
+            vehicle.mkdir(parents=True)
+            (output / "fpv-course.json").write_text("{}", encoding="utf-8")
+            (vehicle / "drone.xml").write_text(
+                '<mujoco><worldbody><body><camera name="fpv" pos="0.067 0 0.014" '
+                'xyaxes="0 -1 0 0 0 1" fovy="120"/></body></worldbody></mujoco>',
+                encoding="utf-8",
+            )
+            threejs_root = root / "threejs"
+            threejs_root.mkdir()
+            (threejs_root / "index.html").write_text("viewer", encoding="utf-8")
+            resolved = {"output": output, "vehicle": vehicle, "viewer": viewer}
+
+            FPV_TOOL.materialize_threejs_viewer(
+                resolved,
+                threejs_root,
+                assembly=FPV_TOOL.ROOT / "recipes/examples/master3x-visual-demo.assembly.json",
+                catalogs=FPV_TOOL.ROOT / "catalogs",
+            )
+
+            scene = json.loads((viewer / "scene-config.json").read_text(encoding="utf-8"))
+            self.assertEqual("./assets/drone-types.json", scene["droneTypesPath"])
+            self.assertEqual("master3x-visual-demo", scene["drones"][0]["type"])
+            self.assertEqual(1.0, scene["drones"][0]["scale"])
+            for name in ("body.glb", "propeller.glb", "camera.glb"):
+                self.assertEqual(b"glTF", (viewer / "assets" / name).read_bytes()[:4])
+            types = json.loads((viewer / "assets" / "drone-types.json").read_text(encoding="utf-8"))
+            camera = types["master3x-visual-demo"]["cameras"][0]
+            self.assertEqual([0.067, 0.0, 0.014], camera["pos"])
+            self.assertEqual(120.0, camera["fov"])
 
     def test_open_viewer_launches_default_browser(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -180,6 +216,66 @@ class FpvToolTest(unittest.TestCase):
             self.assertEqual("drone.xml", generated["components"]["droneDynamics"]["mujoco"]["modelPath"])
             self.assertEqual("TuningController", generated["controller"]["moduleName"])
             self.assertEqual("adapter-hakoniwa", generated["controller"]["backendType"])
+
+    def test_fpv_hover_profile_uses_vertical_speed_derivative_and_more_trials(self):
+        with tempfile.TemporaryDirectory() as directory:
+            profile = Path(directory)
+            (profile / "controller").mkdir()
+            (profile / "search-space").mkdir()
+            (profile / "manifests").mkdir()
+            (profile / "controller" / "controller-params.txt").write_text(
+                "PID_ALT_Kp 10\nPID_ALT_Kd 5\nPID_ALT_SPD_Kp 10\n"
+                "PID_ALT_SPD_Ki 0\nPID_ALT_SPD_Kd 5\n",
+                encoding="utf-8",
+            )
+            (profile / "search-space" / "hover-optuna.json").write_text(
+                json.dumps({"parameters": {"PID_ALT_SPD_Kp": {}, "PID_ALT_SPD_Ki": {}, "PID_ALT_SPD_Kd": {}}}),
+                encoding="utf-8",
+            )
+            (profile / "manifests" / "01-hover.json").write_text(
+                json.dumps({"phases": [{"name": "hover", "args": {"trials": 20}}]}),
+                encoding="utf-8",
+            )
+
+            FPV_TOOL.configure_fpv_hover_profile(profile, 40)
+
+            params = (profile / "controller" / "controller-params.txt").read_text(encoding="utf-8")
+            self.assertIn("PID_ALT_SPD_Kd", params)
+            search = json.loads((profile / "search-space" / "hover-optuna.json").read_text(encoding="utf-8"))
+            self.assertEqual({"min": 0.0, "max": 2.0, "step": 0.25}, search["parameters"]["PID_ALT_SPD_Kd"])
+            manifest = json.loads((profile / "manifests" / "01-hover.json").read_text(encoding="utf-8"))
+            self.assertEqual(40, manifest["phases"][0]["args"]["trials"])
+
+    def test_fpv_angle_refinement_is_configurable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            profile = Path(directory)
+            (profile / "manifests").mkdir()
+            (profile / "search-space").mkdir()
+            manifest_path = profile / "manifests" / "02-angle.json"
+            manifest_path.write_text(
+                json.dumps({"phases": [{"name": "angle_roll", "args": {"trials": 20}}]}),
+                encoding="utf-8",
+            )
+            search_path = profile / "search-space" / "angle-optuna.json"
+            search_path.write_text(
+                json.dumps({"parameters": {
+                    "PID_ROLL_RATE_Kp": {}, "PID_ROLL_RATE_Ki": {}, "PID_ROLL_RATE_Kd": {},
+                    "PID_ROLL_Kp": {}, "PID_ROLL_Ki": {}, "PID_ROLL_Kd": {},
+                }}),
+                encoding="utf-8",
+            )
+
+            FPV_TOOL.configure_fpv_angle_profile(profile, 40, refine=True)
+
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(40, manifest["phases"][0]["args"]["trials"])
+            search = json.loads(search_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                {"min": 0.09, "max": 0.15, "step": 0.01},
+                search["parameters"]["PID_ROLL_RATE_Kd"],
+            )
+            with self.assertRaisesRegex(FPV_TOOL.RuntimeErrorWithMessage, "angle-trials"):
+                FPV_TOOL.configure_fpv_angle_profile(profile, 0)
 
 
 if __name__ == "__main__":

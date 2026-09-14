@@ -114,11 +114,14 @@ PS5飛行用Packageは`RadioController`を使用します。一方、オフラ�
 - 物理モデル、制御周期、シミュレーション周期をprofile作成後に変更していない
 - profileが入力3ファイルのhashで識別されている
 
+`python3.12 tools/fpv.py tune-audit`は上記のうち、質量・MuJoCo剛体値・`MASS`、`Ct`の二重定義、ローター数・位置・回転方向を機械的に照合する。MuJoCoの`inertiafromgeom`を使うGenerated Packageでは、`drone_config_0.json`の`inertia: [0, 0, 0]`は「MuJoCoへ委譲」を表す。この場合も、監査結果JSONにはMuJoCoが算出したCOMと慣性対角値を残す。
+
 ## 実行と確認
 
 ```bash
 python3.12 tools/fpv.py configure
 python3.12 tools/fpv.py tune-build
+python3.12 tools/fpv.py tune-audit
 python3.12 tools/fpv.py tune-prepare
 python3.12 tools/fpv.py tune-hover
 ```
@@ -126,7 +129,7 @@ python3.12 tools/fpv.py tune-hover
 Hoverのhard gate、離陸成立、波形を確認してから進みます。
 
 ```bash
-python3.12 tools/fpv.py tune-angle
+python3.12 tools/fpv.py tune-angle --angle-trials 40 --angle-refine
 python3.12 tools/fpv.py tune-apply
 python3.12 tools/fpv.py start
 ```

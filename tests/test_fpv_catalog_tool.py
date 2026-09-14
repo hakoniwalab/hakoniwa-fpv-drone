@@ -52,7 +52,7 @@ class FpvCatalogToolTest(unittest.TestCase):
 
             self.assertEqual(2, runner.call_count)
             self.assertEqual(
-                [sys.executable, "-m", "venv", str(work_dir / ".venv")],
+                [sys.executable, "-m", "venv", str((work_dir / ".venv").resolve())],
                 runner.call_args_list[0].args[0],
             )
             self.assertEqual(

@@ -8,12 +8,14 @@ from pathlib import Path
 import yaml
 
 from .catalog import load_catalogs
+from .assembly import load_assembly_graph, project_recipe, resolve_assembly
 from .errors import FpvDroneError
 from .package import build_bom, generate_package
 from .recipe import load_recipe
 from .resolver import resolve_vehicle
 from .target import bundled_drone_pro_rotor_contract_path, load_drone_pro_rotor_contract
 from .world import load_world
+from .yaml_io import dump_yaml
 
 
 def _default_catalogs() -> Path:
@@ -39,13 +41,22 @@ def _parser() -> argparse.ArgumentParser:
     generate.add_argument("--output", type=Path, required=True)
     generate.add_argument("--world", type=Path, help="optional MuJoCo world/course YAML")
     generate.add_argument("--drone-pro-rotor-contract", type=Path, help="override the bundled Drone PRO target contract")
+    project = subparsers.add_parser("project-assembly", help="project an Assembly Graph into a Vehicle Recipe")
+    project.add_argument("assembly", type=Path)
+    project.add_argument("--output", type=Path, required=True)
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
-        vehicle = _load(args.recipe, args.catalogs or [_default_catalogs()])
+        catalogs = args.catalogs or [_default_catalogs()]
+        if args.command == "project-assembly":
+            graph = load_assembly_graph(args.assembly.resolve())
+            dump_yaml(args.output.resolve(), project_recipe(resolve_assembly(graph, load_catalogs(catalogs))))
+            print(json.dumps({"ok": True, "assembly": graph.name, "output": str(args.output.resolve())}, ensure_ascii=False))
+            return 0
+        vehicle = _load(args.recipe, catalogs)
         if args.command == "validate":
             print(f"OK: {vehicle.recipe.name} ({vehicle.recipe.vehicle_type}, {vehicle.total_mass_kg:.3f} kg)")
         elif args.command == "bom":

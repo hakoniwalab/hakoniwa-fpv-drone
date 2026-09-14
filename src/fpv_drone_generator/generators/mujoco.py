@@ -227,7 +227,13 @@ def generate_mujoco(vehicle: ResolvedVehicle, output: Path, world_config: World 
         for rotor in vehicle.rotors:
             assert vehicle.components.motor.geometry is not None
             assert vehicle.components.propeller.geometry is not None
-            _add_assembly(body, f"motor_{rotor.name}", vehicle.components.motor.geometry, rotor.position_m, physical_mass_kg=vehicle.components.motor.mass_kg)
+            _add_assembly(
+                body,
+                f"motor_{rotor.name}",
+                vehicle.components.motor.geometry,
+                rotor.motor_position_m or rotor.position_m,
+                physical_mass_kg=vehicle.components.motor.mass_kg,
+            )
             _add_assembly(body, f"propeller_{rotor.name}", vehicle.components.propeller.geometry, rotor.position_m, physical_mass_kg=vehicle.components.propeller.mass_kg)
         for name, component, placement in (
             ("battery", vehicle.components.battery, vehicle.recipe.placements.battery),

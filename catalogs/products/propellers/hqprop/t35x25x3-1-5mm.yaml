@@ -10,7 +10,11 @@ item:
   diameter_m: 0.0889
   pitch_m: 0.0635
   blade_count: 3
-  thrust_coefficient_ns2_rad2: 0.00000045
+  # Temporary Master3X tuning calibration. The original generic estimate
+  # produced an excessive 12.8:1 thrust-to-weight ratio, while 1/10 left too
+  # little differential-thrust margin for Roll/Pitch control. This middle
+  # value is deliberately provisional until bench data is available.
+  thrust_coefficient_ns2_rad2: 0.000000135
   torque_coefficient_nms2_rad2: 0.000000009
   metadata:
     manufacturer_product: HQProp T3.5X2.5X3

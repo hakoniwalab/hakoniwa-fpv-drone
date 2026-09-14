@@ -108,10 +108,21 @@ Drone PROで起動すると、機体の`fpv`カラを全面に、自由に操作
 
 通常のMuJoCo実行経路を変えず、`configure`へ`--threejs`を付けた場合だけ、Visual State Publisher、WebBridge、HTTP serverをLauncherへ追加できます。
 
+Assembly Graphから、Three.js用の機体ボディ・プロペラ・カメラの3つのGLBと
+viewer用の配置定義を生成する場合は、[Assembly Graph to Three.js assets](docs/threejs-assembly-assets.md)
+を参照してください。`--assembly`を指定すると`configure --threejs`へも接続できます。
+
 ```bash
 python3.12 tools/fpv.py configure --threejs
 python3.12 tools/fpv.py start
 python3.12 tools/fpv.py open-viewer
+```
+
+例えばMaster3XのCatalog外観を表示する場合は、次のようにAssembly Graphを指定します。
+
+```bash
+python3.12 tools/fpv.py configure --threejs \
+  --assembly recipes/examples/master3x-visual-demo.assembly.json
 ```
 
 `open-viewer`は生成済みURLを既定ブラウザで自動的に開きます。Three.jsではMuJoCo runtimeモデルの`fpv`カメラ位置・向き・FOVを正本として、主観映像をメイン、操作可能な客観映像を左上PiPに表示します。`Tab`で主・副画面を交換し、`F`でPiPを表示・非表示にできます。
@@ -181,6 +192,7 @@ python3.12 tools/fpv.py stop
 
 既定マッピングは、左スティック上下がスロットル、左右がYaw、右スティック上下がPitch、左右がRollです。ボタンindex 0（通常は×ボタン）を一度押して離すとRadio Controlの有効／無効が切り替わります。押し続ける必要はありません。OS／pygameの認識によってボタン番号が異なる場合はRC設定を調整してください。
 
+
 ## FPV機体のHover・Angle PID tuning
 
 > **ライセンス:** PID自動チューニングを実行するには、箱庭ドローンPROライセンスが必要です。本リポジトリのCatalog／Recipe／Generatorを利用できることは、箱庭ドローンPROのPID自動チューニング機能を利用できることを意味しません。
@@ -203,18 +215,23 @@ generated vehicle
 python3.12 tools/fpv.py tune-build
 ```
 
-通常の`configure`で生成した機体を、変更不能なPID tuning profileへコピーします。profile名には、`drone_config_0.json`、`drone.xml`、`control-param.txt`から計算したhashが含まれます。物理モデルを変更した場合は、新しいprofileを作り直します。
+通常の`configure`で生成した機体を、変更不能なPID tuning profileへコピーします。profile名には、`drone_config_0.json`、`drone.xml`、`control-param.txt`から計算したhashが含まれます。物理モデルを変更した場合は、新しいprofileを作り直します。`tune-audit`は、Catalogから集計した質量、`drone_config_0.json`、`control-param.txt`の`MASS`、MuJoCoが実際に生成した剛体質量・COM・慣性、ローター座標（FLU→FRD変換後）を照合します。`tune-prepare`はこの監査を自動実行し、不整合があればprofileを作成しません。
 
 ```bash
 python3.12 tools/fpv.py configure
-python3.12 tools/fpv.py tune-prepare
+python3.12 tools/fpv.py tune-audit
+python3.12 tools/fpv.py tune-prepare --hover-trials 40
 python3.12 tools/fpv.py tune-hover
 ```
+
+監査結果は`build/<package>/runtime/vehicle/tuning-input-audit.json`に保存されます。`drone_config_0.json`の`inertia`が`[0, 0, 0]`の場合、これは欠損値ではなく、生成済み`drone.xml`の`inertiafromgeom`へ委譲する指定です。監査レポートには、そのMuJoCo実算値も記録されます。
+
+FPV profileは、既存X500向けcanonical templateをそのまま流用せず、軽量機用のHover seed（`PID_ALT_Kp=4`、`PID_ALT_Kd=2`、`PID_ALT_SPD_Kp=2`、`PID_ALT_SPD_Kd=1`）を使います。Hover探索では垂直速度の`Kp`と`Kd`を探索し、既定で40 trialを実行します。`--hover-trials`で変更できます。
 
 Hoverのhard gate、score、波形を確認して採用可能と判断した後だけ、Angleを実行します。
 
 ```bash
-python3.12 tools/fpv.py tune-angle
+python3.12 tools/fpv.py tune-angle --angle-trials 40 --angle-refine
 ```
 
 Angle結果を人間が確認した後、PS5実行用の`build/`へ一時適用します。Catalogや生成初期値は変更されません。

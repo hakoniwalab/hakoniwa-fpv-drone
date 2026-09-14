@@ -12,6 +12,7 @@ class Rotor:
     position_m: Vector3
     legacy_drone_pro_position_frd_m: Vector3 | None
     rotation_direction: float
+    motor_position_m: Vector3 | None = None
 
 
 @dataclass(frozen=True)
