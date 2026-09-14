@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -87,8 +88,10 @@ def prepare(args: argparse.Namespace) -> int:
 def doctor(args: argparse.Namespace) -> int:
     try:
         import mujoco
+        import trimesh
         import yaml  # noqa: F401
         from fpv_drone_generator.catalog import load_catalogs
+        from fpv_drone_generator.catalog_glb import export_catalog_glb
         from fpv_drone_generator.showroom import generate_catalog_showroom
     except ImportError as exc:
         raise CatalogToolError(
@@ -108,15 +111,28 @@ def doctor(args: argparse.Namespace) -> int:
     )
     component_count = sum(len(group.items) for group in groups)
 
-    output = args.work_dir.resolve() / "doctor-showroom.xml"
+    work_dir = args.work_dir.resolve()
+    output = work_dir / "doctor-showroom.xml"
     generate_catalog_showroom(catalogs, output)
     model = mujoco.MjModel.from_xml_path(str(output))
 
+    manifest_path = export_catalog_glb(catalogs, work_dir / "doctor-glb")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if not manifest.get("items"):
+        raise CatalogToolError(f"GLB manifest contains no items: {manifest_path}")
+    first_asset = manifest_path.parent / manifest["items"][0]["asset"]
+    glb_scene = trimesh.load(first_asset, force="scene")
+    if not glb_scene.geometry:
+        raise CatalogToolError(f"GLB round-trip produced an empty scene: {first_asset}")
+
     print(f"[OK] managed Python: {sys.executable}")
     print(f"[OK] MuJoCo Python: {getattr(mujoco, '__version__', 'unknown')}")
+    print(f"[OK] trimesh: {getattr(trimesh, '__version__', 'unknown')}")
     print(f"[OK] catalog components: {component_count}")
     print(f"[OK] showroom MJCF: {output}")
     print(f"[OK] MuJoCo model geoms: {model.ngeom}")
+    print(f"[OK] GLB manifest: {manifest_path}")
+    print(f"[OK] GLB assets: {len(manifest['items'])}")
     print("Catalog showroom doctor passed.")
     return 0
 
@@ -154,9 +170,59 @@ def open_viewer(args: argparse.Namespace) -> int:
     return 0
 
 
+def export_glb(args: argparse.Namespace) -> int:
+    try:
+        from fpv_drone_generator.catalog import load_catalogs
+        from fpv_drone_generator.catalog_glb import export_catalog_glb
+    except ImportError as exc:
+        raise CatalogToolError(
+            "catalog GLB dependencies are incomplete; run prepare first"
+        ) from exc
+
+    catalogs = load_catalogs(catalog_paths(args))
+    output_dir = (
+        args.output_dir.resolve()
+        if args.output_dir is not None
+        else args.work_dir.resolve() / "glb"
+    )
+    manifest = export_catalog_glb(
+        catalogs,
+        output_dir,
+        kind=args.kind,
+        item_id=args.item_id,
+    )
+    selection = "all components"
+    if args.kind is not None:
+        selection = args.kind if args.item_id is None else f"{args.kind}/{args.item_id}"
+    print(f"Exported Catalog GLB: {selection}")
+    print(f"Manifest: {manifest}")
+    return 0
+
+
+def _add_catalog_selection(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "kind",
+        nargs="?",
+        choices=SHOWROOM_KINDS,
+        help="optional component kind to select",
+    )
+    parser.add_argument(
+        "item_id",
+        nargs="?",
+        help="optional catalog item id; requires kind",
+    )
+    parser.add_argument("--work-dir", type=Path, default=DEFAULT_WORK_DIR)
+    parser.add_argument(
+        "--catalogs",
+        type=Path,
+        action="append",
+        help="catalog directory; repeat to compose public and private catalogs",
+    )
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(
-        description="Prepare, diagnose, and open the FPV component Catalog Showroom."
+        description="Prepare, diagnose, view, and export the FPV component Catalog."
     )
     subparsers = result.add_subparsers(dest="command", required=True)
 
@@ -173,7 +239,7 @@ def parser() -> argparse.ArgumentParser:
 
     doctor_parser = subparsers.add_parser(
         "doctor",
-        help="validate Catalog loading, showroom generation, and MuJoCo loading",
+        help="validate Catalog loading, MJCF, MuJoCo loading, and GLB export",
     )
     doctor_parser.add_argument("--work-dir", type=Path, default=DEFAULT_WORK_DIR)
     doctor_parser.add_argument(
@@ -187,28 +253,22 @@ def parser() -> argparse.ArgumentParser:
         "open-viewer",
         help="generate the selected Catalog showroom and open MuJoCo Viewer",
     )
-    viewer_parser.add_argument(
-        "kind",
-        nargs="?",
-        choices=SHOWROOM_KINDS,
-        help="optional component kind to show",
-    )
-    viewer_parser.add_argument(
-        "item_id",
-        nargs="?",
-        help="optional catalog item id; requires kind",
-    )
-    viewer_parser.add_argument("--work-dir", type=Path, default=DEFAULT_WORK_DIR)
-    viewer_parser.add_argument(
-        "--catalogs",
-        type=Path,
-        action="append",
-        help="catalog directory; repeat to compose public and private catalogs",
-    )
+    _add_catalog_selection(viewer_parser)
     viewer_parser.add_argument(
         "--output",
         type=Path,
         help="override generated showroom MJCF path",
+    )
+
+    glb_parser = subparsers.add_parser(
+        "export-glb",
+        help="export selected Catalog parts as browser-ready GLB assets",
+    )
+    _add_catalog_selection(glb_parser)
+    glb_parser.add_argument(
+        "--output-dir",
+        type=Path,
+        help="override GLB output directory",
     )
     return result
 
@@ -240,8 +300,10 @@ def main(argv: list[str] | None = None) -> int:
             return _delegate_to_managed_python(raw_argv, args.work_dir)
         if args.command == "doctor":
             return doctor(args)
+        if args.command == "export-glb":
+            return export_glb(args)
         return open_viewer(args)
-    except (CatalogToolError, subprocess.CalledProcessError) as exc:
+    except (CatalogToolError, subprocess.CalledProcessError, RuntimeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

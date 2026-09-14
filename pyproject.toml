@@ -19,6 +19,7 @@ dependencies = [
 [project.optional-dependencies]
 showroom = [
   "mujoco>=3.3,<4",
+  "trimesh>=5.1,<6",
 ]
 
 [project.scripts]
