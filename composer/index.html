@@ -20,11 +20,11 @@
       <div class="actions"><button id="save">Save draft</button><button id="export">Export graph</button><label class="button">Import graph<input id="import" type="file" accept="application/json"></label></div>
     </header>
     <main>
-      <aside id="catalog"><h2>Parts Catalog</h2><p class="hint">Frameを最初に置き、部品をキャンバスへドラッグします。</p><div id="cards"></div></aside>
+      <aside id="catalog"><h2>Parts Catalog</h2><p class="hint">カテゴリを選び、Frameを最初にキャンバスへドラッグします。</p><div id="categories" aria-label="Part categories"></div><div id="cards"></div></aside>
       <section id="stage"><div id="viewport"></div><div id="overlay"><span id="status">Loading Catalog…</span><span>portをクリックして接続先を選択</span></div></section>
-      <aside id="inspector"><h2>Selected Part</h2><div id="selection" class="empty">部品またはportを選択してください。</div><h2>Assembly</h2><pre id="graph"></pre></aside>
+      <aside id="inspector"><h2>Selected Part</h2><div id="selection" class="empty">部品またはportを選択してください。</div><div class="section-heading"><h2>Assembly Parts</h2><span id="assembly-count"></span></div><div id="assembly-list" class="empty">まだ部品はありません。</div><details><summary>Assembly Graph JSON</summary><pre id="graph"></pre></details></aside>
     </main>
     <template id="card"><article class="card" draggable="true"><div class="swatch"></div><div><strong></strong><small></small><p></p></div></article></template>
-    <script type="module" src="./app.js?v=20ebaad"></script>
+    <script type="module" src="./app.js?v=assembly-list-v1"></script>
   </body>
 </html>
