@@ -11,6 +11,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+class ComposerRequestHandler(http.server.SimpleHTTPRequestHandler):
+    """Serve Composer sources without caching during iterative local demos."""
+
+    def end_headers(self) -> None:
+        self.send_header("Cache-Control", "no-store, max-age=0")
+        super().end_headers()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Serve the FPV Browser Composer.")
     parser.add_argument("--port", type=int, default=8010)
@@ -21,7 +29,10 @@ def main() -> int:
     if not assets.is_file():
         parser.error("Catalog assets are missing; run: python3 tools/fpv-catalog.py export-glb")
     url = f"http://{args.host}:{args.port}/composer/"
-    server = http.server.ThreadingHTTPServer((args.host, args.port), lambda *a, **kw: http.server.SimpleHTTPRequestHandler(*a, directory=str(ROOT), **kw))
+    server = http.server.ThreadingHTTPServer(
+        (args.host, args.port),
+        lambda *a, **kw: ComposerRequestHandler(*a, directory=str(ROOT), **kw),
+    )
     print(f"FPV Composer: {url}")
     if args.open:
         webbrowser.open(url, new=2)
