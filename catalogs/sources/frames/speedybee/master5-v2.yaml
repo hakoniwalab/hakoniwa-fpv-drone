@@ -3,5 +3,5 @@ kind: catalog-source
 product_id: speedybee_master5_v2
 product_kind: frame
 sources:
-  - url: https://www.speedybee.com/speedybee-master-5-v2-frame/
+  - url: https://www.speedybee.com/speedybee-master-5-v2-frame/?setCurrencyId=2
     role: manufacturer_product

@@ -21,7 +21,11 @@ class CatalogFragmentTest(unittest.TestCase):
         self.assertEqual("RunCam", catalogs.cameras.get("runcam_phoenix2").vendor)
         self.assertEqual("sources/frames/speedybee/master5-v2.yaml", frame.metadata["source_ref"])
         self.assertEqual(
-            ["https://shop.iflight.com/index.php?product_id=3371&route=product%2Fproduct"],
+            ["https://www.speedybee.com/speedybee-master-5-v2-frame/?setCurrencyId=2"],
+            frame.metadata["source_urls"],
+        )
+        self.assertEqual(
+            ["https://shop.iflight.com/index.php?product_id=3371&route=product/product"],
             motor.metadata["source_urls"],
         )
 
