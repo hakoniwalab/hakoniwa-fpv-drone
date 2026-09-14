@@ -5,7 +5,7 @@ item:
   id: speedybee_master3x
   name: SpeedyBee Master3X Modular Frame
   vendor: SpeedyBee
-  description: Commercial modular 3–3.6-inch freestyle/racing frame. Published mass, wheelbase, motor-mount options, camera pitch and supported battery envelope are retained. Structural visual geometry follows the official assembly decomposition where known; unresolved planform dimensions remain explicit simulation estimates.
+  description: Commercial modular 3–3.6-inch freestyle/racing frame. Published mass, wheelbase, motor-mount options, camera pitch and supported battery envelope are retained. Structural geometry is constrained by the Master3X Evidence Matrix where dimensions are known; unresolved planform values remain explicit estimates.
   mass_kg: 0.087
   dimensions_m: [0.171, 0.171, 0.021]
   wheelbase_m: 0.171
@@ -22,11 +22,17 @@ item:
     fc_mounts_mm: [25.5]
     camera_widths_mm: [19, 20]
     maximum_battery_dimensions_mm: [67, 31, 40]
+    geometry_evidence:
+      plate_thickness: docs/master3x-dimension-evidence.md#confirmed--corroborated-dimensions
+      stack_clearance: docs/master3x-dimension-evidence.md#conditional-derivations-usable-only-with-explicit-assumptions
+      standoff_length: docs/master3x-dimension-evidence.md#confirmed--corroborated-dimensions
+      camera_opening: docs/master3x-dimension-evidence.md#confirmed--corroborated-dimensions
+      unresolved_planform: docs/master3x-dimension-evidence.md#current-yaml-values-that-are-not-yet-evidence-confirmed
     geometry_origin:
-      plate_stack: manufacturer_assembly_structure_with_estimated_planform
+      plate_stack: manufacturer_and_corroborated_dimensions_with_estimated_planform
       arm_layout: wheelbase_derived_true_x_pending_primary_dimensions
-      side_structure: manufacturer_assembly_structure_with_photo_inferred_dimensions
-      front_support: manufacturer_assembly_structure_with_photo_inferred_dimensions
+      side_structure: manufacturer_assembly_structure_with_evidence_constrained_height
+      front_support: manufacturer_assembly_structure_with_20mm_camera_opening_inference
       motor_feet_and_wire_guards: photo_reference_approximation
     value_origin:
       mass_kg: manufacturer
@@ -37,52 +43,54 @@ item:
       camera_widths_mm: manufacturer
       maximum_battery_dimensions_mm: manufacturer
       dimensions_m: simulation_envelope_from_wheelbase_and_published_stack_height
-      motor_mount_positions_m: derived_true_x_from_wheelbase
+      motor_mount_positions_m: derived_true_x_from_wheelbase_under_unverified_square_assumption
       motor_mount_interface: manufacturer
-      battery_mount_pose: simulation_estimate
+      battery_mount_pose: derived_from_top_plate_surface_and_pad_proxy
       camera_mount_pose: simulation_estimate
-      electronics_mount_pose: simulation_estimate
-      geometry: manufacturer_structure_plus_photo_reference_approximation
+      electronics_mount_pose: derived_from_middle_plate_mounting_surface
+      geometry: evidence_matrix_constrained_with_estimated_planform
   assembly_ports:
     - {id: motor_mount_1, role: provider, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [0.06046, -0.06046, 0.0], rpy_deg: [0, 0, 0]}}
     - {id: motor_mount_2, role: provider, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [0.06046, 0.06046, 0.0], rpy_deg: [0, 0, 0]}}
     - {id: motor_mount_3, role: provider, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [-0.06046, 0.06046, 0.0], rpy_deg: [0, 0, 0]}}
     - {id: motor_mount_4, role: provider, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [-0.06046, -0.06046, 0.0], rpy_deg: [0, 0, 0]}}
-    - {id: battery_mount, role: provider, interface: hakoniwa.generic.battery-mount, pose: {position_m: [-0.008, 0, 0.016], rpy_deg: [0, 0, 0]}}
+    - {id: battery_mount, role: provider, interface: hakoniwa.generic.battery-mount, pose: {position_m: [-0.008, 0, 0.0215], rpy_deg: [0, 0, 0]}}
     - {id: camera_mount, role: provider, interface: hakoniwa.generic.camera-mount, pose: {position_m: [0.067, 0, 0.014], rpy_deg: [0, 0, 0]}}
-    - {id: electronics_mount, role: provider, interface: hakoniwa.generic.electronics-mount, pose: {position_m: [0, 0, 0.0105], rpy_deg: [0, 0, 0]}}
+    - {id: electronics_mount, role: provider, interface: hakoniwa.generic.electronics-mount, pose: {position_m: [0, 0, 0.0075], rpy_deg: [0, 0, 0]}}
     - {id: landing_gear_mount, role: provider, interface: hakoniwa.generic.landing-gear-mount, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
     - {id: accessory_mount, role: provider, interface: hakoniwa.generic.accessory-mount, capacity: 8, pose: {position_m: [0, 0, 0.0105], rpy_deg: [0, 0, 0]}}
   geometry:
     visual:
-      # Carbon plate stack. Thicknesses follow the published assembly/specification;
-      # planform dimensions remain approximations until plate CAD/drawings are available.
+      # Plate thicknesses are evidence-backed. Planform L/W remains estimated.
       - {name: bottom_plate, type: box, center_m: [0.000, 0, 0.000], dimensions_m: [0.098, 0.036, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
       - {name: middle_plate, type: box, center_m: [0.000, 0, 0.0065], dimensions_m: [0.086, 0.034, 0.002], rgba: [0.060, 0.070, 0.080, 1]}
-      - {name: top_plate, type: box, center_m: [0.000, 0, 0.014], dimensions_m: [0.091, 0.030, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
-      - {name: top_nose, type: box, center_m: [0.045, 0, 0.014], dimensions_m: [0.022, 0.026, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
-      - {name: battery_pad_front, type: box, center_m: [0.013, 0, 0.0155], dimensions_m: [0.012, 0.024, 0.001], rgba: [0.025, 0.028, 0.032, 1]}
-      - {name: battery_pad_rear, type: box, center_m: [-0.023, 0, 0.0155], dimensions_m: [0.012, 0.024, 0.001], rgba: [0.025, 0.028, 0.032, 1]}
+      # The 11 mm stack-height constraint is interpreted as the clearance from
+      # the middle-plate upper surface to the top-plate lower surface.
+      - {name: top_plate, type: box, center_m: [0.000, 0, 0.0195], dimensions_m: [0.091, 0.030, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: top_nose, type: box, center_m: [0.045, 0, 0.0195], dimensions_m: [0.022, 0.026, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: battery_pad_front, type: box, center_m: [0.013, 0, 0.0210], dimensions_m: [0.012, 0.024, 0.001], rgba: [0.025, 0.028, 0.032, 1]}
+      - {name: battery_pad_rear, type: box, center_m: [-0.023, 0, 0.0210], dimensions_m: [0.012, 0.024, 0.001], rgba: [0.025, 0.028, 0.032, 1]}
 
-      # Front support / camera cage belongs to the frame, not to the camera.
-      - {name: front_support_bottom, type: box, center_m: [0.055, 0, 0.002], dimensions_m: [0.030, 0.030, 0.004], rgba: [0.055, 0.065, 0.075, 1]}
-      - {name: front_support_right, type: box, center_m: [0.057, -0.015, 0.012], dimensions_m: [0.028, 0.003, 0.022], rpy_deg: [0, -8, 0], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: front_support_left, type: box, center_m: [0.057, 0.015, 0.012], dimensions_m: [0.028, 0.003, 0.022], rpy_deg: [0, -8, 0], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: front_support_top, type: box, center_m: [0.055, 0, 0.022], dimensions_m: [0.024, 0.032, 0.003], rgba: [0.055, 0.065, 0.075, 1]}
+      # Front support stays an inferred primitive model, but its inner opening
+      # is constrained to 20 mm, the larger published camera installation width.
+      - {name: front_support_bottom, type: box, center_m: [0.055, 0, 0.002], dimensions_m: [0.030, 0.026, 0.004], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: front_support_right, type: box, center_m: [0.057, -0.0115, 0.012], dimensions_m: [0.028, 0.003, 0.022], rpy_deg: [0, -8, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: front_support_left, type: box, center_m: [0.057, 0.0115, 0.012], dimensions_m: [0.028, 0.003, 0.022], rpy_deg: [0, -8, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: front_support_top, type: box, center_m: [0.055, 0, 0.022], dimensions_m: [0.024, 0.026, 0.003], rgba: [0.055, 0.065, 0.075, 1]}
 
-      # Side plates give the center body its rigid-volume silhouette.
-      - {name: side_plate_right, type: box, center_m: [0.000, -0.018, 0.007], dimensions_m: [0.068, 0.002, 0.012], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_plate_left, type: box, center_m: [0.000, 0.018, 0.007], dimensions_m: [0.068, 0.002, 0.012], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_brace_right_front, type: box, center_m: [0.022, -0.018, 0.007], dimensions_m: [0.004, 0.003, 0.013], rpy_deg: [0, -20, 0], rgba: [0.80, 0.58, 0.02, 1]}
-      - {name: side_brace_right_rear, type: box, center_m: [-0.022, -0.018, 0.007], dimensions_m: [0.004, 0.003, 0.013], rpy_deg: [0, 20, 0], rgba: [0.80, 0.58, 0.02, 1]}
-      - {name: side_brace_left_front, type: box, center_m: [0.022, 0.018, 0.007], dimensions_m: [0.004, 0.003, 0.013], rpy_deg: [0, -20, 0], rgba: [0.80, 0.58, 0.02, 1]}
-      - {name: side_brace_left_rear, type: box, center_m: [-0.022, 0.018, 0.007], dimensions_m: [0.004, 0.003, 0.013], rpy_deg: [0, 20, 0], rgba: [0.80, 0.58, 0.02, 1]}
+      # Side structures span the evidence-constrained 11 mm internal stack bay.
+      - {name: side_plate_right, type: box, center_m: [0.000, -0.018, 0.013], dimensions_m: [0.068, 0.002, 0.011], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_plate_left, type: box, center_m: [0.000, 0.018, 0.013], dimensions_m: [0.068, 0.002, 0.011], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_brace_right_front, type: box, center_m: [0.022, -0.018, 0.013], dimensions_m: [0.004, 0.003, 0.011], rpy_deg: [0, -20, 0], rgba: [0.80, 0.58, 0.02, 1]}
+      - {name: side_brace_right_rear, type: box, center_m: [-0.022, -0.018, 0.013], dimensions_m: [0.004, 0.003, 0.011], rpy_deg: [0, 20, 0], rgba: [0.80, 0.58, 0.02, 1]}
+      - {name: side_brace_left_front, type: box, center_m: [0.022, 0.018, 0.013], dimensions_m: [0.004, 0.003, 0.011], rpy_deg: [0, -20, 0], rgba: [0.80, 0.58, 0.02, 1]}
+      - {name: side_brace_left_rear, type: box, center_m: [-0.022, 0.018, 0.013], dimensions_m: [0.004, 0.003, 0.011], rpy_deg: [0, 20, 0], rgba: [0.80, 0.58, 0.02, 1]}
 
-      # Standoffs keep the published plate stack visibly separated.
-      - {name: standoff_rear_right, type: cylinder, center_m: [-0.035, -0.012, 0.007], radius_m: 0.0018, length_m: 0.012, rgba: [0.95, 0.67, 0.025, 1]}
-      - {name: standoff_rear_left, type: cylinder, center_m: [-0.035, 0.012, 0.007], radius_m: 0.0018, length_m: 0.012, rgba: [0.95, 0.67, 0.025, 1]}
-      - {name: standoff_front_right, type: cylinder, center_m: [0.035, -0.012, 0.007], radius_m: 0.0018, length_m: 0.012, rgba: [0.95, 0.67, 0.025, 1]}
-      - {name: standoff_front_left, type: cylinder, center_m: [0.035, 0.012, 0.007], radius_m: 0.0018, length_m: 0.012, rgba: [0.95, 0.67, 0.025, 1]}
+      # Manufacturer installation material identifies M2x11 mm aluminum standoffs.
+      - {name: standoff_rear_right, type: cylinder, center_m: [-0.035, -0.012, 0.013], radius_m: 0.0018, length_m: 0.011, rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: standoff_rear_left, type: cylinder, center_m: [-0.035, 0.012, 0.013], radius_m: 0.0018, length_m: 0.011, rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: standoff_front_right, type: cylinder, center_m: [0.035, -0.012, 0.013], radius_m: 0.0018, length_m: 0.011, rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: standoff_front_left, type: cylinder, center_m: [0.035, 0.012, 0.013], radius_m: 0.0018, length_m: 0.011, rgba: [0.95, 0.67, 0.025, 1]}
 
       # Arm and motor-center geometry remains unchanged until primary dimensions
       # beyond the published wheelbase are available.
@@ -104,5 +112,5 @@ item:
       - {name: motor_pad_front_left, type: cylinder, center_m: [0.06046, 0.06046, 0], radius_m: 0.010, length_m: 0.004, rgba: [0.055, 0.065, 0.075, 1]}
       - {name: wire_guard_front_left, type: box, center_m: [0.03990, 0.03990, 0.003], dimensions_m: [0.029, 0.006, 0.003], rpy_deg: [0, 0, 45], rgba: [0.95, 0.67, 0.025, 1]}
     inertial:
-      # Keep the existing inertial proxy unchanged in this visual-structure pass.
+      # Keep the existing inertial proxy unchanged until mass distribution is evidenced.
       - {name: mass_proxy, type: box, dimensions_m: [0.120, 0.120, 0.018]}
