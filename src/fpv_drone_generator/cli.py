@@ -12,7 +12,6 @@ from .errors import FpvDroneError
 from .package import build_bom, generate_package
 from .recipe import load_recipe
 from .resolver import resolve_vehicle
-from .showroom import SHOWROOM_KINDS, generate_catalog_showroom, open_catalog_showroom
 from .target import bundled_drone_pro_rotor_contract_path, load_drone_pro_rotor_contract
 from .world import load_world
 
@@ -40,64 +39,13 @@ def _parser() -> argparse.ArgumentParser:
     generate.add_argument("--output", type=Path, required=True)
     generate.add_argument("--world", type=Path, help="optional MuJoCo world/course YAML")
     generate.add_argument("--drone-pro-rotor-contract", type=Path, help="override the bundled Drone PRO target contract")
-
-    catalog_view = subparsers.add_parser(
-        "catalog-view",
-        help="render catalog components as a MuJoCo showroom",
-    )
-    catalog_view.add_argument(
-        "kind",
-        nargs="?",
-        choices=SHOWROOM_KINDS,
-        help="optional component kind to show",
-    )
-    catalog_view.add_argument(
-        "item_id",
-        nargs="?",
-        help="optional catalog item id; requires kind",
-    )
-    catalog_view.add_argument(
-        "--output",
-        type=Path,
-        default=Path("build/catalog-showroom.xml"),
-        help="generated showroom MJCF path",
-    )
-    catalog_view.add_argument(
-        "--no-open",
-        action="store_true",
-        help="generate MJCF without launching MuJoCo Viewer",
-    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
-        catalog_paths = args.catalogs or [_default_catalogs()]
-        if args.command == "catalog-view":
-            catalogs = load_catalogs(catalog_paths)
-            output = generate_catalog_showroom(
-                catalogs,
-                args.output.resolve(),
-                args.kind,
-                args.item_id,
-            )
-            print(
-                json.dumps(
-                    {
-                        "ok": True,
-                        "output": str(output),
-                        "kind": args.kind,
-                        "item_id": args.item_id,
-                    },
-                    ensure_ascii=False,
-                )
-            )
-            if not args.no_open:
-                open_catalog_showroom(output)
-            return 0
-
-        vehicle = _load(args.recipe, catalog_paths)
+        vehicle = _load(args.recipe, args.catalogs or [_default_catalogs()])
         if args.command == "validate":
             print(f"OK: {vehicle.recipe.name} ({vehicle.recipe.vehicle_type}, {vehicle.total_mass_kg:.3f} kg)")
         elif args.command == "bom":
