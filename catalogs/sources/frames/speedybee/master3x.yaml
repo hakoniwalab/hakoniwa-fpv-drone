@@ -7,6 +7,10 @@ sources:
     role: manufacturer_product
   - url: https://spcdn.speedybee.cn/cdn/142107666636869632.pdf?attname=sbee_master3x_frame_manual-en.pdf
     role: manufacturer_manual
+  - url: https://docs.speedybee.cn/en/fpv/fpv-drones/master3x-drone/master3x-3d-printing-files.html
+    role: other
+  - url: https://docs.speedybee.cn/en/fpv/fpv-drones/master3x-drone/master3x-3d-printed-parts-installation-guide.html
+    role: other
   - url: https://www.speedybee.com/accessories-for-speedybee-master-3x/
     role: other
   - url: https://www.speedybee.com/speedybee-master3x-drone/
