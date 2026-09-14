@@ -1,5 +1,6 @@
 import unittest
 
+from fpv_drone_generator.catalog import load_catalogs
 from fpv_drone_generator.yaml_io import load_yaml
 
 from .support import CATALOGS, ROOT
@@ -27,15 +28,24 @@ class AssemblyInterfaceCatalogTest(unittest.TestCase):
             )
         )
 
-        for catalog_path in CATALOGS.glob("*.yaml"):
-            catalog = load_yaml(catalog_path)
-            for component in catalog["items"]:
-                ports = component.get("assembly_ports")
-                self.assertIsInstance(ports, list, f"{catalog_path}:{component['id']}")
-                self.assertTrue(ports, f"{catalog_path}:{component['id']}")
-                self.assertEqual(len({port["id"] for port in ports}), len(ports))
-                self.assertTrue(all(port["interface"] in variant_ids for port in ports))
-                self.assertTrue(all(port["role"] in ("provider", "consumer") for port in ports))
+        catalogs = load_catalogs(CATALOGS)
+        groups = (
+            catalogs.frames,
+            catalogs.motors,
+            catalogs.propellers,
+            catalogs.batteries,
+            catalogs.cameras,
+            catalogs.controllers,
+            catalogs.landing_gears,
+            catalogs.attachments,
+        )
+        for group in groups:
+            for component in group.items.values():
+                ports = component.assembly_ports
+                self.assertTrue(ports, f"{group.kind}:{component.id}")
+                self.assertEqual(len({port.id for port in ports}), len(ports))
+                self.assertTrue(all(port.interface in variant_ids for port in ports))
+                self.assertTrue(all(port.role in ("provider", "consumer") for port in ports))
 
 
 if __name__ == "__main__":

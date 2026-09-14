@@ -1,0 +1,9 @@
+schema_version: 1
+kind: catalog-source
+product_id: runcam_phoenix2
+product_kind: camera
+sources:
+  - url: https://shop.runcam.com/runcam-phoenix-2/
+    role: manufacturer_product
+  - url: https://www.runcam.com/download/Phoenix2/Phoenix_2_Manual.pdf
+    role: manufacturer_manual

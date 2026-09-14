@@ -1,0 +1,42 @@
+schema_version: 1
+kind: frame
+source_ref: sources/frames/speedybee/master5-v2.yaml
+item:
+  id: speedybee_master5_v2
+  name: SpeedyBee Master 5 V2 Frame
+  vendor: SpeedyBee
+  description: Commercial 5-inch freestyle/cinematic frame. Published mass, wheelbase and mounting patterns are retained; the local simulation envelope and mount poses are derived where the manufacturer does not publish a complete CAD-origin contract.
+  mass_kg: 0.140
+  dimensions_m: [0.226, 0.226, 0.030]
+  wheelbase_m: 0.226
+  motor_mount_positions_m:
+    - [0.07990, -0.07990, 0.0]
+    - [0.07990, 0.07990, 0.0]
+    - [-0.07990, 0.07990, 0.0]
+    - [-0.07990, -0.07990, 0.0]
+  metadata:
+    class: 5-inch
+    manufacturer_product: Master 5 V2 Frame
+    compatible_propeller_inches: [5.0, 5.1]
+    fc_mounts_mm: [30.5, 20.0]
+    camera_widths_mm: [19, 20]
+    value_origin:
+      mass_kg: manufacturer
+      wheelbase_m: manufacturer
+      dimensions_m: simulation_envelope_from_wheelbase
+      motor_mount_positions_m: derived_true_x_from_wheelbase
+      motor_mount_interface: manufacturer
+      camera_mount_interface: manufacturer
+      battery_mount_pose: simulation_estimate
+      camera_mount_pose: simulation_estimate
+      electronics_mount_pose: simulation_estimate
+  assembly_ports:
+    - {id: motor_mount_1, role: provider, interface: fpv.motor-mount.16x16, pose: {position_m: [0.07990, -0.07990, 0.0], rpy_deg: [0, 0, 0]}}
+    - {id: motor_mount_2, role: provider, interface: fpv.motor-mount.16x16, pose: {position_m: [0.07990, 0.07990, 0.0], rpy_deg: [0, 0, 0]}}
+    - {id: motor_mount_3, role: provider, interface: fpv.motor-mount.16x16, pose: {position_m: [-0.07990, 0.07990, 0.0], rpy_deg: [0, 0, 0]}}
+    - {id: motor_mount_4, role: provider, interface: fpv.motor-mount.16x16, pose: {position_m: [-0.07990, -0.07990, 0.0], rpy_deg: [0, 0, 0]}}
+    - {id: battery_mount, role: provider, interface: hakoniwa.generic.battery-mount, pose: {position_m: [0, 0, 0.015], rpy_deg: [0, 0, 0]}}
+    - {id: camera_mount, role: provider, interface: fpv.camera-mount.19mm-m2, pose: {position_m: [0.060, 0, 0.010], rpy_deg: [0, 0, 0]}}
+    - {id: electronics_mount, role: provider, interface: hakoniwa.generic.electronics-mount, pose: {position_m: [0, 0, 0.010], rpy_deg: [0, 0, 0]}}
+    - {id: landing_gear_mount, role: provider, interface: hakoniwa.generic.landing-gear-mount, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
+    - {id: accessory_mount, role: provider, interface: hakoniwa.generic.accessory-mount, capacity: 8, pose: {position_m: [0, 0, 0.015], rpy_deg: [0, 0, 0]}}

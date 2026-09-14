@@ -10,8 +10,9 @@ from .support import CATALOGS
 class CatalogTest(unittest.TestCase):
     def test_loads_typed_catalog_groups(self):
         catalogs = load_catalogs(CATALOGS)
-        self.assertEqual(4, len(catalogs.frames.items))
+        self.assertEqual(5, len(catalogs.frames.items))
         self.assertEqual("generic_5inch_x", catalogs.frames.get("generic_5inch_x").id)
+        self.assertEqual("speedybee_master5_v2", catalogs.frames.get("speedybee_master5_v2").id)
         self.assertEqual("hakoniwa", catalogs.controllers.get("hakoniwa_default").backend)
         self.assertEqual("capsule", catalogs.landing_gears.get("generic_quad_skid").geometry.visual[0].primitive_type)
         self.assertEqual("visual_only", catalogs.attachments.get("generic_antenna").physical_role)

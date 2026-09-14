@@ -1,0 +1,7 @@
+schema_version: 1
+kind: catalog-source
+product_id: tattu_rline_v5_1200mah_6s
+product_kind: battery
+sources:
+  - url: https://genstattu.com/tattu-r-line-version-5-0-1200mah-6s-150c-22-2v-lipo-battery-pack-with-xt60-plug/
+    role: manufacturer_product

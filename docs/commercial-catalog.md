@@ -2,6 +2,12 @@
 
 The Catalog may contain real commercial parts, but a product page rarely publishes every value needed by a physics simulator. Commercial entries therefore keep provenance in `metadata.value_origin` and never present an estimated simulation value as a manufacturer specification.
 
+Commercial products use the Source / Product boundary documented in [catalog-source-product-boundary.md](catalog-source-product-boundary.md):
+
+- `catalogs/sources/**` records external manufacturer product/manual URLs;
+- `catalogs/products/**` stores one normalized digital product per file;
+- every product fragment has a mandatory `source_ref` back to its source file.
+
 The first reference build is `recipes/examples/speedybee-master5-commercial.assembly.yaml` and combines:
 
 - SpeedyBee Master 5 V2 Frame
@@ -20,7 +26,7 @@ Typical origins are:
 - `estimated_*`: a simulation value not published for the product;
 - `simulation_assumption`: an explicit model assumption.
 
-`source_urls` points to the manufacturer material used for the entry. The source URLs are evidence for published product values only; estimated dynamics remain Hakoniwa simulation data.
+The product fragment's `source_ref` identifies the external evidence record. Source URLs are evidence for published product values only; estimated dynamics remain Hakoniwa simulation data.
 
 ## First dimensional Assembly Interface variants
 
