@@ -62,13 +62,9 @@ Catalogは部品そのものです。
 ```text
 catalogs/
 ├── products/
-│   ├── frames.yaml          # Hakoniwa generic category collection
-│   ├── motors.yaml
-│   ├── propellers.yaml
-│   ├── batteries.yaml
-│   ├── cameras.yaml
-│   ├── controllers.yaml
-│   └── <kind>/<vendor>/<product>.yaml  # commercial product fragment
+│   └── <kind>/
+│       ├── hakoniwa.yaml              # Hakoniwa generic category collection
+│       └── <vendor>/<product>.yaml    # commercial product fragment
 └── sources/<kind>/<vendor>/<product>.yaml
 ```
 

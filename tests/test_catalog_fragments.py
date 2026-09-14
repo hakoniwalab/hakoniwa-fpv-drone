@@ -30,18 +30,19 @@ class CatalogFragmentTest(unittest.TestCase):
 
     def test_generic_catalog_collections_live_under_products(self):
         expected = (
-            "frames.yaml",
-            "motors.yaml",
-            "propellers.yaml",
-            "batteries.yaml",
-            "cameras.yaml",
-            "controllers.yaml",
-            "landing-gears.yaml",
-            "attachments.yaml",
+            "frames/hakoniwa.yaml",
+            "motors/hakoniwa.yaml",
+            "propellers/hakoniwa.yaml",
+            "batteries/hakoniwa.yaml",
+            "cameras/hakoniwa.yaml",
+            "controllers/hakoniwa.yaml",
+            "landing-gears/hakoniwa.yaml",
+            "attachments/hakoniwa.yaml",
         )
         for filename in expected:
             self.assertTrue((CATALOGS / "products" / filename).is_file())
-            self.assertFalse((CATALOGS / filename).exists())
+        self.assertFalse(any((CATALOGS / "products").glob("*.yaml")))
+        self.assertFalse(any(CATALOGS.glob("*.yaml")))
 
         catalogs = load_catalogs(CATALOGS)
         self.assertEqual("Generic 5-inch X Frame", catalogs.frames.get("generic_5inch_x").name)

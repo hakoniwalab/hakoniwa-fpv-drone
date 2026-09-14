@@ -1,5 +1,6 @@
 schema_version: 1
 
+
 kind: camera
 items:
   - id: generic_fpv_camera

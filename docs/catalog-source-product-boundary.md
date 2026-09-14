@@ -52,8 +52,8 @@ catalogs/products/
   propellers/<vendor>/<product>.yaml
   batteries/<vendor>/<product>.yaml
   cameras/<vendor>/<product>.yaml
-  frames.yaml                         # Hakoniwa generic reference collection
-  motors.yaml
+  frames/hakoniwa.yaml                 # Hakoniwa generic reference collection
+  motors/hakoniwa.yaml
 ```
 
 A commercial product fragment contains exactly one normalized Catalog item and
@@ -83,7 +83,7 @@ The Catalog loader verifies that:
 The canonical repository layout is:
 
 ```text
-products/<kind>.yaml                 # Hakoniwa generic collection
+products/<kind>/hakoniwa.yaml         # Hakoniwa generic collection
 +
 products/<kind>/**/*.yaml             # commercial product fragments
 ```

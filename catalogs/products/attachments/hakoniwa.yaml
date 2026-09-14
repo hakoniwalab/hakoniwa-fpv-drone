@@ -1,5 +1,6 @@
 schema_version: 1
 
+
 kind: attachment
 items:
   - id: generic_antenna
