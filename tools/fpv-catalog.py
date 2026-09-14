@@ -196,6 +196,7 @@ def export_glb(args: argparse.Namespace) -> int:
         selection = args.kind if args.item_id is None else f"{args.kind}/{args.item_id}"
     print(f"Exported Catalog GLB: {selection}")
     print(f"Manifest: {manifest}")
+    print(f"Assembly contract: {manifest.parent / 'assembly-contract.json'}")
     return 0
 
 

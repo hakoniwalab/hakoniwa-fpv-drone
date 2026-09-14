@@ -100,6 +100,7 @@ The default output is:
 ```text
 build/catalog-showroom/glb/
 ├── manifest.json
+├── assembly-contract.json
 ├── frame/generic_5inch_x.glb
 ├── motor/generic_2207_1850kv.glb
 ├── propeller/generic_5inch_3blade.glb
@@ -113,7 +114,9 @@ python3 tools/fpv-catalog.py export-glb \
   --output-dir build/browser-assets
 ```
 
-`manifest.json` is intended as the browser-side Catalog index. Each item records the Catalog kind/id/name, description, relative GLB path, selected engineering specs, metadata, and generated bounds/extents.
+`manifest.json` is the browser-side visual-asset index. Each item records the Catalog kind/id/name, description, relative GLB path, selected engineering specs, metadata, and generated bounds/extents.
+
+`assembly-contract.json` is the separate browser-side composition contract. It contains selected components and their `assembly_ports`, plus the interface definitions, variants, and connection rules. A Browser Composer uses this contract to render allowed connections and to persist an Assembly Graph; it must not reimplement compatibility rules or physical calculations in JavaScript.
 
 The GLB contains only the component in its Catalog-local frame. Showroom floor and pedestal geometry are not exported, so a browser composer can position the part freely.
 

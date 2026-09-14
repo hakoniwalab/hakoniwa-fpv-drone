@@ -38,6 +38,10 @@ class CatalogGlbTest(unittest.TestCase):
             self.assertEqual(b"glTF", asset.read_bytes()[:4])
             scene = trimesh.load(asset, force="scene")
             self.assertTrue(scene.geometry)
+            contract = json.loads((output_dir / "assembly-contract.json").read_text(encoding="utf-8"))
+            self.assertEqual("propeller", contract["components"][0]["kind"])
+            self.assertEqual("motor_shaft", contract["components"][0]["assembly_ports"][0]["id"])
+            self.assertTrue(contract["connection_rules"])
 
     def test_export_all_catalog_items(self):
         catalogs = load_catalogs(CATALOGS)
@@ -62,6 +66,8 @@ class CatalogGlbTest(unittest.TestCase):
             self.assertTrue(
                 all((output_dir / item["asset"]).is_file() for item in manifest["items"])
             )
+            contract = json.loads((output_dir / "assembly-contract.json").read_text(encoding="utf-8"))
+            self.assertEqual(expected, len(contract["components"]))
 
 
 if __name__ == "__main__":

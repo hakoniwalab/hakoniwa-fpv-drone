@@ -18,6 +18,10 @@ from .catalog import (
     Propeller,
 )
 from .showroom import DisplayPrimitive, _display_geometry, _selected_items
+from .yaml_io import load_yaml
+
+
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _rotation_matrix(rpy_deg: tuple[float, float, float]):
@@ -124,6 +128,52 @@ def export_component_glb(kind: str, component: CatalogType, output_path: Path) -
     }
 
 
+def _port_contract(component: CatalogType) -> list[dict[str, Any]]:
+    return [
+        {
+            "id": port.id,
+            "role": port.role,
+            "interface": port.interface,
+            "pose": {"position_m": list(port.position_m), "rpy_deg": list(port.rpy_deg)},
+            "capacity": port.capacity,
+        }
+        for port in component.assembly_ports
+    ]
+
+
+def export_assembly_contract(
+    catalogs: CatalogStore,
+    output_dir: Path,
+    kind: str | None = None,
+    item_id: str | None = None,
+    interface_root: Path | None = None,
+) -> Path:
+    items = _selected_items(catalogs, kind, item_id)
+    root = interface_root or _REPOSITORY_ROOT / "assembly-interfaces"
+    definitions = load_yaml(root / "definitions.yaml")
+    variants = load_yaml(root / "variants.yaml")
+    rules = load_yaml(root / "connection-rules.yaml")
+    contract = {
+        "schema_version": 1,
+        "coordinate_system": "Hakoniwa catalog local frame; FLU; meters and degrees",
+        "selection": {"kind": kind, "item_id": item_id},
+        "components": [
+            {
+                "id": selected.component.id,
+                "kind": selected.kind,
+                "assembly_ports": _port_contract(selected.component),
+            }
+            for selected in items
+        ],
+        "interface_definitions": definitions["items"],
+        "interface_variants": variants["items"],
+        "connection_rules": rules["items"],
+    }
+    path = output_dir / "assembly-contract.json"
+    path.write_text(json.dumps(contract, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return path
+
+
 def export_catalog_glb(catalogs: CatalogStore, output_dir: Path, kind: str | None = None, item_id: str | None = None) -> Path:
     items = _selected_items(catalogs, kind, item_id)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -142,4 +192,5 @@ def export_catalog_glb(catalogs: CatalogStore, output_dir: Path, kind: str | Non
     }
     manifest_path = output_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    export_assembly_contract(catalogs, output_dir, kind, item_id)
     return manifest_path

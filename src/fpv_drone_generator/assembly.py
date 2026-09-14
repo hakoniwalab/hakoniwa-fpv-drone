@@ -6,6 +6,12 @@ from typing import Any
 
 from .catalog import AssemblyPort, CatalogStore, CatalogType
 from .errors import ResolutionError, ValidationError
+from .transforms import (
+    compose_transform,
+    inverse_transform,
+    quaternion_from_rpy_deg,
+    rpy_deg_from_quaternion,
+)
 from .yaml_io import load_yaml
 
 
@@ -27,6 +33,9 @@ class AssemblyNode:
     kind: str
     product: str
     name: str | None
+    rotor_index: int | None
+    rotor_name: str | None
+    rotation_direction: int | None
 
 
 @dataclass(frozen=True)
@@ -89,7 +98,22 @@ def load_assembly_graph(path: Path) -> AssemblyGraph:
         entry_name = entry.get("name")
         if entry_name is not None and (not isinstance(entry_name, str) or not entry_name):
             raise ValidationError(f"assembly.nodes[{index}].name must be a non-empty string when present")
-        nodes.append(AssemblyNode(node_id, kind, product, entry_name))
+        rotor = entry.get("rotor")
+        if kind == "motor":
+            if not isinstance(rotor, dict):
+                raise ValidationError(f"assembly.nodes[{index}].rotor is required for motor")
+            rotor_index, rotor_name, rotation_direction = rotor.get("index"), rotor.get("name"), rotor.get("rotation_direction")
+            if not isinstance(rotor_index, int) or isinstance(rotor_index, bool) or rotor_index <= 0:
+                raise ValidationError(f"assembly.nodes[{index}].rotor.index must be a positive integer")
+            if not isinstance(rotor_name, str) or not rotor_name:
+                raise ValidationError(f"assembly.nodes[{index}].rotor.name must be a non-empty string")
+            if rotation_direction not in (-1, 1):
+                raise ValidationError(f"assembly.nodes[{index}].rotor.rotation_direction must be -1 or 1")
+        elif rotor is not None:
+            raise ValidationError(f"assembly.nodes[{index}].rotor is valid only for motor")
+        else:
+            rotor_index = rotor_name = rotation_direction = None
+        nodes.append(AssemblyNode(node_id, kind, product, entry_name, rotor_index, rotor_name, rotation_direction))
     if len({node.id for node in nodes}) != len(nodes):
         raise ValidationError("assembly.nodes ids must be unique")
     connections: list[AssemblyConnection] = []
@@ -149,6 +173,21 @@ def _validate_adjustment(connection: AssemblyConnection, rule: dict[str, Any]) -
                 raise ResolutionError(f"assembly adjustment {axis} is not allowed by {rule['id']}")
             if limits is not None and abs(selected[index]) > float(limits[index]):
                 raise ResolutionError(f"assembly adjustment {axis} exceeds {rule['id']} limit")
+
+
+def _component_pose(provider: AssemblyPort, consumer: AssemblyPort, connection: AssemblyConnection) -> tuple[Vector3, Vector3]:
+    provider_rotation = quaternion_from_rpy_deg(provider.rpy_deg)
+    adjustment_rotation = quaternion_from_rpy_deg(connection.adjustment_rpy_deg)
+    consumer_rotation = quaternion_from_rpy_deg(consumer.rpy_deg)
+    position, rotation = compose_transform(
+        provider.position_m,
+        provider_rotation,
+        connection.adjustment_position_m,
+        adjustment_rotation,
+    )
+    inverse_position, inverse_rotation = inverse_transform(consumer.position_m, consumer_rotation)
+    position, rotation = compose_transform(position, rotation, inverse_position, inverse_rotation)
+    return position, rpy_deg_from_quaternion(rotation)
 
 
 def resolve_assembly(graph: AssemblyGraph, catalogs: CatalogStore, interface_root: Path | None = None) -> ResolvedAssembly:
@@ -213,21 +252,25 @@ def project_recipe(resolved: ResolvedAssembly) -> dict[str, Any]:
         if connection is None:
             raise ResolutionError(f"assembly node {node.id} is not mounted on the frame")
         provider = _port(resolved.components[frame.id], connection.provider_port, "provider", frame.id)
+        consumer = _port(resolved.components[node.id], connection.consumer_port, "consumer", node.id)
+        position, rpy_deg = _component_pose(provider, consumer, connection)
         placements[kind] = {
-            "position_m": [provider.position_m[index] + connection.adjustment_position_m[index] for index in range(3)],
-            "rpy_deg": [provider.rpy_deg[index] + connection.adjustment_rpy_deg[index] for index in range(3)],
+            "position_m": list(position),
+            "rpy_deg": list(rpy_deg),
         }
     for node in by_kind.get("attachment", []):
         connection = mount_connections.get(node.id)
         if connection is None:
             raise ResolutionError(f"assembly attachment {node.id} is not mounted on the frame")
         provider = _port(resolved.components[frame.id], connection.provider_port, "provider", frame.id)
+        consumer = _port(resolved.components[node.id], connection.consumer_port, "consumer", node.id)
+        position, rpy_deg = _component_pose(provider, consumer, connection)
         attachment_entries.append({
             "name": node.name or node.id,
             "product": node.product,
             "parent": "frame",
-            "position_m": [provider.position_m[index] + connection.adjustment_position_m[index] for index in range(3)],
-            "rpy_deg": [provider.rpy_deg[index] + connection.adjustment_rpy_deg[index] for index in range(3)],
+            "position_m": list(position),
+            "rpy_deg": list(rpy_deg),
         })
     motor_connections = [connection for connection in resolved.connections if connection.provider_node == frame.id and resolved.nodes[connection.consumer_node].kind == "motor"]
     if len(motor_connections) != len(motors):
@@ -239,15 +282,20 @@ def project_recipe(resolved: ResolvedAssembly) -> dict[str, Any]:
     ]
     if {connection.provider_node for connection in motor_propeller_connections} != {node.id for node in motors}:
         raise ResolutionError("every motor must provide exactly one propeller connection")
-    motor_connections.sort(key=lambda connection: connection.provider_port)
-    directions = (-1, 1, -1, 1)
+    motor_connections.sort(key=lambda connection: resolved.nodes[connection.consumer_node].rotor_index or 0)
+    rotor_indices = [resolved.nodes[connection.consumer_node].rotor_index for connection in motor_connections]
+    if rotor_indices != list(range(1, len(motor_connections) + 1)):
+        raise ResolutionError("motor rotor.index values must be contiguous from 1")
+    if len({resolved.nodes[connection.consumer_node].rotor_name for connection in motor_connections}) != len(motor_connections):
+        raise ResolutionError("motor rotor.name values must be unique")
     rotor_layout = []
     for index, connection in enumerate(motor_connections):
         port = _port(resolved.components[frame.id], connection.provider_port, "provider", frame.id)
+        motor = resolved.nodes[connection.consumer_node]
         rotor_layout.append({
-            "name": f"prop{index + 1}",
+            "name": motor.rotor_name,
             "position_flu_m": list(port.position_m),
-            "rotation_direction": directions[index],
+            "rotation_direction": motor.rotation_direction,
         })
     components: dict[str, Any] = {
         "frame": frame.product,

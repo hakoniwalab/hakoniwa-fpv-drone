@@ -1,46 +1,38 @@
 schema_version: 1
 kind: fpv-assembly
-name: example-utility-quad-with-skid
-type: quad_x
+name: example-utility-hexa
+type: multirotor
 controller_mode: angle
-
 nodes:
-  - {id: frame, kind: frame, product: generic_utility_quad_frame}
-  - {id: motor_1, kind: motor, product: generic_2207_1850kv, rotor: {index: 1, name: prop1, rotation_direction: -1}}
-  - {id: motor_2, kind: motor, product: generic_2207_1850kv, rotor: {index: 2, name: prop2, rotation_direction: 1}}
-  - {id: motor_3, kind: motor, product: generic_2207_1850kv, rotor: {index: 3, name: prop3, rotation_direction: -1}}
-  - {id: motor_4, kind: motor, product: generic_2207_1850kv, rotor: {index: 4, name: prop4, rotation_direction: 1}}
+  - {id: frame, kind: frame, product: generic_utility_hexa_frame}
+  - {id: motor_1, kind: motor, product: generic_2207_1850kv, rotor: {index: 1, name: prop1, rotation_direction: 1}}
+  - {id: motor_2, kind: motor, product: generic_2207_1850kv, rotor: {index: 2, name: prop2, rotation_direction: -1}}
+  - {id: motor_3, kind: motor, product: generic_2207_1850kv, rotor: {index: 3, name: prop3, rotation_direction: 1}}
+  - {id: motor_4, kind: motor, product: generic_2207_1850kv, rotor: {index: 4, name: prop4, rotation_direction: -1}}
+  - {id: motor_5, kind: motor, product: generic_2207_1850kv, rotor: {index: 5, name: prop5, rotation_direction: 1}}
+  - {id: motor_6, kind: motor, product: generic_2207_1850kv, rotor: {index: 6, name: prop6, rotation_direction: -1}}
   - {id: propeller_1, kind: propeller, product: generic_5inch_3blade}
   - {id: propeller_2, kind: propeller, product: generic_5inch_3blade}
   - {id: propeller_3, kind: propeller, product: generic_5inch_3blade}
   - {id: propeller_4, kind: propeller, product: generic_5inch_3blade}
+  - {id: propeller_5, kind: propeller, product: generic_5inch_3blade}
+  - {id: propeller_6, kind: propeller, product: generic_5inch_3blade}
   - {id: battery, kind: battery, product: generic_6s_1300mah}
   - {id: camera, kind: camera, product: generic_fpv_camera}
   - {id: controller, kind: controller, product: hakoniwa_default}
-  - {id: landing_gear, kind: landing_gear, product: generic_quad_skid}
-  - {id: telemetry_antenna, name: telemetry_antenna, kind: attachment, product: generic_antenna}
-  - {id: payload_left, name: payload_left, kind: attachment, product: generic_payload_box}
-  - {id: payload_right, name: payload_right, kind: attachment, product: generic_payload_box}
-
 connections:
   - {provider: {node: frame, port: motor_mount_1}, consumer: {node: motor_1, port: frame_mount}}
   - {provider: {node: frame, port: motor_mount_2}, consumer: {node: motor_2, port: frame_mount}}
   - {provider: {node: frame, port: motor_mount_3}, consumer: {node: motor_3, port: frame_mount}}
   - {provider: {node: frame, port: motor_mount_4}, consumer: {node: motor_4, port: frame_mount}}
+  - {provider: {node: frame, port: motor_mount_5}, consumer: {node: motor_5, port: frame_mount}}
+  - {provider: {node: frame, port: motor_mount_6}, consumer: {node: motor_6, port: frame_mount}}
   - {provider: {node: motor_1, port: propeller_shaft}, consumer: {node: propeller_1, port: motor_shaft}}
   - {provider: {node: motor_2, port: propeller_shaft}, consumer: {node: propeller_2, port: motor_shaft}}
   - {provider: {node: motor_3, port: propeller_shaft}, consumer: {node: propeller_3, port: motor_shaft}}
   - {provider: {node: motor_4, port: propeller_shaft}, consumer: {node: propeller_4, port: motor_shaft}}
+  - {provider: {node: motor_5, port: propeller_shaft}, consumer: {node: propeller_5, port: motor_shaft}}
+  - {provider: {node: motor_6, port: propeller_shaft}, consumer: {node: propeller_6, port: motor_shaft}}
   - {provider: {node: frame, port: battery_mount}, consumer: {node: battery, port: frame_mount}}
   - {provider: {node: frame, port: camera_mount}, consumer: {node: camera, port: frame_mount}}
   - {provider: {node: frame, port: electronics_mount}, consumer: {node: controller, port: frame_mount}}
-  - {provider: {node: frame, port: landing_gear_mount}, consumer: {node: landing_gear, port: frame_mount}}
-  - provider: {node: frame, port: accessory_mount}
-    consumer: {node: telemetry_antenna, port: frame_mount}
-    adjustment: {position_m: [-0.06, 0.04, -0.01], rpy_deg: [0, 15, 0]}
-  - provider: {node: frame, port: accessory_mount}
-    consumer: {node: payload_left, port: frame_mount}
-    adjustment: {position_m: [-0.04, 0.05, -0.015], rpy_deg: [0, 0, 20]}
-  - provider: {node: frame, port: accessory_mount}
-    consumer: {node: payload_right, port: frame_mount}
-    adjustment: {position_m: [-0.04, -0.05, -0.015], rpy_deg: [0, 0, -20]}

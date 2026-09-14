@@ -32,6 +32,47 @@ def multiply_quaternions(left: Quaternion, right: Quaternion) -> Quaternion:
     )
 
 
+def normalize_quaternion(value: Quaternion) -> Quaternion:
+    magnitude = math.sqrt(sum(component * component for component in value))
+    if magnitude == 0.0:
+        raise ValueError("quaternion must not be zero")
+    return tuple(component / magnitude for component in value)  # type: ignore[return-value]
+
+
+def inverse_quaternion(value: Quaternion) -> Quaternion:
+    normalized = normalize_quaternion(value)
+    return (normalized[0], -normalized[1], -normalized[2], -normalized[3])
+
+
+def compose_transform(
+    first_position_m: Vector3,
+    first_rotation: Quaternion,
+    second_position_m: Vector3,
+    second_rotation: Quaternion,
+) -> tuple[Vector3, Quaternion]:
+    return (
+        transform_point(first_position_m, first_rotation, second_position_m),
+        normalize_quaternion(multiply_quaternions(first_rotation, second_rotation)),
+    )
+
+
+def inverse_transform(position_m: Vector3, rotation: Quaternion) -> tuple[Vector3, Quaternion]:
+    inverse_rotation = inverse_quaternion(rotation)
+    return (
+        rotate_vector(inverse_rotation, (-position_m[0], -position_m[1], -position_m[2])),
+        inverse_rotation,
+    )
+
+
+def rpy_deg_from_quaternion(value: Quaternion) -> Vector3:
+    w, x, y, z = normalize_quaternion(value)
+    roll = math.atan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x * x + y * y))
+    pitch_sine = max(-1.0, min(1.0, 2.0 * (w * y - z * x)))
+    pitch = math.asin(pitch_sine)
+    yaw = math.atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
+    return (math.degrees(roll), math.degrees(pitch), math.degrees(yaw))
+
+
 def rotate_vector(rotation: Quaternion, value: Vector3) -> Vector3:
     pure = (0.0, value[0], value[1], value[2])
     conjugate = (rotation[0], -rotation[1], -rotation[2], -rotation[3])

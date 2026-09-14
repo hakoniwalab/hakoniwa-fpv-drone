@@ -90,6 +90,16 @@ mounting origin. A port may be occupied at most `capacity` times.
 The component Catalog schema references `schemas/assembly-port.schema.json`.
 The shipped generic Catalog has been migrated to this representation.
 
+When a connection is resolved, the component pose is calculated as a rigid
+transform, not by adding position or RPY values:
+
+```text
+T_component = T_provider_port × T_adjustment × inverse(T_consumer_port)
+```
+
+This keeps a non-zero or rotated consumer port correct for both browser display
+and Recipe projection.
+
 ## 4. Connection rules
 
 A connection rule is defined between a provider interface variant and a
@@ -125,6 +135,11 @@ cardinality, frame mount count, rotor order/direction, collision warnings, and
 electrical compatibility. The existing Vehicle Recipe and Python Generator
 remain authoritative for generated mass properties, thrust, MuJoCo, and Drone
 PRO configuration.
+
+Each motor node also owns an explicit `rotor` assignment: `index`, `name`, and
+`rotation_direction`. This is an Assembly Graph property, rather than an
+inference from port names, so `quad_x` and variable-count `multirotor` graphs
+share the same deterministic Drone PRO rotor-layout projection.
 
 ## v1 boundary
 
