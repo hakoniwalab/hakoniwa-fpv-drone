@@ -67,8 +67,9 @@ function deleteNode(id) {
   redraw();
   cardList();
 }
-function isMotorMount(provider) { return provider.interface.endsWith(".motor-mount"); }
-function isPropellerShaft(provider) { return provider.interface.endsWith(".propeller-shaft"); }
+function interfaceDefinition(variantId) { return state.contract?.interface_variants.find((variant)=>variant.id===variantId)?.interface; }
+function isMotorMount(provider) { return interfaceDefinition(provider.interface)==="motor-mount"; }
+function isPropellerShaft(provider) { return interfaceDefinition(provider.interface)==="propeller-shaft"; }
 function nextNodeId(kind) {
   const usedIds=new Set(state.nodes.map((entry)=>entry.id));
   for(let index=1; ; index++) {
@@ -240,8 +241,9 @@ function visualDockingOffset(n, item) {
   const providerItem=state.manifest.items.find((entry)=>entry.kind===providerNode.kind && entry.id===providerNode.product);
   const motorTop=providerItem?.bounds_m?.[1]?.[2];
   const propellerBottom=item.bounds_m?.[0]?.[2];
-  if(!Number.isFinite(motorTop) || !Number.isFinite(propellerBottom)) return 0;
-  return Math.max(0,motorTop-propellerBottom);
+  const shaftHeight=port(providerNode,connection.provider.port,"provider")?.pose.position_m[2];
+  if(!Number.isFinite(motorTop) || !Number.isFinite(propellerBottom) || !Number.isFinite(shaftHeight)) return 0;
+  return Math.max(0,motorTop-shaftHeight-propellerBottom);
 }
 async function objectFor(n){ const item=state.manifest.items.find((entry)=>entry.kind===n.kind&&entry.id===n.product); const group=new THREE.Group(); group.userData.nodeId=n.id; root.add(group); state.objects.set(n.id,group); try { const gltf=await loader.loadAsync(`${assetRoot}/${item.asset}`); gltf.scene.position.z=visualDockingOffset(n,item); group.add(gltf.scene); } catch(error) { const fallback=new THREE.Mesh(new THREE.BoxGeometry(.04,.04,.02),new THREE.MeshStandardMaterial({color:0x49a9d4})); group.add(fallback); console.warn(error); } return group; }
 async function redraw(){ root.clear(); state.objects.clear(); for(const n of state.nodes){ const group=await objectFor(n); group.matrixAutoUpdate=false; group.matrix.copy(worldMatrix(n.id)); group.matrix.decompose(group.position,group.quaternion,group.scale); group.matrixAutoUpdate=true; } inspector(); portList(); assemblyList(); graph(); setStatus(`${state.nodes.length} parts · ${state.connections.length} connections`); }
