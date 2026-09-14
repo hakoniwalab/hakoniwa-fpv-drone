@@ -30,6 +30,94 @@ URLは資料の入口であり、それだけで形状を定義できるわけ�
 `master3x_demo_camera_head` と `generic_4s_850mah` というデモ用部品で、
 実製品の仕様としては扱っていない。
 
+## Master3X追試で分かった剛体再現上の課題
+
+外観の違和感を再確認した結果、問題は細かなディテール不足だけではなく、
+**剛体としての外形・部品境界・配置の推定精度**にある。
+
+現在の`speedybee_master3x`は171 mmのwheelbaseから対称なTrue-X配置を導出しており、
+`metadata.value_origin.motor_mount_positions_m`も
+`derived_true_x_from_wheelbase`としている。wheelbaseは対角距離しか表さないため、
+これだけでは前後方向・左右方向のMotor中心間隔やアーム角を一意に決められない。
+実機寸法図、CAD、または各Motor中心座標が得られた場合は、True-X仮定より優先する。
+
+同様に`dimensions_m`はsimulation envelopeであり、frameの実外形寸法を直接表す
+メーカー値ではない。Frameの受入時は、wheelbaseとは別に次を確認する。
+
+- 前後方向・左右方向のMotor中心間隔。
+- 中央プレートの前後長・左右幅・積層高さ。
+- armの根元位置、長さ、幅、角度、厚さ。
+- Head / Camera cageの構造寸法とFrameへの固定位置。
+- Battery、AIO、VTX等を含む完成構成での占有体積。
+
+### Frame / Head / Cameraの責務を分ける
+
+現在の`master3x_demo_camera_head`はCamera本体に加えて、protective head、transmitter proxy、
+two antennasを含む写真ベースのデモ部品である。この方法は完成外観を素早く作るには便利だが、
+剛体モデルとしてはFrame側構造とCamera側部品の責務を曖昧にする。
+
+今後は、資料から構造境界を確認したうえで原則として次のように分離する。
+
+```text
+Frame / Head
+  - carbon plates / arms / standoffs
+  - injection-molded or aluminum head structure
+  - structural camera cage / support
+
+Camera
+  - camera body
+  - lens / optical center
+  - camera-side mount geometry
+
+Electronics / Accessories
+  - AIO / FC+ESC
+  - VTX / Air Unit
+  - receiver / GPS
+  - antenna base and non-structural printed parts
+```
+
+HeadがFrameの商品variantとして販売・固定される場合はFrame構造として扱い、
+Camera交換時にも残る部材をCamera Catalogへ焼き込まない。
+
+### 内部部品は「見え方」と「物理」の両面から推定する
+
+MuJoCo用途では基板の細かな電子部品まで再現する必要はないが、中央部が空洞に見える、
+重心や慣性が不自然になる、といった差を避けるため、主要内部部品は簡略剛体として置く。
+
+候補はAIO / FC+ESC、VTX / Air Unit、receiver、GPS、主要コネクタ・配線の塊である。
+外形寸法、質量、搭載位置がメーカー資料から得られる場合は個別Catalog部品とし、
+不明な場合はbox等のproxyとして推定値であることを明記する。
+
+Frameの`geometry.visual`に内部電子部品を恒久的に焼き込むのではなく、将来的には
+Assembly GraphでFrameとElectronicsを組み合わせる方を優先する。
+
+## Master3Xの公式3D資料
+
+SpeedyBee公式Knowledge BaseにはMaster3X向けの
+`Master3X 3D Printing Files`と`Master3X 3D Printed Parts Installation Guide`がある。
+参照URLは`catalogs/sources/frames/speedybee/master3x.yaml`へ追加した。
+
+- https://docs.speedybee.cn/en/fpv/fpv-drones/master3x-drone/master3x-3d-printing-files.html
+- https://docs.speedybee.cn/en/fpv/fpv-drones/master3x-drone/master3x-3d-printed-parts-installation-guide.html
+
+これらはHead / camera support / antenna mount等の推定量を減らす有力な一次資料である。
+一方、現時点ではcarbon plateを含むMaster3X本体の完全なSTEP/DXF/CADが公式公開されている
+ことまでは確認できていない。3D Printing Filesに含まれる個々のSTLがFrame本体形状を
+どこまでカバーするかは、実ファイル取得後に確認する。
+
+3D資料の根拠の強さは、原則として次の順で扱う。
+
+```text
+manufacturer CAD / STEP / DXF
+  > manufacturer STL / mesh
+  > manufacturer dimension drawing / installation manual
+  > manufacturer multi-view photographs
+  > third-party measured CAD / STL
+  > photo-based inference
+```
+
+第三者データは寸法検証には利用できるが、再配布・同梱する場合は個別ライセンスを確認する。
+
 ## 情報の優先順位
 
 「必須」は今回程度の外観を狙う際の収集・確認要件。資料が得られない場合は、
@@ -134,6 +222,24 @@ CADファイルを入手しただけで、現在のCatalogが自動で読み込�
 テスト成功は「生成物が読める／接続計算が成立する」の確認であり、外観の合格判定は
 参照画像との比較で行う。寸法公差や画像誤差に数値目標が必要な案件では、基準寸法・
 比較角度・許容誤差を制作前に決める。今回のデモに未測定の精度保証を付けない。
+
+## Master3X次回作業チェックリスト
+
+公式3D Printing Filesを取得したら、推測でYAMLを修正する前に次を確認する。
+
+- [ ] 配布ファイル一覧を保存し、STL/STEP/DXF等の形式と対象variantを特定する。
+- [ ] 各meshの単位、bounds、原点、軸方向を確認する。
+- [ ] 各ファイルをFrame / Head / Camera / Accessory / Electronicsのどれに属するか分類する。
+- [ ] carbon plate本体を表すCAD/meshが含まれるか確認する。
+- [ ] Head / camera supportの実寸と現在の`master3x_demo_camera_head`を比較する。
+- [ ] FrameのMotor中心間隔、arm角、中央胴体の外形、高さを現在YAMLと比較する。
+- [ ] AIO / VTX / receiver等の主要内部部品について、公式寸法・搭載位置が得られるか確認する。
+- [ ] 推定値を`manufacturer` / `derived` / `estimated`へ再分類する。
+- [ ] 修正後にFrame単体GLBを生成し、上面・側面・斜め前から公式写真と比較する。
+- [ ] 完成Assemblyを再生成し、Frame構造とCamera部品の責務が混ざっていないことを確認する。
+
+3D Printing Filesが補助TPU部品のみでcarbon plate CADを含まない場合は、
+公式組立図・寸法図を一次資料としてFrame剛体を再構成し、不足寸法だけ写真から推定する。
 
 ## 次の製品追加で渡す情報のテンプレート
 
