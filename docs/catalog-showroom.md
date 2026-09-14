@@ -1,49 +1,94 @@
 # Catalog Showroom
 
-`catalog-view` turns the FPV component Catalog into a lightweight MuJoCo showroom for demonstrations and visual inspection.
+`tools/fpv-catalog.py` turns the FPV component Catalog into a lightweight MuJoCo showroom for demonstrations and visual inspection.
 
-The Catalog YAML remains the source of truth. The showroom does not introduce a second 3D asset catalog.
+The Catalog YAML remains the source of truth. The showroom does not introduce a second 3D asset catalog, and it is intentionally kept separate from the normal `fpv-drone` vehicle-generation CLI.
 
-## Usage
+## Workflow
+
+The showroom follows a small staged workflow:
+
+```text
+prepare -> doctor -> open-viewer
+```
+
+### 1. Prepare
+
+Create the showroom-managed Python environment and install this repository plus the optional MuJoCo viewer dependency:
+
+```bash
+python3 tools/fpv-catalog.py prepare
+```
+
+The default managed environment is created under:
+
+```text
+build/catalog-showroom/.venv
+```
+
+`prepare` installs the repository in editable mode with the `showroom` optional dependency. It does not install into the global Python environment.
+
+To rebuild the managed environment from scratch:
+
+```bash
+python3 tools/fpv-catalog.py prepare --recreate
+```
+
+### 2. Doctor
+
+Validate the Catalog, generate a showroom MJCF, and load that MJCF with MuJoCo:
+
+```bash
+python3 tools/fpv-catalog.py doctor
+```
+
+This verifies more than Python imports: the generated showroom must be accepted by `mujoco.MjModel.from_xml_path()`.
+
+### 3. Open Viewer
 
 Show all catalog components:
 
 ```bash
-fpv-drone catalog-view
+python3 tools/fpv-catalog.py open-viewer
 ```
 
 Show one component kind:
 
 ```bash
-fpv-drone catalog-view motor
-fpv-drone catalog-view propeller
-fpv-drone catalog-view battery
+python3 tools/fpv-catalog.py open-viewer motor
+python3 tools/fpv-catalog.py open-viewer propeller
+python3 tools/fpv-catalog.py open-viewer battery
 ```
 
 Show one catalog item:
 
 ```bash
-fpv-drone catalog-view motor generic_2207_1850kv
-```
-
-Generate the MJCF without launching MuJoCo Viewer:
-
-```bash
-fpv-drone catalog-view --no-open
+python3 tools/fpv-catalog.py open-viewer motor generic_2207_1850kv
 ```
 
 Choose an output path:
 
 ```bash
-fpv-drone catalog-view motor \
-  --output build/showroom-motors.xml \
-  --no-open
+python3 tools/fpv-catalog.py open-viewer motor \
+  --output build/showroom-motors.xml
 ```
 
 The default output is:
 
 ```text
-build/catalog-showroom.xml
+build/catalog-showroom/catalog-showroom.xml
+```
+
+`doctor` and `open-viewer` automatically delegate to the Python environment created by `prepare`.
+
+## Additional Catalog roots
+
+`doctor` and `open-viewer` accept repeatable `--catalogs` arguments so public and private Catalog roots can be composed without changing the showroom generator:
+
+```bash
+python3 tools/fpv-catalog.py open-viewer motor \
+  --catalogs catalogs \
+  --catalogs /path/to/private-catalogs
 ```
 
 ## Rendering rules
@@ -68,6 +113,4 @@ This is a presentation and inspection view, not a replacement for the generated 
 - components are static display objects
 - showroom geoms do not participate in contact
 - primitive appearance is intentionally approximate unless `geometry.visual` is explicitly provided
-- the normal `generate` command remains responsible for the executable Hakoniwa/MuJoCo vehicle package
-
-MuJoCo's Python package is required only when opening the viewer. `--no-open` can be used in CI or on systems without a GUI.
+- the normal `fpv-drone generate` path remains responsible for the executable Hakoniwa/MuJoCo vehicle package
