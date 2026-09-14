@@ -49,7 +49,17 @@
           "name": {"type": "string", "minLength": 1},
           "vendor": {"type": ["string", "null"]},
           "description": {"type": "string"},
-          "metadata": {"type": "object"},
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "product_url": {
+                "type": "string",
+                "format": "uri",
+                "description": "Optional manufacturer or authoritative product page shown by catalog browsers."
+              }
+            },
+            "additionalProperties": true
+          },
           "geometry": {"$ref": "#/$defs/geometry"},
           "assembly_ports": {
             "type": "array",
