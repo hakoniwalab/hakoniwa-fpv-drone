@@ -7,13 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-from .catalog import (
-    CatalogStore,
-    CatalogType,
-    Frame,
-    GeometryPrimitive,
-    Propeller,
-)
+from .catalog import CatalogStore, CatalogType, Frame, GeometryPrimitive, Propeller
 from .errors import FpvDroneError, ResolutionError
 
 
@@ -101,10 +95,10 @@ def _display_geometry(component: CatalogType, kind: str) -> list[DisplayPrimitiv
     if isinstance(component, Propeller):
         result = [
             DisplayPrimitive(
-                primitive_type="cylinder",
-                center_m=(0.0, 0.0, 0.0),
-                rpy_deg=(0.0, 0.0, 0.0),
-                rgba=rgba,
+                "cylinder",
+                (0.0, 0.0, 0.0),
+                (0.0, 0.0, 0.0),
+                rgba,
                 radius_m=max(component.diameter_m * 0.045, 0.004),
                 length_m=0.006,
             )
@@ -117,14 +111,14 @@ def _display_geometry(component: CatalogType, kind: str) -> list[DisplayPrimitiv
             angle = math.radians(yaw)
             result.append(
                 DisplayPrimitive(
-                    primitive_type="box",
-                    center_m=(
+                    "box",
+                    (
                         radial_center * math.cos(angle),
                         radial_center * math.sin(angle),
                         0.0,
                     ),
-                    rpy_deg=(0.0, 0.0, yaw),
-                    rgba=rgba,
+                    (0.0, 0.0, yaw),
+                    rgba,
                     dimensions_m=(blade_length, blade_width, 0.003),
                 )
             )
@@ -215,9 +209,14 @@ def _display_geometry(component: CatalogType, kind: str) -> list[DisplayPrimitiv
     ]
 
 
-def _append_geom(parent: ET.Element, primitive: DisplayPrimitive, index: int) -> None:
+def _append_geom(
+    parent: ET.Element,
+    name_prefix: str,
+    primitive: DisplayPrimitive,
+    index: int,
+) -> None:
     attrs = {
-        "name": f"visual_{index}",
+        "name": f"{name_prefix}__visual_{index}",
         "type": primitive.primitive_type,
         "pos": _fmt(primitive.center_m),
         "euler": _fmt(primitive.rpy_deg),
@@ -273,9 +272,23 @@ def generate_catalog_showroom(
     if not items:
         raise ResolutionError("catalog selection is empty")
 
+    rows: dict[str, list[CatalogType]] = {}
+    for item in items:
+        rows.setdefault(item.kind, []).append(item.component)
+
+    max_columns = max(len(components) for components in rows.values())
+    center_y = -0.5 * (len(rows) - 1) * _ROW_SPACING_M
+    half_width = 0.5 * (max_columns - 1) * _ITEM_SPACING_M
+    half_height = 0.5 * (len(rows) - 1) * _ROW_SPACING_M
+    extent = max(0.8, half_width + 0.35, half_height + 0.35)
+
     root = ET.Element("mujoco", {"model": "hakoniwa_fpv_catalog_showroom"})
     ET.SubElement(root, "compiler", {"angle": "degree"})
-    ET.SubElement(root, "statistic", {"center": "0 0 0.25", "extent": "2.2"})
+    ET.SubElement(
+        root,
+        "statistic",
+        {"center": _fmt((0.0, center_y, 0.20)), "extent": f"{extent:.6g}"},
+    )
     visual = ET.SubElement(root, "visual")
     ET.SubElement(
         visual,
@@ -303,34 +316,28 @@ def generate_catalog_showroom(
         "light",
         {
             "name": "key_light",
-            "pos": "0 -2 3",
+            "pos": _fmt((0.0, center_y, 3.0)),
             "dir": "0 0 -1",
             "diffuse": "0.8 0.8 0.8",
         },
     )
-
-    rows: dict[str, list[CatalogType]] = {}
-    for item in items:
-        rows.setdefault(item.kind, []).append(item.component)
 
     for row_index, (row_kind, components) in enumerate(rows.items()):
         y = -row_index * _ROW_SPACING_M
         x0 = -0.5 * _ITEM_SPACING_M * (len(components) - 1)
         for column_index, component in enumerate(components):
             x = x0 + column_index * _ITEM_SPACING_M
+            name_prefix = f"{row_kind}__{component.id}"
             body = ET.SubElement(
                 worldbody,
                 "body",
-                {
-                    "name": f"{row_kind}__{component.id}",
-                    "pos": _fmt((x, y, _COMPONENT_Z_M)),
-                },
+                {"name": name_prefix, "pos": _fmt((x, y, _COMPONENT_Z_M))},
             )
             ET.SubElement(
                 body,
                 "geom",
                 {
-                    "name": "pedestal",
+                    "name": f"{name_prefix}__pedestal",
                     "type": "box",
                     "pos": _fmt(
                         (
@@ -349,7 +356,7 @@ def generate_catalog_showroom(
             for primitive_index, primitive in enumerate(
                 _display_geometry(component, row_kind)
             ):
-                _append_geom(body, primitive, primitive_index)
+                _append_geom(body, name_prefix, primitive, primitive_index)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     tree = ET.ElementTree(root)
