@@ -43,3 +43,39 @@ items:
     geometry:
       inertial:
         - {name: mass_proxy, type: cylinder, radius_m: 0.012, length_m: 0.016}
+
+  - id: iflight_xing2_2207_1855kv
+    name: iFlight XING2 2207 1855KV
+    vendor: iFlight
+    description: Commercial 2207 FPV motor. Published dimensions and electrical values are retained; unreported simulation-only dynamics are explicitly estimated.
+    mass_kg: 0.0316
+    kv_rpm_per_v: 1855
+    max_current_a: 35.08
+    dynamics:
+      resistance_ohm: 0.050
+      torque_constant_nm_per_a: 0.00514787
+      viscous_drag_nm_s_per_rad: 0.0
+      rotor_inertia_kg_m2: 0.000008
+    metadata:
+      manufacturer_product: XING2 2207 1855KV
+      source_urls:
+        - https://shop.iflight.com/index.php?product_id=3371&route=product%2Fproduct
+      manufacturer_interphase_resistance_ohm: 0.050
+      shaft_diameter_mm: 5
+      shaft_protruding_length_mm: 13.5
+      value_origin:
+        mass_kg: manufacturer
+        kv_rpm_per_v: manufacturer
+        max_current_a: manufacturer
+        resistance_ohm: manufacturer_interphase_value_mapped_to_model
+        torque_constant_nm_per_a: derived_from_kv
+        viscous_drag_nm_s_per_rad: simulation_assumption
+        rotor_inertia_kg_m2: estimated_from_generic_2207
+    assembly_ports:
+      - {id: frame_mount, role: consumer, interface: fpv.motor-mount.16x16, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
+      - {id: propeller_shaft, role: provider, interface: fpv.propeller-shaft.5mm, pose: {position_m: [0, 0, 0.0191], rpy_deg: [0, 0, 0]}}
+    geometry:
+      visual:
+        - {name: motor_body, type: cylinder, center_m: [0, 0, 0.00955], radius_m: 0.01454, length_m: 0.0191, rgba: [0.15, 0.17, 0.20, 1.0]}
+      inertial:
+        - {name: mass_proxy, type: cylinder, center_m: [0, 0, 0.00955], radius_m: 0.01454, length_m: 0.0191}

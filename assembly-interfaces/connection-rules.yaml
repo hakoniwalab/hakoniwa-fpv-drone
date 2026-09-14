@@ -11,6 +11,16 @@ items:
       rotation_axes: []
     metadata: {scope: simulation_only}
 
+  - id: fpv-motor-mount-16x16
+    provider_interface: fpv.motor-mount.16x16
+    consumer_interface: fpv.motor-mount.16x16
+    status: compatible
+    description: Match a 16x16 mm FPV frame motor mount with a 16x16 mm motor base.
+    adjustment:
+      translation_axes: []
+      rotation_axes: []
+    metadata: {scope: dimensional_mechanical}
+
   - id: generic-propeller-shaft
     provider_interface: hakoniwa.generic.propeller-shaft
     consumer_interface: hakoniwa.generic.propeller-shaft
@@ -20,6 +30,16 @@ items:
       translation_axes: []
       rotation_axes: []
     metadata: {scope: simulation_only}
+
+  - id: fpv-propeller-shaft-5mm
+    provider_interface: fpv.propeller-shaft.5mm
+    consumer_interface: fpv.propeller-shaft.5mm
+    status: compatible
+    description: Match a 5 mm motor shaft with a 5 mm propeller bore.
+    adjustment:
+      translation_axes: []
+      rotation_axes: []
+    metadata: {scope: dimensional_mechanical}
 
   - id: generic-battery-mount
     provider_interface: hakoniwa.generic.battery-mount
@@ -44,6 +64,17 @@ items:
       translation_limits_m: [0.05, 0.04, 0.03]
       rotation_limits_deg: [20, 45, 30]
     metadata: {scope: simulation_only}
+
+  - id: fpv-camera-mount-19mm-m2
+    provider_interface: fpv.camera-mount.19mm-m2
+    consumer_interface: fpv.camera-mount.19mm-m2
+    status: compatible
+    description: Mount a 19 mm FPV camera between matching M2 side plates; pitch remains adjustable.
+    adjustment:
+      translation_axes: []
+      rotation_axes: [pitch]
+      rotation_limits_deg: [0, 60, 0]
+    metadata: {scope: dimensional_mechanical}
 
   - id: generic-electronics-mount
     provider_interface: hakoniwa.generic.electronics-mount

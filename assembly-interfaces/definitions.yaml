@@ -6,14 +6,30 @@ items:
     description: Mechanical mounting relation between a frame and a motor.
     domain: mechanical
     roles: [provider, consumer]
-    parameters: []
+    parameters:
+      - id: pattern_x_mm
+        description: Horizontal spacing between mounting-hole centers.
+        required: false
+        schema: {type: number, exclusiveMinimum: 0}
+      - id: pattern_y_mm
+        description: Vertical spacing between mounting-hole centers.
+        required: false
+        schema: {type: number, exclusiveMinimum: 0}
+      - id: hole_diameter_mm
+        description: Nominal mounting-hole diameter when known.
+        required: false
+        schema: {type: number, exclusiveMinimum: 0}
 
   - id: propeller-shaft
     name: Propeller shaft
     description: Rotational mounting relation between a motor and a propeller.
     domain: mechanical
     roles: [provider, consumer]
-    parameters: []
+    parameters:
+      - id: shaft_diameter_mm
+        description: Nominal motor-shaft / propeller-bore diameter.
+        required: false
+        schema: {type: number, exclusiveMinimum: 0}
 
   - id: battery-mount
     name: Battery mount
@@ -27,7 +43,15 @@ items:
     description: Adjustable mounting zone for an FPV camera on a frame.
     domain: mechanical
     roles: [provider, consumer]
-    parameters: []
+    parameters:
+      - id: camera_width_mm
+        description: Nominal camera body width accepted by the mount.
+        required: false
+        schema: {type: number, exclusiveMinimum: 0}
+      - id: fastener_nominal_diameter_mm
+        description: Nominal side-fastener diameter when known.
+        required: false
+        schema: {type: number, exclusiveMinimum: 0}
 
   - id: electronics-mount
     name: Electronics mount
