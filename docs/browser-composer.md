@@ -36,9 +36,10 @@ after the repository has been checked out.
 1. Select one Frame from the initial Catalog candidates.
 2. Select a Frame provider port in the right panel. Confirm that the left
    panel lists only compatible parts, each with its GLB preview.
-3. Add four Motors and four Propellers by selecting each relevant provider
-   port, then clicking a compatible part card. Add one Battery, Camera, and
-   Controller in the same way.
+3. Select `Motors` once, then click one compatible Motor card. Confirm that
+   the same model is mounted to every Frame motor mount. Add four Propellers,
+   one Battery, Camera, and Controller by selecting their respective ports in
+   the same way.
 4. Select a mounted Battery or Camera and change its local pose in the right
    panel. Position inputs are centimetres; RPY inputs are degrees. Confirm
    that the fixed Motor mount fields are disabled, and adjustable fields stay
@@ -69,6 +70,8 @@ compatibility, MJCF, or Drone PRO configuration.
 
 - select a Frame as the first part, then select a provider port as the
   connection target;
+- group a Frame's equivalent motor mounts into one `Motors` target and apply
+  one selected Motor model to all of them;
 - show only Catalog cards compatible with that port, with a GLB preview;
 - click a Catalog card to snap it to the selected port;
 - snap only to a compatible port declared in `assembly-contract.json`, with a
@@ -80,6 +83,8 @@ compatibility, MJCF, or Drone PRO configuration.
   inputs;
 - inspect the current Assembly as a parts list, select an item from it, and
   remove an item (including any parts connected beneath it);
+- keep connection-port markers out of the 3D model; the right-side port list
+  is the sole connection-selection control;
 - save a local draft, import a graph, and export graph JSON.
 
 The current MVP creates a `quad_x` draft and assigns a display-oriented rotor

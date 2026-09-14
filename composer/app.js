@@ -67,6 +67,34 @@ function deleteNode(id) {
   redraw();
   cardList();
 }
+function isMotorMount(provider) { return provider.interface.endsWith(".motor-mount"); }
+function nextRotorIndex() { return Math.max(0,...state.nodes.filter((entry)=>entry.kind==="motor").map((entry)=>entry.rotor?.index || 0))+1; }
+function addMotorSet(part, id) {
+  const selected=selectedProviderPort();
+  if(!selected) return;
+  const mounts=component(selected.node.kind,selected.node.product).assembly_ports.filter((provider)=>
+    provider.role==="provider" && provider.interface===selected.port.interface && isMotorMount(provider)
+  );
+  const consumer=part.assembly_ports.find((entry)=>entry.role==="consumer" && rule(selected.port,entry));
+  if(!consumer || !mounts.length) return setStatus("Motor mount の接続定義を解決できません。");
+  const occupied=mounts.flatMap((provider)=>state.connections.filter((connection)=>
+    connection.provider.node===selected.node.id && connection.provider.port===provider.id
+  ));
+  if(occupied.length && !confirm(`既存の ${occupied.length} 個の Motor を、${part.name} に置き換えますか？`)) return;
+  for(const connection of occupied) deleteNodeWithoutConfirmation(connection.consumer.node);
+  let rotorIndex=nextRotorIndex();
+  for(const provider of mounts) {
+    if(used(selected.node.id,provider.id)>=provider.capacity) continue;
+    const ordinal=state.nodes.filter((entry)=>entry.kind==="motor").length+1;
+    const entry={id:`motor_${ordinal}`,kind:"motor",product:id,rotor:rotor(rotorIndex++)};
+    state.nodes.push(entry);
+    state.connections.push({provider:{node:selected.node.id,port:provider.id},consumer:{node:entry.id,port:consumer.id},adjustment:{position_m:[0,0,0],rpy_deg:[0,0,0]}});
+  }
+  state.selectedNode=selected.node.id;
+  state.selectedProvider=null;
+  cardList();
+  redraw();
+}
 function addPart(kind,id) {
   const part=component(kind,id);
   if(kind==="frame") {
@@ -78,6 +106,7 @@ function addPart(kind,id) {
     return redraw();
   }
   if(!state.nodes.some((n)=>n.kind==="frame")) return setStatus("先にFrameを置いてください。");
+  if(kind==="motor" && state.selectedProvider?.motorBatch) return addMotorSet(part,id);
   if(["battery","camera","controller","landing_gear"].includes(kind)) {
     state.nodes.filter((n)=>n.kind===kind).forEach(removeNode);
   }
@@ -161,9 +190,8 @@ function cardList(){
     cardPreview(item,card.querySelector(".preview"));
   }
 }
-async function objectFor(n){ const item=state.manifest.items.find((entry)=>entry.kind===n.kind&&entry.id===n.product); const group=new THREE.Group(); group.userData.nodeId=n.id; root.add(group); state.objects.set(n.id,group); try { const gltf=await loader.loadAsync(`${assetRoot}/${item.asset}`); group.add(gltf.scene); } catch(error) { const fallback=new THREE.Mesh(new THREE.BoxGeometry(.04,.04,.02),new THREE.MeshStandardMaterial({color:0x49a9d4})); group.add(fallback); console.warn(error); } }
-function addPortMarkers(n, group){ const part=component(n.kind,n.product); for(const p of part.assembly_ports.filter((entry)=>entry.role==="provider")){ const marker=new THREE.Mesh(new THREE.SphereGeometry(.008,12,8),new THREE.MeshBasicMaterial({color:used(n.id,p.id)>=p.capacity?0x596673:0x53d8ff})); marker.position.fromArray(p.pose.position_m); marker.userData.provider={node:n.id,port:p.id}; group.add(marker); } }
-async function redraw(){ root.clear(); state.objects.clear(); for(const n of state.nodes) await objectFor(n); for(const n of state.nodes){ const group=state.objects.get(n.id); group.matrixAutoUpdate=false; group.matrix.copy(worldMatrix(n.id)); group.matrix.decompose(group.position,group.quaternion,group.scale); group.matrixAutoUpdate=true; addPortMarkers(n,group); } inspector(); portList(); assemblyList(); graph(); setStatus(`${state.nodes.length} parts · ${state.connections.length} connections`); }
+async function objectFor(n){ const item=state.manifest.items.find((entry)=>entry.kind===n.kind&&entry.id===n.product); const group=new THREE.Group(); group.userData.nodeId=n.id; root.add(group); state.objects.set(n.id,group); try { const gltf=await loader.loadAsync(`${assetRoot}/${item.asset}`); group.add(gltf.scene); } catch(error) { const fallback=new THREE.Mesh(new THREE.BoxGeometry(.04,.04,.02),new THREE.MeshStandardMaterial({color:0x49a9d4})); group.add(fallback); console.warn(error); } return group; }
+async function redraw(){ root.clear(); state.objects.clear(); for(const n of state.nodes){ const group=await objectFor(n); group.matrixAutoUpdate=false; group.matrix.copy(worldMatrix(n.id)); group.matrix.decompose(group.position,group.quaternion,group.scale); group.matrixAutoUpdate=true; } inspector(); portList(); assemblyList(); graph(); setStatus(`${state.nodes.length} parts · ${state.connections.length} connections`); }
 function vectorFields(label, value, units, allowedAxes, limits, change){
   const wrapper=document.createElement("label");
   wrapper.className="field";
@@ -241,23 +269,30 @@ function portList() {
   }
   container.className="";
   clear.hidden=!state.selectedProvider;
-  for(const provider of providerPorts) {
+  const motorMounts=providerPorts.filter(isMotorMount);
+  const appendPort=(provider, titleText, providers=[provider], motorBatch=false)=>{
     const button=document.createElement("button");
-    const isSelected=state.selectedProvider?.node===selected.id && state.selectedProvider.port===provider.id;
+    const isSelected=state.selectedProvider?.node===selected.id && state.selectedProvider.port===provider.id && Boolean(state.selectedProvider.motorBatch)===motorBatch;
     button.className=`port-row${isSelected ? " selected" : ""}`;
-    const title=document.createElement("strong"); title.textContent=provider.id;
+    const title=document.createElement("strong"); title.textContent=titleText;
     const detail=document.createElement("small");
-    const attached=state.connections.filter((connection)=>connection.provider.node===selected.id && connection.provider.port===provider.id)
+    const attached=state.connections.filter((connection)=>connection.provider.node===selected.id && providers.some((entry)=>entry.id===connection.provider.port))
       .map((connection)=>component(node(connection.consumer.node).kind,node(connection.consumer.node).product).name);
-    detail.textContent=`${provider.interface} · ${used(selected.id,provider.id)}/${provider.capacity}${attached.length ? ` · ${attached.join("、")}` : ""}`;
+    const capacity=providers.reduce((sum,entry)=>sum+entry.capacity,0);
+    const usedCount=providers.reduce((sum,entry)=>sum+used(selected.id,entry.id),0);
+    detail.textContent=`${provider.interface} · ${usedCount}/${capacity}${attached.length ? ` · ${attached.join("、")}` : ""}`;
     button.append(title,detail);
     button.onclick=()=>{
-      state.selectedProvider=isSelected ? null : {node:selected.id,port:provider.id};
+      state.selectedProvider=isSelected ? null : {node:selected.id,port:provider.id,motorBatch};
       portList();
       cardList();
-      setStatus(state.selectedProvider ? `接続先: ${selected.id}.${provider.id}` : "接続先を選択解除しました。");
+      setStatus(state.selectedProvider ? `接続先: ${motorBatch ? "Motors" : `${selected.id}.${provider.id}`}` : "接続先を選択解除しました。");
     };
     container.append(button);
+  };
+  if(motorMounts.length) appendPort(motorMounts[0],`Motors (${motorMounts.length} mount ports)`,motorMounts,true);
+  for(const provider of providerPorts.filter((entry)=>!isMotorMount(entry))) {
+    appendPort(provider,provider.id);
   }
 }
 function assemblyList() {
