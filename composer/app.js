@@ -8,7 +8,7 @@ const $ = (id) => document.getElementById(id);
 const state = { manifest: null, contract: null, components: new Map(), nodes: [], connections: [], selectedNode: null, selectedProvider: null, objects: new Map(), previews: [] };
 
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x526d82);
-const camera = new THREE.PerspectiveCamera(48, 1, .01, 100); camera.position.set(.55, -.75, .55);
+const camera = new THREE.PerspectiveCamera(48, 1, .01, 100); camera.up.set(0,0,1); camera.position.set(.55, -.75, .55);
 const renderer = new THREE.WebGLRenderer({ antialias:true }); renderer.setPixelRatio(devicePixelRatio); renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.3; $("viewport").append(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement); controls.target.set(0,0,.04); controls.update();
 scene.add(new THREE.HemisphereLight(0xf1f8ff, 0x5b7180, 3.2)); const light = new THREE.DirectionalLight(0xffffff, 3.5); light.position.set(2,-2,3); scene.add(light); const fillLight=new THREE.DirectionalLight(0xb9ddff,2); fillLight.position.set(-2,1,1); scene.add(fillLight);
@@ -69,7 +69,23 @@ function deleteNode(id) {
 }
 function isMotorMount(provider) { return provider.interface.endsWith(".motor-mount"); }
 function isPropellerShaft(provider) { return provider.interface.endsWith(".propeller-shaft"); }
-function nextRotorIndex() { return Math.max(0,...state.nodes.filter((entry)=>entry.kind==="motor").map((entry)=>entry.rotor?.index || 0))+1; }
+function nextNodeId(kind) {
+  const usedIds=new Set(state.nodes.map((entry)=>entry.id));
+  for(let index=1; ; index++) {
+    const candidate=`${kind}_${index}`;
+    if(!usedIds.has(candidate)) return candidate;
+  }
+}
+function nextRotorIndex() {
+  const usedIndices=new Set(state.nodes.filter((entry)=>entry.kind==="motor" && Number.isInteger(entry.rotor?.index)).map((entry)=>entry.rotor.index));
+  for(let index=1; ; index++) if(!usedIndices.has(index)) return index;
+}
+function vehicleType() {
+  const frame=state.nodes.find((entry)=>entry.kind==="frame");
+  if(!frame) return "quad_x";
+  const motorMountCount=component(frame.kind,frame.product).assembly_ports.filter((provider)=>provider.role==="provider" && isMotorMount(provider)).length;
+  return motorMountCount===4 ? "quad_x" : "multirotor";
+}
 function addMotorSet(part, id) {
   const selected=selectedProviderPort();
   if(!selected) return;
@@ -83,11 +99,9 @@ function addMotorSet(part, id) {
   ));
   if(occupied.length && !confirm(`既存の ${occupied.length} 個の Motor を、${part.name} に置き換えますか？`)) return;
   for(const connection of occupied) deleteNodeWithoutConfirmation(connection.consumer.node);
-  let rotorIndex=nextRotorIndex();
   for(const provider of mounts) {
     if(used(selected.node.id,provider.id)>=provider.capacity) continue;
-    const ordinal=state.nodes.filter((entry)=>entry.kind==="motor").length+1;
-    const entry={id:`motor_${ordinal}`,kind:"motor",product:id,rotor:rotor(rotorIndex++)};
+    const entry={id:nextNodeId("motor"),kind:"motor",product:id,rotor:rotor(nextRotorIndex())};
     state.nodes.push(entry);
     state.connections.push({provider:{node:selected.node.id,port:provider.id},consumer:{node:entry.id,port:consumer.id},adjustment:{position_m:[0,0,0],rpy_deg:[0,0,0]}});
   }
@@ -113,8 +127,7 @@ function addPropellerSet(part, id) {
   for(const connection of occupied) deleteNodeWithoutConfirmation(connection.consumer.node);
   for(const {motor,provider} of shafts) {
     if(used(motor.id,provider.id)>=provider.capacity) continue;
-    const ordinal=state.nodes.filter((entry)=>entry.kind==="propeller").length+1;
-    const entry={id:`propeller_${ordinal}`,kind:"propeller",product:id};
+    const entry={id:nextNodeId("propeller"),kind:"propeller",product:id};
     state.nodes.push(entry);
     state.connections.push({provider:{node:motor.id,port:provider.id},consumer:{node:entry.id,port:consumer.id},adjustment:{position_m:[0,0,0],rpy_deg:[0,0,0]}});
   }
@@ -149,9 +162,8 @@ function addPart(kind,id) {
     if(!confirm(`${target.provider.id} は ${attachedNames} に使用されています。置き換えますか？`)) return;
     for(const connection of attached) deleteNodeWithoutConfirmation(connection.consumer.node);
   }
-  const ordinal=state.nodes.filter((n)=>n.kind===kind).length+1;
-  const entry={id:`${kind}_${ordinal}`,kind,product:id};
-  if(kind==="motor") entry.rotor=rotor(state.nodes.filter((n)=>n.kind==="motor").length+1);
+  const entry={id:nextNodeId(kind),kind,product:id};
+  if(kind==="motor") entry.rotor=rotor(nextRotorIndex());
   state.nodes.push(entry);
   state.connections.push({provider:{node:target.providerNode.id,port:target.provider.id},consumer:{node:entry.id,port:target.consumer.id},adjustment:{position_m:[0,0,0],rpy_deg:[0,0,0]}});
   state.selectedNode=target.providerNode.id; state.selectedProvider=null; cardList(); redraw();
@@ -166,6 +178,7 @@ async function cardPreview(item, host) {
   state.previews.push(renderer);
   const previewScene=new THREE.Scene();
   const previewCamera=new THREE.PerspectiveCamera(35,74/58,.001,10);
+  previewCamera.up.set(0,0,1);
   previewScene.add(new THREE.HemisphereLight(0xe8f7ff,0x23313e,2.5));
   const light=new THREE.DirectionalLight(0xffffff,2); light.position.set(1,1,2); previewScene.add(light);
   try {
@@ -393,7 +406,7 @@ function assemblyList() {
     container.append(row);
   }
 }
-function graph(){ $("graph").textContent=JSON.stringify({schema_version:1,kind:"fpv-assembly",name:"composer-draft",type:"quad_x",controller_mode:"angle",nodes:state.nodes,connections:state.connections},null,2); }
+function graph(){ $("graph").textContent=JSON.stringify({schema_version:1,kind:"fpv-assembly",name:"composer-draft",type:vehicleType(),controller_mode:"angle",nodes:state.nodes,connections:state.connections},null,2); }
 function exportGraph(){ const blob=new Blob([$("graph").textContent],{type:"application/json"}); const link=Object.assign(document.createElement("a"),{href:URL.createObjectURL(blob),download:"fpv-assembly.json"}); link.click(); URL.revokeObjectURL(link.href); }
 renderer.domElement.addEventListener("pointerdown",(event)=>{ const rect=renderer.domElement.getBoundingClientRect(); pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1); raycaster.setFromCamera(pointer,camera); const hit=raycaster.intersectObjects(root.children,true)[0]; if(!hit) return; let current=hit.object; while(current && !current.userData.nodeId && !current.userData.provider) current=current.parent; if(current?.userData.provider){state.selectedNode=current.userData.provider.node; state.selectedProvider=current.userData.provider; portList(); cardList(); setStatus(`接続先: ${state.selectedProvider.node}.${state.selectedProvider.port}`);} else if(current?.userData.nodeId){state.selectedNode=current.userData.nodeId; state.selectedProvider=null; inspector(); portList(); assemblyList(); cardList();} });
 $("clear-port").onclick=()=>{ state.selectedProvider=null; portList(); cardList(); setStatus("接続先を選択解除しました。"); };
