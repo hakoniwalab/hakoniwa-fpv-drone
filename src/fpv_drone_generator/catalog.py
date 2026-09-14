@@ -43,7 +43,7 @@ def _insert_item(items: dict[str, Any], factory: Any, entry: Any, entry_path: st
     items[item.id] = item
 
 
-def _validate_source_ref(root: Path, fragment_path: Path, kind: str, item_id: str, source_ref: Any) -> None:
+def _load_source_ref(root: Path, fragment_path: Path, kind: str, item_id: str, source_ref: Any) -> dict[str, Any]:
     if not isinstance(source_ref, str) or not source_ref:
         raise ValidationError(f"{fragment_path}.source_ref must be a non-empty string")
     root = root.resolve()
@@ -65,6 +65,16 @@ def _validate_source_ref(root: Path, fragment_path: Path, kind: str, item_id: st
     for index, entry in enumerate(sources):
         if not isinstance(entry, dict) or not isinstance(entry.get("url"), str) or not entry["url"]:
             raise ValidationError(f"{source_path}.sources[{index}].url must be a non-empty string")
+    return source
+
+
+def _with_source_metadata(entry: dict[str, Any], source_ref: str, source: dict[str, Any]) -> dict[str, Any]:
+    result = dict(entry)
+    metadata = dict(result.get("metadata", {}))
+    metadata["source_ref"] = source_ref
+    metadata["source_urls"] = [source_entry["url"] for source_entry in source["sources"]]
+    result["metadata"] = metadata
+    return result
 
 
 def _load_group(roots: tuple[Path, ...], kind: str) -> CatalogGroup[Any]:
@@ -99,7 +109,9 @@ def _load_group(roots: tuple[Path, ...], kind: str) -> CatalogGroup[Any]:
                 item_id = entry.get("id")
                 if not isinstance(item_id, str) or not item_id:
                     raise ValidationError(f"{fragment_path}.item.id must be a non-empty string")
-                _validate_source_ref(root, fragment_path, kind, item_id, raw.get("source_ref"))
+                source_ref = raw.get("source_ref")
+                source = _load_source_ref(root, fragment_path, kind, item_id, source_ref)
+                entry = _with_source_metadata(entry, source_ref, source)
                 _insert_item(items, factory, entry, f"{fragment_path}.item", kind)
 
     if not found:

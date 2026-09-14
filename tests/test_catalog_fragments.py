@@ -12,11 +12,18 @@ from .support import CATALOGS
 class CatalogFragmentTest(unittest.TestCase):
     def test_commercial_products_are_loaded_from_product_fragments(self):
         catalogs = load_catalogs(CATALOGS)
-        self.assertEqual("SpeedyBee", catalogs.frames.get("speedybee_master5_v2").vendor)
-        self.assertEqual("iFlight", catalogs.motors.get("iflight_xing2_2207_1855kv").vendor)
+        frame = catalogs.frames.get("speedybee_master5_v2")
+        motor = catalogs.motors.get("iflight_xing2_2207_1855kv")
+        self.assertEqual("SpeedyBee", frame.vendor)
+        self.assertEqual("iFlight", motor.vendor)
         self.assertEqual("HQProp", catalogs.propellers.get("hqprop_5x4_3x3v2s").vendor)
         self.assertEqual("Tattu", catalogs.batteries.get("tattu_rline_v5_1200mah_6s").vendor)
         self.assertEqual("RunCam", catalogs.cameras.get("runcam_phoenix2").vendor)
+        self.assertEqual("sources/frames/speedybee/master5-v2.yaml", frame.metadata["source_ref"])
+        self.assertEqual(
+            ["https://shop.iflight.com/index.php?product_id=3371&route=product%2Fproduct"],
+            motor.metadata["source_urls"],
+        )
 
     def test_commercial_entries_are_not_kept_in_legacy_monoliths(self):
         expected_absent = {
