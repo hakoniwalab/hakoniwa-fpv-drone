@@ -33,18 +33,21 @@ after the repository has been checked out.
 
 ## Manual smoke check
 
-1. Switch Catalog categories, then add one Frame, four Motors, and four
-   Propellers.
-2. Add one Battery, Camera, and Controller. Click a cyan port before a drop to
-   select a preferred compatible target.
-3. Select a mounted Battery or Camera and change its local pose in the right
+1. Select one Frame from the initial Catalog candidates.
+2. Select a Frame provider port in the right panel. Confirm that the left
+   panel lists only compatible parts, each with its GLB preview.
+3. Add four Motors and four Propellers by selecting each relevant provider
+   port, then clicking a compatible part card. Add one Battery, Camera, and
+   Controller in the same way.
+4. Select a mounted Battery or Camera and change its local pose in the right
    panel. Position inputs are centimetres; RPY inputs are degrees. Confirm
    that the fixed Motor mount fields are disabled, and adjustable fields stay
    within the limits declared by the connection rule.
-4. Export the Assembly Graph, reload the page, then import the exported JSON.
-5. Confirm that an incompatible or fully occupied port cannot accept another
-   component and that singleton parts replace their preceding selection.
-6. Confirm that the right-side Assembly Parts list follows the current graph;
+5. Export the Assembly Graph, reload the page, then import the exported JSON.
+6. Confirm that an incompatible port cannot accept another component, that a
+   full port requests replacement confirmation, and that singleton parts
+   replace their preceding selection.
+7. Confirm that the right-side Assembly Parts list follows the current graph;
    delete a part from it and confirm that dependent parts are also removed.
 
 ## Data flow and boundary
@@ -64,10 +67,12 @@ compatibility, MJCF, or Drone PRO configuration.
 
 ## MVP scope
 
-- drag a Catalog part to the central Composer, or click its Catalog card;
-- filter Catalog cards by part category;
-- click a cyan provider port to make it the preferred connection target;
-- snap only to a compatible, unoccupied port declared in `assembly-contract.json`;
+- select a Frame as the first part, then select a provider port as the
+  connection target;
+- show only Catalog cards compatible with that port, with a GLB preview;
+- click a Catalog card to snap it to the selected port;
+- snap only to a compatible port declared in `assembly-contract.json`, with a
+  confirmation before replacing a full port;
 - replacing Battery, Camera, Controller, or Landing Gear removes the previous
   singleton node and its connection before adding the replacement;
 - edit only the connection-relative axes permitted by the contract, in
