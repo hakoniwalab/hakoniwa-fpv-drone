@@ -1,4 +1,5 @@
 schema_version: 1
+
 kind: motor
 items:
   - id: generic_2207_1850kv

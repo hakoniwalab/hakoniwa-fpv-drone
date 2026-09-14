@@ -6,7 +6,7 @@ Commercial products use the Source / Product boundary documented in [catalog-sou
 
 - `catalogs/sources/**` records external manufacturer product/manual URLs;
 - `catalogs/products/**` stores one normalized digital product per file;
-- every product fragment has a mandatory `source_ref` back to its source file.
+- every commercial product fragment has a mandatory `source_ref` back to its source file.
 
 The first reference build is `recipes/examples/speedybee-master5-commercial.assembly.yaml` and combines:
 

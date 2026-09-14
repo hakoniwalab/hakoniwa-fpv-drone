@@ -1,4 +1,5 @@
 schema_version: 1
+
 kind: controller
 items:
   - id: hakoniwa_default

@@ -470,8 +470,13 @@ def _load_group(roots: tuple[Path, ...], kind: str) -> CatalogGroup[Any]:
     items: dict[str, Any] = {}
     found = False
     for root in roots:
-        catalog_path = root / filename
-        if catalog_path.is_file():
+        # Category collections now live under products/.  The root-level path
+        # remains readable so downstream/private catalogs can migrate on their
+        # own schedule.
+        collection_paths = (root / "products" / filename, root / filename)
+        for catalog_path in collection_paths:
+            if not catalog_path.is_file():
+                continue
             found = True
             raw = load_yaml(catalog_path)
             if raw.get("schema_version") != 1 or raw.get("kind") != kind:
@@ -504,7 +509,7 @@ def _load_group(roots: tuple[Path, ...], kind: str) -> CatalogGroup[Any]:
 
     if not found:
         raise ValidationError(
-            f"missing {filename} and products/{_PRODUCT_DIRS[kind]}/ fragments in catalog roots"
+            f"missing products/{filename}, {filename}, and products/{_PRODUCT_DIRS[kind]}/ fragments in catalog roots"
         )
     return CatalogGroup(kind, items)
 

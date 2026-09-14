@@ -1,4 +1,5 @@
 schema_version: 1
+
 kind: propeller
 items:
   - id: generic_5inch_3blade

@@ -1,4 +1,5 @@
 schema_version: 1
+
 kind: landing_gear
 items:
   - id: generic_quad_skid

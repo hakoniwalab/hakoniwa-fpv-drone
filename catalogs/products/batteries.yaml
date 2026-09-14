@@ -1,4 +1,5 @@
 schema_version: 1
+
 kind: battery
 items:
   - id: generic_6s_1300mah

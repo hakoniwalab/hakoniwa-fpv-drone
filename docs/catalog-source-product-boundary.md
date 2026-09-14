@@ -40,7 +40,10 @@ This layer is the intended input boundary for a future AI extractor. Web pages r
 
 ## `catalogs/products/`: normalized digital products
 
-Each real product is stored as one file so Catalog growth does not turn the legacy per-kind YAML files into large merge-conflict hotspots.
+Each product definition lives below `products/`.  Commercial products use one
+file per part, so Catalog growth does not turn a category into a merge-conflict
+hotspot.  The repository's Hakoniwa generic reference parts remain one
+category collection per file.
 
 ```text
 catalogs/products/
@@ -49,9 +52,12 @@ catalogs/products/
   propellers/<vendor>/<product>.yaml
   batteries/<vendor>/<product>.yaml
   cameras/<vendor>/<product>.yaml
+  frames.yaml                         # Hakoniwa generic reference collection
+  motors.yaml
 ```
 
-A product fragment contains exactly one normalized Catalog item and a mandatory `source_ref`:
+A commercial product fragment contains exactly one normalized Catalog item and
+a mandatory `source_ref`:
 
 ```yaml
 schema_version: 1
@@ -70,19 +76,21 @@ The Catalog loader verifies that:
 - `source_ref` stays inside the same Catalog root;
 - the referenced source file exists;
 - source and product agree on `product_id` and `product_kind`;
-- product IDs remain unique across legacy monolith files, product fragments, and additional Catalog roots.
+- product IDs remain unique across product collections, product fragments, and additional Catalog roots.
 
 ## Migration and compatibility
 
-Legacy files such as `frames.yaml`, `motors.yaml`, and `batteries.yaml` remain supported. The loader composes both forms:
+The canonical repository layout is:
 
 ```text
-legacy <kind>.yaml
+products/<kind>.yaml                 # Hakoniwa generic collection
 +
-products/<kind>/**/*.yaml
+products/<kind>/**/*.yaml             # commercial product fragments
 ```
 
-This lets generic examples remain in the current monolith files while commercial products move to one-product-per-file storage. New commercial products should use `sources/` + `products/`.
+Root-level legacy files such as `frames.yaml` remain readable for compatibility
+with external or private Catalog roots, but new data must be placed under
+`products/`.  New commercial products should use `sources/` + `products/`.
 
 ## AI boundary
 

@@ -61,12 +61,15 @@ Catalogは部品そのものです。
 
 ```text
 catalogs/
-├── frames.yaml
-├── motors.yaml
-├── propellers.yaml
-├── batteries.yaml
-├── cameras.yaml
-└── controllers.yaml
+├── products/
+│   ├── frames.yaml          # Hakoniwa generic category collection
+│   ├── motors.yaml
+│   ├── propellers.yaml
+│   ├── batteries.yaml
+│   ├── cameras.yaml
+│   ├── controllers.yaml
+│   └── <kind>/<vendor>/<product>.yaml  # commercial product fragment
+└── sources/<kind>/<vendor>/<product>.yaml
 ```
 
 Recipeは部品IDを参照して、ユーザーが組みたい機体を定義します。

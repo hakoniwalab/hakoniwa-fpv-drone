@@ -4,7 +4,6 @@ from pathlib import Path
 
 from fpv_drone_generator.catalog import load_catalogs
 from fpv_drone_generator.errors import ValidationError
-from fpv_drone_generator.yaml_io import load_yaml
 
 from .support import CATALOGS
 
@@ -29,17 +28,24 @@ class CatalogFragmentTest(unittest.TestCase):
             motor.metadata["source_urls"],
         )
 
-    def test_commercial_entries_are_not_kept_in_legacy_monoliths(self):
-        expected_absent = {
-            "frames.yaml": "speedybee_master5_v2",
-            "motors.yaml": "iflight_xing2_2207_1855kv",
-            "propellers.yaml": "hqprop_5x4_3x3v2s",
-            "batteries.yaml": "tattu_rline_v5_1200mah_6s",
-            "cameras.yaml": "runcam_phoenix2",
-        }
-        for filename, item_id in expected_absent.items():
-            raw = load_yaml(CATALOGS / filename)
-            self.assertNotIn(item_id, {entry["id"] for entry in raw["items"]})
+    def test_generic_catalog_collections_live_under_products(self):
+        expected = (
+            "frames.yaml",
+            "motors.yaml",
+            "propellers.yaml",
+            "batteries.yaml",
+            "cameras.yaml",
+            "controllers.yaml",
+            "landing-gears.yaml",
+            "attachments.yaml",
+        )
+        for filename in expected:
+            self.assertTrue((CATALOGS / "products" / filename).is_file())
+            self.assertFalse((CATALOGS / filename).exists())
+
+        catalogs = load_catalogs(CATALOGS)
+        self.assertEqual("Generic 5-inch X Frame", catalogs.frames.get("generic_5inch_x").name)
+        self.assertEqual("Hakoniwa FPV Initial Controller", catalogs.controllers.get("hakoniwa_default").name)
 
     def test_fragment_requires_matching_source_contract(self):
         with tempfile.TemporaryDirectory() as directory:
