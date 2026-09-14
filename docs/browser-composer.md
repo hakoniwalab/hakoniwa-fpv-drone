@@ -27,13 +27,19 @@ build/catalog-showroom/glb/
 the Composer can load both its static files and generated Catalog assets. Stop
 it with `Ctrl-C`. Use `--port <number>` when port 8010 is unavailable.
 
+The Composer vendors the exact Three.js release it uses (`0.169.0`) under
+`composer/vendor/three/`. It therefore needs no CDN or Internet connection
+after the repository has been checked out.
+
 ## Manual smoke check
 
 1. Add one Frame, then add four Motors and four Propellers.
 2. Add one Battery, Camera, and Controller. Click a cyan port before a drop to
    select a preferred compatible target.
 3. Select a mounted Battery or Camera and change its local pose in the right
-   panel. Position inputs are centimetres; RPY inputs are degrees.
+   panel. Position inputs are centimetres; RPY inputs are degrees. Confirm
+   that the fixed Motor mount fields are disabled, and adjustable fields stay
+   within the limits declared by the connection rule.
 4. Export the Assembly Graph, reload the page, then import the exported JSON.
 5. Confirm that an incompatible or fully occupied port cannot accept another
    component and that singleton parts replace their preceding selection.
@@ -60,7 +66,9 @@ compatibility, MJCF, or Drone PRO configuration.
 - snap only to a compatible, unoccupied port declared in `assembly-contract.json`;
 - replacing Battery, Camera, Controller, or Landing Gear removes the previous
   singleton node and its connection before adding the replacement;
-- edit connection-relative position in centimetres and RPY in degrees;
+- edit only the connection-relative axes permitted by the contract, in
+  centimetres and degrees; the declared symmetric limits are enforced by the
+  inputs;
 - save a local draft, import a graph, and export graph JSON.
 
 The current MVP creates a `quad_x` draft and assigns a display-oriented rotor
