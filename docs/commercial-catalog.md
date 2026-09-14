@@ -1,5 +1,8 @@
 # Commercial FPV Catalog data
 
+For the required photos, dimensions, mounting information and visual acceptance
+criteria, see [外観再現の入力要件](catalog-visual-input-requirements.md).
+
 ## Master3X visual model
 
 Master3X, the SpeedyBee 1507 motor and HQProp T3.5X2.5X3 use explicit

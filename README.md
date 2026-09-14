@@ -59,6 +59,8 @@ PYTHONPATH=src python -m fpv_drone_generator.cli validate recipes/examples/5inch
 
 Catalogは部品そのものです。
 
+実製品の写真・寸法から表示モデルを作る際は、[外観再現に必要な情報と受入要件](docs/catalog-visual-input-requirements.md)を参照してください。
+
 ```text
 catalogs/
 ├── products/
