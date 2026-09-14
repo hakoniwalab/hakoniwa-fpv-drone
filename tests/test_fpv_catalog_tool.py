@@ -27,6 +27,13 @@ class FpvCatalogToolTest(unittest.TestCase):
         self.assertEqual("motor", args.kind)
         self.assertEqual("generic_2207_1850kv", args.item_id)
 
+        args = FPV_CATALOG.parser().parse_args(
+            ["export-glb", "propeller", "generic_5inch_3blade"]
+        )
+        self.assertEqual("export-glb", args.command)
+        self.assertEqual("propeller", args.kind)
+        self.assertEqual("generic_5inch_3blade", args.item_id)
+
     def test_prepare_creates_managed_venv_and_installs_showroom_extra(self):
         with tempfile.TemporaryDirectory() as directory:
             work_dir = Path(directory) / "work"
