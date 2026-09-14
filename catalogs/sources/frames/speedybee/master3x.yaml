@@ -5,7 +5,15 @@ product_kind: frame
 sources:
   - url: https://www.speedybee.com/speedybee-master3x-frame/
     role: manufacturer_product
+  - url: https://www.speedybee.com/master3x-frame-download/
+    role: other
+  - url: https://docs.speedybee.cn/en/fpv/frame/master-3x-frame/master-3x-frame-installation.html
+    role: manufacturer_manual
   - url: https://spcdn.speedybee.cn/cdn/142107666636869632.pdf?attname=sbee_master3x_frame_manual-en.pdf
+    role: manufacturer_manual
+  - url: https://docs.speedybee.cn/en/fpv/fpv-drones/master3x-drone/master-3x-user-manual.html
+    role: manufacturer_manual
+  - url: https://docs.speedybee.cn/en/fpv/fpv-drones/master3x-drone/master3x-frame-screws.html
     role: manufacturer_manual
   - url: https://docs.speedybee.cn/en/fpv/fpv-drones/master3x-drone/master3x-3d-printing-files.html
     role: other
