@@ -36,6 +36,20 @@ class CliTest(unittest.TestCase):
             self.assertTrue((world_output / "world.yaml").is_file())
             self.assertTrue((world_output / "fpv-course.json").is_file())
 
+    def test_catalog_view_generates_mjcf_without_opening_viewer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "motors.xml"
+            result = self._run(
+                "catalog-view",
+                "motor",
+                "--output",
+                str(output),
+                "--no-open",
+            )
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertTrue(output.is_file())
+            self.assertIn('"kind": "motor"', result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
