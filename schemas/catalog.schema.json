@@ -10,7 +10,7 @@
       "required": ["name", "type"],
       "properties": {
         "name": {"type": "string", "minLength": 1},
-        "type": {"enum": ["box", "cylinder", "capsule", "sphere"]},
+        "type": {"enum": ["box", "ellipsoid", "cylinder", "capsule", "sphere"]},
         "center_m": {"$ref": "#/$defs/vector3"},
         "rpy_deg": {"$ref": "#/$defs/vector3"},
         "dimensions_m": {"$ref": "#/$defs/vector3"},

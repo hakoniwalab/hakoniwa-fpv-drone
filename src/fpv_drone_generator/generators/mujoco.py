@@ -15,7 +15,7 @@ def _numbers(values: tuple[float, ...]) -> str:
 
 
 def _primitive_size(primitive: GeometryPrimitive) -> str:
-    if primitive.primitive_type == "box":
+    if primitive.primitive_type in ("box", "ellipsoid"):
         assert primitive.dimensions_m is not None
         return _numbers(tuple(value / 2.0 for value in primitive.dimensions_m))
     if primitive.primitive_type == "sphere":
@@ -26,6 +26,9 @@ def _primitive_size(primitive: GeometryPrimitive) -> str:
 
 
 def _primitive_volume(primitive: GeometryPrimitive) -> float:
+    if primitive.primitive_type == "ellipsoid":
+        assert primitive.dimensions_m is not None
+        return math.pi * math.prod(primitive.dimensions_m) / 6.0
     if primitive.primitive_type == "box":
         assert primitive.dimensions_m is not None
         return primitive.dimensions_m[0] * primitive.dimensions_m[1] * primitive.dimensions_m[2]

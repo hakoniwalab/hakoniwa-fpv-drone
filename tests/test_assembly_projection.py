@@ -21,6 +21,17 @@ from .support import CATALOGS, ROOT
 
 
 class AssemblyProjectionTest(unittest.TestCase):
+    def test_master3x_demo_mounts_battery_above_deck_and_camera_at_front(self):
+        catalogs = load_catalogs(CATALOGS)
+        graph = load_assembly_graph(ROOT / 'recipes/examples/master3x-visual-demo.assembly.json')
+        projected = project_recipe(resolve_assembly(graph, catalogs))
+        self.assertEqual(4, len(projected['rotor_layout']['rotors']))
+        battery_position = projected['placements']['battery']['position_m']
+        self.assertAlmostEqual(0.032, battery_position[2])
+        battery = catalogs.batteries.get('generic_4s_850mah')
+        self.assertGreaterEqual(battery_position[2] - battery.dimensions_m[2] / 2, 0.016)
+        self.assertEqual([0.067, 0.0, 0.014], projected['placements']['camera']['position_m'])
+
     def test_component_pose_composes_provider_adjustment_and_consumer_inverse(self):
         provider = AssemblyPort("mount", "provider", "test", (1.0, 2.0, 3.0), (0.0, 0.0, 90.0), 1)
         consumer = AssemblyPort("mount", "consumer", "test", (0.2, 0.0, 0.0), (0.0, 0.0, 90.0), 1)

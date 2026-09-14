@@ -14,10 +14,12 @@ def _primitive_min_z(primitive: GeometryPrimitive, position_m: Vector3, rpy_deg:
     if primitive.primitive_type == "sphere":
         assert primitive.radius_m is not None
         extent = primitive.radius_m
-    elif primitive.primitive_type == "box":
+    elif primitive.primitive_type in ("box", "ellipsoid"):
         assert primitive.dimensions_m is not None
         axes = tuple(rotate_vector(rotation, axis) for axis in ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)))
         extent = sum(abs(axes[index][2]) * primitive.dimensions_m[index] / 2.0 for index in range(3))
+        if primitive.primitive_type == "ellipsoid":
+            extent = math.sqrt(sum((axes[index][2] * primitive.dimensions_m[index] / 2.0) ** 2 for index in range(3)))
     else:
         assert primitive.radius_m is not None and primitive.length_m is not None
         axis = rotate_vector(rotation, (0.0, 0.0, 1.0))

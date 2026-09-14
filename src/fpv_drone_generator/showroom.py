@@ -225,7 +225,7 @@ def _append_geom(
         "conaffinity": "0",
         "group": "1",
     }
-    if primitive.primitive_type == "box":
+    if primitive.primitive_type in ("box", "ellipsoid"):
         assert primitive.dimensions_m is not None
         attrs["size"] = _fmt(value * 0.5 for value in primitive.dimensions_m)
     elif primitive.primitive_type in ("cylinder", "capsule"):

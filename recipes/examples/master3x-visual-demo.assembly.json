@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "kind": "fpv-assembly",
+  "name": "master3x-visual-demo",
+  "type": "quad_x",
+  "controller_mode": "angle",
+  "nodes": [
+    {
+      "id": "frame",
+      "kind": "frame",
+      "product": "speedybee_master3x"
+    },
+    {
+      "id": "motor_1",
+      "kind": "motor",
+      "product": "speedybee_1507_3600kv",
+      "rotor": {
+        "index": 1,
+        "name": "prop1",
+        "rotation_direction": -1
+      }
+    },
+    {
+      "id": "propeller_1",
+      "kind": "propeller",
+      "product": "hqprop_t35x25x3_1_5mm"
+    },
+    {
+      "id": "motor_2",
+      "kind": "motor",
+      "product": "speedybee_1507_3600kv",
+      "rotor": {
+        "index": 2,
+        "name": "prop2",
+        "rotation_direction": 1
+      }
+    },
+    {
+      "id": "propeller_2",
+      "kind": "propeller",
+      "product": "hqprop_t35x25x3_1_5mm"
+    },
+    {
+      "id": "motor_3",
+      "kind": "motor",
+      "product": "speedybee_1507_3600kv",
+      "rotor": {
+        "index": 3,
+        "name": "prop3",
+        "rotation_direction": -1
+      }
+    },
+    {
+      "id": "propeller_3",
+      "kind": "propeller",
+      "product": "hqprop_t35x25x3_1_5mm"
+    },
+    {
+      "id": "motor_4",
+      "kind": "motor",
+      "product": "speedybee_1507_3600kv",
+      "rotor": {
+        "index": 4,
+        "name": "prop4",
+        "rotation_direction": 1
+      }
+    },
+    {
+      "id": "propeller_4",
+      "kind": "propeller",
+      "product": "hqprop_t35x25x3_1_5mm"
+    },
+    {
+      "id": "camera",
+      "kind": "camera",
+      "product": "master3x_demo_camera_head"
+    },
+    {
+      "id": "battery",
+      "kind": "battery",
+      "product": "generic_4s_850mah"
+    },
+    {
+      "id": "controller",
+      "kind": "controller",
+      "product": "hakoniwa_default"
+    }
+  ],
+  "connections": [
+    {
+      "provider": {
+        "node": "frame",
+        "port": "motor_mount_1"
+      },
+      "consumer": {
+        "node": "motor_1",
+        "port": "frame_mount"
+      }
+    },
+    {
+      "provider": {
+        "node": "motor_1",
+        "port": "propeller_shaft"
+      },
+      "consumer": {
+        "node": "propeller_1",
+        "port": "motor_shaft"
+      }
+    },
+    {
+      "provider": {
+        "node": "frame",
+        "port": "motor_mount_2"
+      },
+      "consumer": {
+        "node": "motor_2",
+        "port": "frame_mount"
+      }
+    },
+    {
+      "provider": {
+        "node": "motor_2",
+        "port": "propeller_shaft"
+      },
+      "consumer": {
+        "node": "propeller_2",
+        "port": "motor_shaft"
+      }
+    },
+    {
+      "provider": {
+        "node": "frame",
+        "port": "motor_mount_3"
+      },
+      "consumer": {
+        "node": "motor_3",
+        "port": "frame_mount"
+      }
+    },
+    {
+      "provider": {
+        "node": "motor_3",
+        "port": "propeller_shaft"
+      },
+      "consumer": {
+        "node": "propeller_3",
+        "port": "motor_shaft"
+      }
+    },
+    {
+      "provider": {
+        "node": "frame",
+        "port": "motor_mount_4"
+      },
+      "consumer": {
+        "node": "motor_4",
+        "port": "frame_mount"
+      }
+    },
+    {
+      "provider": {
+        "node": "motor_4",
+        "port": "propeller_shaft"
+      },
+      "consumer": {
+        "node": "propeller_4",
+        "port": "motor_shaft"
+      }
+    },
+    {
+      "provider": {
+        "node": "frame",
+        "port": "camera_mount"
+      },
+      "consumer": {
+        "node": "camera",
+        "port": "frame_mount"
+      }
+    },
+    {
+      "provider": {
+        "node": "frame",
+        "port": "battery_mount"
+      },
+      "consumer": {
+        "node": "battery",
+        "port": "frame_mount"
+      }
+    },
+    {
+      "provider": {
+        "node": "frame",
+        "port": "electronics_mount"
+      },
+      "consumer": {
+        "node": "controller",
+        "port": "frame_mount"
+      }
+    }
+  ]
+}

@@ -53,6 +53,10 @@ def _mesh_from_primitive(primitive: DisplayPrimitive):
     if primitive.primitive_type == "box":
         assert primitive.dimensions_m is not None
         mesh = trimesh.creation.box(extents=primitive.dimensions_m)
+    elif primitive.primitive_type == "ellipsoid":
+        assert primitive.dimensions_m is not None
+        mesh = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
+        mesh.apply_scale(np.array(primitive.dimensions_m) / 2.0)
     elif primitive.primitive_type == "cylinder":
         assert primitive.radius_m is not None and primitive.length_m is not None
         mesh = trimesh.creation.cylinder(radius=primitive.radius_m, height=primitive.length_m, sections=32)

@@ -1,5 +1,30 @@
 # Commercial FPV Catalog data
 
+## Master3X visual model
+
+Master3X, the SpeedyBee 1507 motor and HQProp T3.5X2.5X3 use explicit
+`geometry.visual` from their product YAML. These are photo-informed approximations,
+not manufacturer CAD: layered plates, standoffs, yellow frame fittings, vented
+motor bells and three rounded blades. The reference accessories are listed at
+https://www.speedybee.com/accessories-for-speedybee-master-3x/ .
+The frame deck and side rails have open slots. Camera, transmitter and antennas
+are grouped into the removable `master3x_demo_camera_head` demo component.
+`generic_4s_850mah` adds a top-mounted battery with straps and a power lead.
+Both are illustrative, unbranded simulation parts; their mass, dimensions and
+electrical/optical values are estimates, not identified commercial specifications.
+The battery's consumer port is on its underside so the resolver places it above
+the frame deck without a browser-only positioning offset.
+
+Import `recipes/examples/master3x-visual-demo.assembly.json` in Composer to view
+the assembled example, or select these parts at the camera and battery ports.
+The example includes the Hakoniwa controller. It does not reproduce exact
+manufacturer CAD or validate the flight characteristics of the commercial drone.
+
+Visual ellipsoids use full `dimensions_m`, just like boxes. GLB and MuJoCo
+both consume these definitions; collision and inertial proxies remain separate.
+After changing product geometry, run `python3 tools/fpv-catalog.py export-glb`
+and reload Composer to replace previously generated assets.
+
 The Catalog may contain real commercial parts, but a product page rarely publishes every value needed by a physics simulator. Commercial entries therefore keep provenance in `metadata.value_origin` and never present an estimated simulation value as a manufacturer specification.
 
 Commercial products use the Source / Product boundary documented in [catalog-source-product-boundary.md](catalog-source-product-boundary.md):

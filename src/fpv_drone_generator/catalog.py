@@ -181,14 +181,14 @@ def _make_primitive(raw: Any, path: str) -> GeometryPrimitive:
     if not isinstance(name, str) or not name:
         raise ValidationError(f"{path}.name must be a non-empty string")
     primitive_type = raw.get("type")
-    if primitive_type not in ("box", "cylinder", "capsule", "sphere"):
-        raise ValidationError(f"{path}.type must be box, cylinder, capsule, or sphere")
+    if primitive_type not in ("box", "ellipsoid", "cylinder", "capsule", "sphere"):
+        raise ValidationError(f"{path}.type must be box, ellipsoid, cylinder, capsule, or sphere")
     dimensions = raw.get("dimensions_m")
     radius = raw.get("radius_m")
     length = raw.get("length_m")
-    if primitive_type == "box":
+    if primitive_type in ("box", "ellipsoid"):
         if dimensions is None:
-            raise ValidationError(f"{path}.dimensions_m is required for box")
+            raise ValidationError(f"{path}.dimensions_m is required for {primitive_type}")
         dimensions_m = _vector3(dimensions, f"{path}.dimensions_m", positive=True)
         radius_m = None
         length_m = None

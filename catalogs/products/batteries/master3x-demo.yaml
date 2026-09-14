@@ -1,0 +1,34 @@
+schema_version: 1
+kind: battery
+items:
+  - id: generic_4s_850mah
+    name: Generic 4S 850mAh Demo Battery
+    vendor: null
+    description: Illustrative compact 4S battery for the Master3X demo, with straps and power lead. Not an identified manufacturer product.
+    mass_kg: 0.105
+    dimensions_m: [0.058, 0.029, 0.028]
+    cell_count: 4
+    nominal_voltage_v: 14.8
+    capacity_ah: 0.85
+    internal_resistance_ohm: 0.03
+    metadata:
+      value_origin: simulation_estimate
+      visual_reference: user_supplied_master3x_photos
+    assembly_ports:
+      - {id: frame_mount, role: consumer, interface: hakoniwa.generic.battery-mount, pose: {position_m: [0, 0, -0.016], rpy_deg: [0, 0, 0]}}
+    geometry:
+      visual:
+        - {name: shrink_wrap, type: box, center_m: [0, 0, 0], dimensions_m: [0.058, 0.029, 0.028], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: label, type: box, center_m: [0, 0, 0.0142], dimensions_m: [0.044, 0.025, 0.0004], rgba: [0.95, 0.72, 0.03, 1]}
+        - {name: label_inset, type: box, center_m: [0, 0, 0.0145], dimensions_m: [0.030, 0.021, 0.0002], rgba: [0.22, 0.23, 0.24, 1]}
+        - {name: positive_wire, type: capsule, center_m: [-0.032, -0.006, 0.009], radius_m: 0.0012, length_m: 0.02, rpy_deg: [0, -50, 0], rgba: [0.7, 0.025, 0.025, 1]}
+        - {name: negative_wire, type: capsule, center_m: [-0.032, 0.001, 0.009], radius_m: 0.0012, length_m: 0.02, rpy_deg: [0, -50, 0], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: power_connector, type: box, center_m: [-0.041, -0.003, 0.014], dimensions_m: [0.009, 0.009, 0.006], rgba: [0.95, 0.72, 0.03, 1]}
+        - {name: strap_top_rear, type: box, center_m: [-0.018, 0, 0.015], dimensions_m: [0.006, 0.032, 0.002], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: strap_rear_right, type: box, center_m: [-0.018, -0.0155, 0], dimensions_m: [0.006, 0.002, 0.03], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: strap_rear_left, type: box, center_m: [-0.018, 0.0155, 0], dimensions_m: [0.006, 0.002, 0.03], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: strap_top_front, type: box, center_m: [0.018, 0, 0.015], dimensions_m: [0.006, 0.032, 0.002], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: strap_front_right, type: box, center_m: [0.018, -0.0155, 0], dimensions_m: [0.006, 0.002, 0.03], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: strap_front_left, type: box, center_m: [0.018, 0.0155, 0], dimensions_m: [0.006, 0.002, 0.03], rgba: [0.06, 0.065, 0.07, 1]}
+      inertial:
+        - {name: mass_proxy, type: box, dimensions_m: [0.058, 0.029, 0.028]}

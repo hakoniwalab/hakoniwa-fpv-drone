@@ -23,10 +23,16 @@ item:
       blade_count: manufacturer
       thrust_coefficient_ns2_rad2: simulation_estimate
       torque_coefficient_nms2_rad2: simulation_estimate
+      geometry: photo_reference_approximation_not_manufacturer_cad
   assembly_ports:
     - {id: motor_shaft, role: consumer, interface: fpv.propeller-shaft.t-mount-1.5mm, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
   geometry:
     visual:
-      - {name: propeller_disk, type: cylinder, radius_m: 0.04445, length_m: 0.003, rgba: [0.26, 0.26, 0.28, 0.75]}
+      - {name: hub, type: cylinder, radius_m: 0.005, length_m: 0.0047, rgba: [0.21, 0.23, 0.25, 1]}
+      - {name: blade_1, type: ellipsoid, center_m: [0.024, 0, 0], dimensions_m: [0.0409, 0.011, 0.0014], rpy_deg: [12, 0, -8], rgba: [0.56, 0.60, 0.62, 1]}
+      - {name: blade_2, type: ellipsoid, center_m: [-0.012, 0.020785, 0], dimensions_m: [0.0409, 0.011, 0.0014], rpy_deg: [12, 0, 112], rgba: [0.56, 0.60, 0.62, 1]}
+      - {name: blade_3, type: ellipsoid, center_m: [-0.012, -0.020785, 0], dimensions_m: [0.0409, 0.011, 0.0014], rpy_deg: [12, 0, 232], rgba: [0.56, 0.60, 0.62, 1]}
+      - {name: screw_1, type: cylinder, center_m: [0.003, 0, 0.0026], radius_m: 0.001, length_m: 0.0007, rgba: [0.65, 0.67, 0.69, 1]}
+      - {name: screw_2, type: cylinder, center_m: [-0.003, 0, 0.0026], radius_m: 0.001, length_m: 0.0007, rgba: [0.65, 0.67, 0.69, 1]}
     inertial:
       - {name: mass_proxy, type: cylinder, radius_m: 0.04445, length_m: 0.003}

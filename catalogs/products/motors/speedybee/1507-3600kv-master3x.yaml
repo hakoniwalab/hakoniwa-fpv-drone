@@ -33,6 +33,21 @@ item:
     - {id: propeller_shaft, role: provider, interface: fpv.propeller-shaft.t-mount-1.5mm, pose: {position_m: [0, 0, 0.008], rpy_deg: [0, 0, 0]}}
   geometry:
     visual:
-      - {name: motor_bell, type: cylinder, radius_m: 0.011, length_m: 0.016, rgba: [0.12, 0.12, 0.14, 1.0]}
+      - {name: base_flange, type: cylinder, center_m: [0, 0, -0.0065], radius_m: 0.0105, length_m: 0.003, rgba: [0.38, 0.40, 0.43, 1]}
+      - {name: stator, type: cylinder, center_m: [0, 0, 0], radius_m: 0.0075, length_m: 0.007, rgba: [0.52, 0.24, 0.075, 1]}
+      - {name: bell_rim, type: cylinder, center_m: [0, 0, 0.005], radius_m: 0.0105, length_m: 0.003, rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: shaft, type: cylinder, center_m: [0, 0, 0.008], radius_m: 0.00075, length_m: 0.004, rgba: [0.38, 0.40, 0.43, 1]}
+      - {name: bell_rib_0, type: box, center_m: [0.009300, 0.000000, 0], dimensions_m: [0.0013, 0.0021, 0.009], rpy_deg: [0, 0, 0], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: bell_rib_1, type: box, center_m: [0.008054, 0.004650, 0], dimensions_m: [0.0013, 0.0021, 0.009], rpy_deg: [0, 0, 30], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: bell_rib_2, type: box, center_m: [0.004650, 0.008054, 0], dimensions_m: [0.0013, 0.0021, 0.009], rpy_deg: [0, 0, 60], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: bell_rib_3, type: box, center_m: [0.000000, 0.009300, 0], dimensions_m: [0.0013, 0.0021, 0.009], rpy_deg: [0, 0, 90], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: bell_rib_4, type: box, center_m: [-0.004650, 0.008054, 0], dimensions_m: [0.0013, 0.0021, 0.009], rpy_deg: [0, 0, 120], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: bell_rib_5, type: box, center_m: [-0.008054, 0.004650, 0], dimensions_m: [0.0013, 0.0021, 0.009], rpy_deg: [0, 0, 150], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: bell_rib_6, type: box, center_m: [-0.009300, 0.000000, 0], dimensions_m: [0.0013, 0.0021, 0.009], rpy_deg: [0, 0, 180], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: bell_rib_7, type: box, center_m: [-0.008054, -0.004650, 0], dimensions_m: [0.0013, 0.0021, 0.009], rpy_deg: [0, 0, 210], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: bell_rib_8, type: box, center_m: [-0.004650, -0.008054, 0], dimensions_m: [0.0013, 0.0021, 0.009], rpy_deg: [0, 0, 240], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: bell_rib_9, type: box, center_m: [-0.000000, -0.009300, 0], dimensions_m: [0.0013, 0.0021, 0.009], rpy_deg: [0, 0, 270], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: bell_rib_10, type: box, center_m: [0.004650, -0.008054, 0], dimensions_m: [0.0013, 0.0021, 0.009], rpy_deg: [0, 0, 300], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: bell_rib_11, type: box, center_m: [0.008054, -0.004650, 0], dimensions_m: [0.0013, 0.0021, 0.009], rpy_deg: [0, 0, 330], rgba: [0.055, 0.065, 0.075, 1]}
     inertial:
       - {name: mass_proxy, type: cylinder, radius_m: 0.011, length_m: 0.016}

@@ -36,22 +36,70 @@ item:
       battery_mount_pose: simulation_estimate
       camera_mount_pose: simulation_estimate
       electronics_mount_pose: simulation_estimate
+      geometry: photo_reference_approximation_not_manufacturer_cad
   assembly_ports:
     - {id: motor_mount_1, role: provider, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [0.06046, -0.06046, 0.0], rpy_deg: [0, 0, 0]}}
     - {id: motor_mount_2, role: provider, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [0.06046, 0.06046, 0.0], rpy_deg: [0, 0, 0]}}
     - {id: motor_mount_3, role: provider, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [-0.06046, 0.06046, 0.0], rpy_deg: [0, 0, 0]}}
     - {id: motor_mount_4, role: provider, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [-0.06046, -0.06046, 0.0], rpy_deg: [0, 0, 0]}}
-    - {id: battery_mount, role: provider, interface: hakoniwa.generic.battery-mount, pose: {position_m: [0, 0, 0.0105], rpy_deg: [0, 0, 0]}}
-    - {id: camera_mount, role: provider, interface: hakoniwa.generic.camera-mount, pose: {position_m: [0.045, 0, 0.0105], rpy_deg: [0, 0, 0]}}
+    - {id: battery_mount, role: provider, interface: hakoniwa.generic.battery-mount, pose: {position_m: [-0.008, 0, 0.016], rpy_deg: [0, 0, 0]}}
+    - {id: camera_mount, role: provider, interface: hakoniwa.generic.camera-mount, pose: {position_m: [0.067, 0, 0.014], rpy_deg: [0, 0, 0]}}
     - {id: electronics_mount, role: provider, interface: hakoniwa.generic.electronics-mount, pose: {position_m: [0, 0, 0.0105], rpy_deg: [0, 0, 0]}}
     - {id: landing_gear_mount, role: provider, interface: hakoniwa.generic.landing-gear-mount, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
     - {id: accessory_mount, role: provider, interface: hakoniwa.generic.accessory-mount, capacity: 8, pose: {position_m: [0, 0, 0.0105], rpy_deg: [0, 0, 0]}}
   geometry:
     visual:
-      - {name: center_plate, type: box, dimensions_m: [0.075, 0.060, 0.004], rgba: [0.12, 0.13, 0.14, 1.0]}
-      - {name: arm_front_right, type: box, center_m: [0.037, -0.037, 0], dimensions_m: [0.092, 0.009, 0.004], rpy_deg: [0, 0, -45], rgba: [0.14, 0.15, 0.16, 1.0]}
-      - {name: arm_front_left, type: box, center_m: [0.037, 0.037, 0], dimensions_m: [0.092, 0.009, 0.004], rpy_deg: [0, 0, 45], rgba: [0.14, 0.15, 0.16, 1.0]}
-      - {name: arm_rear_left, type: box, center_m: [-0.037, 0.037, 0], dimensions_m: [0.092, 0.009, 0.004], rpy_deg: [0, 0, -45], rgba: [0.14, 0.15, 0.16, 1.0]}
-      - {name: arm_rear_right, type: box, center_m: [-0.037, -0.037, 0], dimensions_m: [0.092, 0.009, 0.004], rpy_deg: [0, 0, 45], rgba: [0.14, 0.15, 0.16, 1.0]}
+      - {name: center_plate, type: box, dimensions_m: [0.098, 0.036, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: deck_left, type: box, center_m: [0, 0.013, 0.014], dimensions_m: [0.091, 0.005, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: deck_right, type: box, center_m: [0, -0.013, 0.014], dimensions_m: [0.091, 0.005, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: deck_crossbar_0, type: box, center_m: [-0.036, 0, 0.014], dimensions_m: [0.006, 0.029, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: deck_crossbar_1, type: box, center_m: [-0.018, 0, 0.014], dimensions_m: [0.006, 0.029, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: deck_crossbar_2, type: box, center_m: [0.000, 0, 0.014], dimensions_m: [0.006, 0.029, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: deck_crossbar_3, type: box, center_m: [0.018, 0, 0.014], dimensions_m: [0.006, 0.029, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: deck_crossbar_4, type: box, center_m: [0.036, 0, 0.014], dimensions_m: [0.006, 0.029, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: top_nose, type: box, center_m: [0.044, 0, 0.014], dimensions_m: [0.016, 0.023, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: battery_pad_front, type: box, center_m: [0.013, 0, 0.0155], dimensions_m: [0.012, 0.024, 0.001], rgba: [0.025, 0.028, 0.032, 1]}
+      - {name: battery_pad_rear, type: box, center_m: [-0.023, 0, 0.0155], dimensions_m: [0.012, 0.024, 0.001], rgba: [0.025, 0.028, 0.032, 1]}
+      - {name: head_bridge, type: box, center_m: [0.052, 0, 0], dimensions_m: [0.026, 0.024, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: standoff_rear_right, type: cylinder, center_m: [-0.035, -0.012, 0.007], radius_m: 0.0018, length_m: 0.012, rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: top_screw_rear_right, type: cylinder, center_m: [-0.035, -0.012, 0.0154], radius_m: 0.0023, length_m: 0.0008, rgba: [0.38, 0.40, 0.43, 1]}
+      - {name: standoff_rear_left, type: cylinder, center_m: [-0.035, 0.012, 0.007], radius_m: 0.0018, length_m: 0.012, rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: top_screw_rear_left, type: cylinder, center_m: [-0.035, 0.012, 0.0154], radius_m: 0.0023, length_m: 0.0008, rgba: [0.38, 0.40, 0.43, 1]}
+      - {name: standoff_front_right, type: cylinder, center_m: [0.035, -0.012, 0.007], radius_m: 0.0018, length_m: 0.012, rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: top_screw_front_right, type: cylinder, center_m: [0.035, -0.012, 0.0154], radius_m: 0.0023, length_m: 0.0008, rgba: [0.38, 0.40, 0.43, 1]}
+      - {name: standoff_front_left, type: cylinder, center_m: [0.035, 0.012, 0.007], radius_m: 0.0018, length_m: 0.012, rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: top_screw_front_left, type: cylinder, center_m: [0.035, 0.012, 0.0154], radius_m: 0.0023, length_m: 0.0008, rgba: [0.38, 0.40, 0.43, 1]}
+      - {name: foot_rear_right, type: cylinder, center_m: [-0.06046, -0.06046, -0.004], radius_m: 0.0105, length_m: 0.004, rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: motor_pad_rear_right, type: cylinder, center_m: [-0.06046, -0.06046, 0], radius_m: 0.010, length_m: 0.004, rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: wire_guard_rear_right, type: box, center_m: [-0.039903600000000004, -0.039903600000000004, 0.003], dimensions_m: [0.029, 0.006, 0.003], rpy_deg: [0, 0, 45], rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: foot_rear_left, type: cylinder, center_m: [-0.06046, 0.06046, -0.004], radius_m: 0.0105, length_m: 0.004, rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: motor_pad_rear_left, type: cylinder, center_m: [-0.06046, 0.06046, 0], radius_m: 0.010, length_m: 0.004, rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: wire_guard_rear_left, type: box, center_m: [-0.039903600000000004, 0.039903600000000004, 0.003], dimensions_m: [0.029, 0.006, 0.003], rpy_deg: [0, 0, -45], rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: foot_front_right, type: cylinder, center_m: [0.06046, -0.06046, -0.004], radius_m: 0.0105, length_m: 0.004, rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: motor_pad_front_right, type: cylinder, center_m: [0.06046, -0.06046, 0], radius_m: 0.010, length_m: 0.004, rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: wire_guard_front_right, type: box, center_m: [0.039903600000000004, -0.039903600000000004, 0.003], dimensions_m: [0.029, 0.006, 0.003], rpy_deg: [0, 0, -45], rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: foot_front_left, type: cylinder, center_m: [0.06046, 0.06046, -0.004], radius_m: 0.0105, length_m: 0.004, rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: motor_pad_front_left, type: cylinder, center_m: [0.06046, 0.06046, 0], radius_m: 0.010, length_m: 0.004, rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: wire_guard_front_left, type: box, center_m: [0.039903600000000004, 0.039903600000000004, 0.003], dimensions_m: [0.029, 0.006, 0.003], rpy_deg: [0, 0, 45], rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: side_rail_right_bottom, type: box, center_m: [0, -0.018, 0.002], dimensions_m: [0.065, 0.002, 0.002], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_rail_right_top, type: box, center_m: [0, -0.018, 0.011], dimensions_m: [0.065, 0.002, 0.002], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_rib_right_0, type: box, center_m: [-0.0280, -0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_rib_right_1, type: box, center_m: [-0.0168, -0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_rib_right_2, type: box, center_m: [-0.0056, -0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_rib_right_3, type: box, center_m: [0.0056, -0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_rib_right_4, type: box, center_m: [0.0168, -0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_rib_right_5, type: box, center_m: [0.0280, -0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_rail_left_bottom, type: box, center_m: [0, 0.018, 0.002], dimensions_m: [0.065, 0.002, 0.002], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_rail_left_top, type: box, center_m: [0, 0.018, 0.011], dimensions_m: [0.065, 0.002, 0.002], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_rib_left_0, type: box, center_m: [-0.0280, 0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_rib_left_1, type: box, center_m: [-0.0168, 0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_rib_left_2, type: box, center_m: [-0.0056, 0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_rib_left_3, type: box, center_m: [0.0056, 0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_rib_left_4, type: box, center_m: [0.0168, 0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_rib_left_5, type: box, center_m: [0.0280, 0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: arm_front_right, type: box, center_m: [0.037, -0.037, 0], dimensions_m: [0.0664, 0.009, 0.004], rpy_deg: [0, 0, -45], rgba: [0.08, 0.09, 0.10, 1.0]}
+      - {name: arm_front_left, type: box, center_m: [0.037, 0.037, 0], dimensions_m: [0.0664, 0.009, 0.004], rpy_deg: [0, 0, 45], rgba: [0.08, 0.09, 0.10, 1.0]}
+      - {name: arm_rear_left, type: box, center_m: [-0.037, 0.037, 0], dimensions_m: [0.0664, 0.009, 0.004], rpy_deg: [0, 0, -45], rgba: [0.08, 0.09, 0.10, 1.0]}
+      - {name: arm_rear_right, type: box, center_m: [-0.037, -0.037, 0], dimensions_m: [0.0664, 0.009, 0.004], rpy_deg: [0, 0, 45], rgba: [0.08, 0.09, 0.10, 1.0]}
     inertial:
       - {name: mass_proxy, type: box, dimensions_m: [0.120, 0.120, 0.018]}

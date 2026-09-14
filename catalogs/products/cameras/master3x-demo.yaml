@@ -1,0 +1,43 @@
+schema_version: 1
+kind: camera
+items:
+  - id: master3x_demo_camera_head
+    name: Master3X Demo Camera Head
+    vendor: null
+    description: Photo-inspired camera/head/transmitter/antenna assembly for the Master3X demo. Not a DJI product specification; all dimensions, mass and FOV are illustrative.
+    mass_kg: 0.045
+    dimensions_m: [0.065, 0.06, 0.065]
+    fov_deg: 120
+    metadata:
+      value_origin: simulation_estimate
+      visual_reference: user_supplied_master3x_photos
+      includes: [camera, protective_head, transmitter_proxy, two_antennas]
+    assembly_ports:
+      - {id: frame_mount, role: consumer, interface: hakoniwa.generic.camera-mount, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
+    geometry:
+      visual:
+        - {name: camera_case, type: box, center_m: [0, 0, 0], dimensions_m: [0.021, 0.023, 0.021], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: lens_ring, type: cylinder, center_m: [0.013, 0, 0], radius_m: 0.009, length_m: 0.007, rpy_deg: [0, 90, 0], rgba: [0.3, 0.33, 0.35, 1]}
+        - {name: lens_bezel, type: cylinder, center_m: [0.017, 0, 0], radius_m: 0.0075, length_m: 0.002, rpy_deg: [0, 90, 0], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: lens_glass, type: ellipsoid, center_m: [0.0182, 0, 0], dimensions_m: [0.001, 0.011, 0.011], rgba: [0.045, 0.20, 0.25, 1]}
+        - {name: glass_reflection, type: ellipsoid, center_m: [0.0187, -0.002, 0.002], dimensions_m: [0.0002, 0.003, 0.002], rgba: [0.35, 0.65, 0.70, 1]}
+        - {name: head_top, type: box, center_m: [0, 0, 0.014], dimensions_m: [0.034, 0.031, 0.003], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: head_bottom, type: box, center_m: [0, 0, -0.014], dimensions_m: [0.034, 0.031, 0.003], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: transmitter, type: box, center_m: [-0.027, 0, 0.006], dimensions_m: [0.025, 0.025, 0.012], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: cage_right, type: box, center_m: [0, -0.014, 0], dimensions_m: [0.03, 0.003, 0.026], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: pivot_right, type: cylinder, center_m: [0, -0.0161, 0], radius_m: 0.003, length_m: 0.002, rpy_deg: [90, 0, 0], rgba: [0.3, 0.33, 0.35, 1]}
+        - {name: antenna_stem_right, type: cylinder, center_m: [-0.038, -0.021, 0.025], radius_m: 0.0012, length_m: 0.038, rpy_deg: [20, -25, 0], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: antenna_cap_right, type: cylinder, center_m: [-0.047, -0.0273, 0.043], radius_m: 0.004, length_m: 0.012, rpy_deg: [20, -25, 0], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: cage_left, type: box, center_m: [0, 0.014, 0], dimensions_m: [0.03, 0.003, 0.026], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: pivot_left, type: cylinder, center_m: [0, 0.0161, 0], radius_m: 0.003, length_m: 0.002, rpy_deg: [90, 0, 0], rgba: [0.3, 0.33, 0.35, 1]}
+        - {name: antenna_stem_left, type: cylinder, center_m: [-0.038, 0.021, 0.025], radius_m: 0.0012, length_m: 0.038, rpy_deg: [-20, -25, 0], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: antenna_cap_left, type: cylinder, center_m: [-0.047, 0.0273, 0.043], radius_m: 0.004, length_m: 0.012, rpy_deg: [-20, -25, 0], rgba: [0.06, 0.065, 0.07, 1]}
+        - {name: heatsink_0, type: box, center_m: [-0.037, 0, 0.013], dimensions_m: [0.0012, 0.023, 0.003], rgba: [0.3, 0.33, 0.35, 1]}
+        - {name: heatsink_1, type: box, center_m: [-0.0337, 0, 0.013], dimensions_m: [0.0012, 0.023, 0.003], rgba: [0.3, 0.33, 0.35, 1]}
+        - {name: heatsink_2, type: box, center_m: [-0.030399999999999996, 0, 0.013], dimensions_m: [0.0012, 0.023, 0.003], rgba: [0.3, 0.33, 0.35, 1]}
+        - {name: heatsink_3, type: box, center_m: [-0.0271, 0, 0.013], dimensions_m: [0.0012, 0.023, 0.003], rgba: [0.3, 0.33, 0.35, 1]}
+        - {name: heatsink_4, type: box, center_m: [-0.023799999999999998, 0, 0.013], dimensions_m: [0.0012, 0.023, 0.003], rgba: [0.3, 0.33, 0.35, 1]}
+        - {name: heatsink_5, type: box, center_m: [-0.020499999999999997, 0, 0.013], dimensions_m: [0.0012, 0.023, 0.003], rgba: [0.3, 0.33, 0.35, 1]}
+        - {name: heatsink_6, type: box, center_m: [-0.0172, 0, 0.013], dimensions_m: [0.0012, 0.023, 0.003], rgba: [0.3, 0.33, 0.35, 1]}
+      inertial:
+        - {name: mass_proxy, type: box, dimensions_m: [0.032, 0.028, 0.025]}
