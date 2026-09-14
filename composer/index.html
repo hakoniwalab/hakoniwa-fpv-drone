@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FPV Drone Composer</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <header>
+      <div><strong>FPV Drone Composer</strong><span>Catalog → Assembly Graph</span></div>
+      <div class="actions"><button id="save">Save draft</button><button id="export">Export graph</button><label class="button">Import graph<input id="import" type="file" accept="application/json"></label></div>
+    </header>
+    <main>
+      <aside id="catalog"><h2>Parts Catalog</h2><p class="hint">Frameを最初に置き、部品をキャンバスへドラッグします。</p><div id="cards"></div></aside>
+      <section id="stage"><div id="viewport"></div><div id="overlay"><span id="status">Loading Catalog…</span><span>portをクリックして接続先を選択</span></div></section>
+      <aside id="inspector"><h2>Selected Part</h2><div id="selection" class="empty">部品またはportを選択してください。</div><h2>Assembly</h2><pre id="graph"></pre></aside>
+    </main>
+    <template id="card"><article class="card" draggable="true"><div class="swatch"></div><div><strong></strong><small></small><p></p></div></article></template>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

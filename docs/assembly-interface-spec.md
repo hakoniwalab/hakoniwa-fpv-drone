@@ -141,6 +141,14 @@ Each motor node also owns an explicit `rotor` assignment: `index`, `name`, and
 inference from port names, so `quad_x` and variable-count `multirotor` graphs
 share the same deterministic Drone PRO rotor-layout projection.
 
+For projection, the rotor reference position is derived from the resolved motor
+pose and its provided `propeller_shaft` port. The current Vehicle Recipe v2 and
+Generator require that resulting position to equal the Frame motor mount
+position. The shipped generic variants therefore use a coincident shaft
+reference. A real Catalog with an offset motor mount and shaft needs a future
+target-contract extension that can represent separate motor-body and rotor-axis
+poses; the resolver must not silently change the existing Drone PRO meaning.
+
 ## v1 boundary
 
 The shipped generic Catalogs use the `hakoniwa.generic.*` variants. They define

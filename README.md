@@ -94,6 +94,9 @@ Assembly Interfaceは、Browser Composerが部品を接続してVehicle Recipe�
 variantで定義します。ComposerはこのAssembly Graphを編集するだけで、物理特性と
 MuJoCo / Drone PRO成果物は既存のPython Generatorが生成します。
 
+営業デモ向けの[Browser Composer](docs/browser-composer.md)は、このAssembly Graphを
+Three.jsで編集する静的フロントエンドです。
+
 ## FPV飛行コース
 
 機体Recipeとは独立した[FPV World YAML](docs/fpv-world.md)で、明るい空・照明・地面と、ゲート、パイロン、壁などの物理障害物を定義できます。既定コースは`recipes/environments/fpv-training-course.yaml`です。機体を変えても同じコースを再利用でき、コースだけを差し替えることもできます。

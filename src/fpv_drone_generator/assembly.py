@@ -175,7 +175,7 @@ def _validate_adjustment(connection: AssemblyConnection, rule: dict[str, Any]) -
                 raise ResolutionError(f"assembly adjustment {axis} exceeds {rule['id']} limit")
 
 
-def _component_pose(provider: AssemblyPort, consumer: AssemblyPort, connection: AssemblyConnection) -> tuple[Vector3, Vector3]:
+def _component_transform(provider: AssemblyPort, consumer: AssemblyPort, connection: AssemblyConnection):
     provider_rotation = quaternion_from_rpy_deg(provider.rpy_deg)
     adjustment_rotation = quaternion_from_rpy_deg(connection.adjustment_rpy_deg)
     consumer_rotation = quaternion_from_rpy_deg(consumer.rpy_deg)
@@ -187,6 +187,11 @@ def _component_pose(provider: AssemblyPort, consumer: AssemblyPort, connection: 
     )
     inverse_position, inverse_rotation = inverse_transform(consumer.position_m, consumer_rotation)
     position, rotation = compose_transform(position, rotation, inverse_position, inverse_rotation)
+    return position, rotation
+
+
+def _component_pose(provider: AssemblyPort, consumer: AssemblyPort, connection: AssemblyConnection) -> tuple[Vector3, Vector3]:
+    position, rotation = _component_transform(provider, consumer, connection)
     return position, rpy_deg_from_quaternion(rotation)
 
 
@@ -282,6 +287,7 @@ def project_recipe(resolved: ResolvedAssembly) -> dict[str, Any]:
     ]
     if {connection.provider_node for connection in motor_propeller_connections} != {node.id for node in motors}:
         raise ResolutionError("every motor must provide exactly one propeller connection")
+    motor_propeller_by_motor = {connection.provider_node: connection for connection in motor_propeller_connections}
     motor_connections.sort(key=lambda connection: resolved.nodes[connection.consumer_node].rotor_index or 0)
     rotor_indices = [resolved.nodes[connection.consumer_node].rotor_index for connection in motor_connections]
     if rotor_indices != list(range(1, len(motor_connections) + 1)):
@@ -292,9 +298,24 @@ def project_recipe(resolved: ResolvedAssembly) -> dict[str, Any]:
     for index, connection in enumerate(motor_connections):
         port = _port(resolved.components[frame.id], connection.provider_port, "provider", frame.id)
         motor = resolved.nodes[connection.consumer_node]
+        motor_mount = _port(resolved.components[motor.id], connection.consumer_port, "consumer", motor.id)
+        motor_position, motor_rotation = _component_transform(port, motor_mount, connection)
+        propeller_connection = motor_propeller_by_motor[motor.id]
+        rotor_reference = _port(
+            resolved.components[motor.id],
+            propeller_connection.provider_port,
+            "provider",
+            motor.id,
+        )
+        rotor_position, _ = compose_transform(
+            motor_position,
+            motor_rotation,
+            rotor_reference.position_m,
+            quaternion_from_rpy_deg(rotor_reference.rpy_deg),
+        )
         rotor_layout.append({
             "name": motor.rotor_name,
-            "position_flu_m": list(port.position_m),
+            "position_flu_m": list(rotor_position),
             "rotation_direction": motor.rotation_direction,
         })
     components: dict[str, Any] = {
