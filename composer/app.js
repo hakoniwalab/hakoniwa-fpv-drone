@@ -7,12 +7,12 @@ const assetRoot = params.get("assets") || "../build/catalog-showroom/glb";
 const $ = (id) => document.getElementById(id);
 const state = { manifest: null, contract: null, components: new Map(), nodes: [], connections: [], selectedNode: null, selectedProvider: null, objects: new Map(), previews: [] };
 
-const scene = new THREE.Scene(); scene.background = new THREE.Color(0x111923);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x526d82);
 const camera = new THREE.PerspectiveCamera(48, 1, .01, 100); camera.position.set(.55, -.75, .55);
-const renderer = new THREE.WebGLRenderer({ antialias:true }); renderer.setPixelRatio(devicePixelRatio); $("viewport").append(renderer.domElement);
+const renderer = new THREE.WebGLRenderer({ antialias:true }); renderer.setPixelRatio(devicePixelRatio); renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.3; $("viewport").append(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement); controls.target.set(0,0,.04); controls.update();
-scene.add(new THREE.HemisphereLight(0xd9efff, 0x293442, 2.3)); const light = new THREE.DirectionalLight(0xffffff, 2); light.position.set(2,-2,3); scene.add(light);
-const grid = new THREE.GridHelper(1.2, 24, 0x36526a, 0x25394a); grid.rotation.x = Math.PI / 2; scene.add(grid);
+scene.add(new THREE.HemisphereLight(0xf1f8ff, 0x5b7180, 3.2)); const light = new THREE.DirectionalLight(0xffffff, 3.5); light.position.set(2,-2,3); scene.add(light); const fillLight=new THREE.DirectionalLight(0xb9ddff,2); fillLight.position.set(-2,1,1); scene.add(fillLight);
+const grid = new THREE.GridHelper(1.2, 24, 0x79a8c5, 0x42667d); grid.rotation.x = Math.PI / 2; scene.add(grid);
 const root = new THREE.Group(); scene.add(root); const loader = new GLTFLoader(); const raycaster = new THREE.Raycaster(); const pointer = new THREE.Vector2();
 
 function resize() { const box=$("viewport").getBoundingClientRect(); renderer.setSize(box.width,box.height); camera.aspect=box.width/box.height; camera.updateProjectionMatrix(); } addEventListener("resize",resize); resize();
@@ -68,6 +68,7 @@ function deleteNode(id) {
   cardList();
 }
 function isMotorMount(provider) { return provider.interface.endsWith(".motor-mount"); }
+function isPropellerShaft(provider) { return provider.interface.endsWith(".propeller-shaft"); }
 function nextRotorIndex() { return Math.max(0,...state.nodes.filter((entry)=>entry.kind==="motor").map((entry)=>entry.rotor?.index || 0))+1; }
 function addMotorSet(part, id) {
   const selected=selectedProviderPort();
@@ -95,6 +96,33 @@ function addMotorSet(part, id) {
   cardList();
   redraw();
 }
+function addPropellerSet(part, id) {
+  const selected=selectedProviderPort();
+  if(!selected) return;
+  const shafts=state.nodes.filter((entry)=>entry.kind==="motor").flatMap((motor)=>
+    component(motor.kind,motor.product).assembly_ports.filter((provider)=>
+      provider.role==="provider" && provider.interface===selected.port.interface && isPropellerShaft(provider)
+    ).map((provider)=>({motor,provider}))
+  );
+  const consumer=part.assembly_ports.find((entry)=>entry.role==="consumer" && rule(selected.port,entry));
+  if(!consumer || !shafts.length) return setStatus("Propeller shaft の接続定義を解決できません。");
+  const occupied=shafts.flatMap(({motor,provider})=>state.connections.filter((connection)=>
+    connection.provider.node===motor.id && connection.provider.port===provider.id
+  ));
+  if(occupied.length && !confirm(`既存の ${occupied.length} 枚の Propeller を、${part.name} に置き換えますか？`)) return;
+  for(const connection of occupied) deleteNodeWithoutConfirmation(connection.consumer.node);
+  for(const {motor,provider} of shafts) {
+    if(used(motor.id,provider.id)>=provider.capacity) continue;
+    const ordinal=state.nodes.filter((entry)=>entry.kind==="propeller").length+1;
+    const entry={id:`propeller_${ordinal}`,kind:"propeller",product:id};
+    state.nodes.push(entry);
+    state.connections.push({provider:{node:motor.id,port:provider.id},consumer:{node:entry.id,port:consumer.id},adjustment:{position_m:[0,0,0],rpy_deg:[0,0,0]}});
+  }
+  state.selectedNode=state.nodes.find((entry)=>entry.kind==="frame")?.id || null;
+  state.selectedProvider=null;
+  cardList();
+  redraw();
+}
 function addPart(kind,id) {
   const part=component(kind,id);
   if(kind==="frame") {
@@ -107,6 +135,7 @@ function addPart(kind,id) {
   }
   if(!state.nodes.some((n)=>n.kind==="frame")) return setStatus("先にFrameを置いてください。");
   if(kind==="motor" && state.selectedProvider?.motorBatch) return addMotorSet(part,id);
+  if(kind==="propeller" && state.selectedProvider?.propellerBatch) return addPropellerSet(part,id);
   if(["battery","camera","controller","landing_gear"].includes(kind)) {
     state.nodes.filter((n)=>n.kind===kind).forEach(removeNode);
   }
@@ -293,6 +322,32 @@ function portList() {
   if(motorMounts.length) appendPort(motorMounts[0],`Motors (${motorMounts.length} mount ports)`,motorMounts,true);
   for(const provider of providerPorts.filter((entry)=>!isMotorMount(entry))) {
     appendPort(provider,provider.id);
+  }
+  if(selected.kind==="frame") {
+    const shafts=state.nodes.filter((entry)=>entry.kind==="motor").flatMap((motor)=>
+      component(motor.kind,motor.product).assembly_ports.filter((provider)=>provider.role==="provider" && isPropellerShaft(provider))
+        .map((provider)=>({motor,provider}))
+    );
+    if(shafts.length) {
+      const first=shafts[0];
+      const button=document.createElement("button");
+      const isSelected=state.selectedProvider?.node===first.motor.id && state.selectedProvider.port===first.provider.id && state.selectedProvider.propellerBatch;
+      button.className=`port-row${isSelected ? " selected" : ""}`;
+      const title=document.createElement("strong"); title.textContent=`Propellers (${shafts.length} shafts)`;
+      const detail=document.createElement("small");
+      const usedCount=shafts.reduce((sum,{motor,provider})=>sum+used(motor.id,provider.id),0);
+      const attached=shafts.flatMap(({motor,provider})=>state.connections.filter((connection)=>connection.provider.node===motor.id && connection.provider.port===provider.id))
+        .map((connection)=>component(node(connection.consumer.node).kind,node(connection.consumer.node).product).name);
+      detail.textContent=`${first.provider.interface} · ${usedCount}/${shafts.length}${attached.length ? ` · ${attached.join("、")}` : ""}`;
+      button.append(title,detail);
+      button.onclick=()=>{
+        state.selectedProvider=isSelected ? null : {node:first.motor.id,port:first.provider.id,propellerBatch:true};
+        portList();
+        cardList();
+        setStatus(state.selectedProvider ? "接続先: Propellers" : "接続先を選択解除しました。");
+      };
+      container.append(button);
+    }
   }
 }
 function assemblyList() {
