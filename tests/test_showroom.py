@@ -29,6 +29,9 @@ class CatalogShowroomTest(unittest.TestCase):
         self.assertIn("battery__generic_6s_1300mah", body_names)
         self.assertIn("camera__generic_fpv_camera", body_names)
 
+        geom_names = [geom.attrib["name"] for geom in root.findall(".//geom")]
+        self.assertEqual(len(geom_names), len(set(geom_names)))
+
     def test_generate_single_propeller_builds_blades_from_catalog_fields(self):
         catalogs = load_catalogs(CATALOGS)
         with tempfile.TemporaryDirectory() as directory:
@@ -47,7 +50,7 @@ class CatalogShowroomTest(unittest.TestCase):
         visual_geoms = [
             geom
             for geom in bodies[0].findall("geom")
-            if geom.attrib["name"].startswith("visual_")
+            if "__visual_" in geom.attrib["name"]
         ]
         self.assertEqual(4, len(visual_geoms))
         self.assertEqual("cylinder", visual_geoms[0].attrib["type"])
