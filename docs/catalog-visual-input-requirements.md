@@ -41,6 +41,10 @@ URLは資料の入口であり、それだけで形状を定義できるわけ�
 これだけでは前後方向・左右方向のMotor中心間隔やアーム角を一意に決められない。
 実機寸法図、CAD、または各Motor中心座標が得られた場合は、True-X仮定より優先する。
 
+現時点の公開一次資料からは、171 mm wheelbaseとは別にMotor中心の前後・左右間隔を
+確定できる数値を確認できていない。したがって、別の長方形配置を推測で採用するのではなく、
+True-X由来値は`derived`のまま保持し、追加の寸法図・実測・CADが得られた時点で更新する。
+
 同様に`dimensions_m`はsimulation envelopeであり、frameの実外形寸法を直接表す
 メーカー値ではない。Frameの受入時は、wheelbaseとは別に次を確認する。
 
@@ -91,32 +95,72 @@ MuJoCo用途では基板の細かな電子部品まで再現する必要はな�
 Frameの`geometry.visual`に内部電子部品を恒久的に焼き込むのではなく、将来的には
 Assembly GraphでFrameとElectronicsを組み合わせる方を優先する。
 
-## Master3Xの公式3D資料
+## Master3Xの一次資料とcoverage
 
-SpeedyBee公式Knowledge BaseにはMaster3X向けの
-`Master3X 3D Printing Files`と`Master3X 3D Printed Parts Installation Guide`がある。
-参照URLは`catalogs/sources/frames/speedybee/master3x.yaml`へ追加した。
+SpeedyBee公式の公開情報を再確認した結果、Master3Xの`3D Printing Files`は
+フレーム全体のcarbon plate CADではなく、印刷用の小型アクセサリ／補助部品を中心とする。
+そのため、公式STLであっても、**STLが表現していないFrame本体の形状根拠には使わない**。
 
-- https://docs.speedybee.cn/en/fpv/fpv-drones/master3x-drone/master3x-3d-printing-files.html
-- https://docs.speedybee.cn/en/fpv/fpv-drones/master3x-drone/master3x-3d-printed-parts-installation-guide.html
+Master3X本体の剛体再構成では、次の公式資料を主に使う。
 
-これらはHead / camera support / antenna mount等の推定量を減らす有力な一次資料である。
-一方、現時点ではcarbon plateを含むMaster3X本体の完全なSTEP/DXF/CADが公式公開されている
-ことまでは確認できていない。3D Printing Filesに含まれる個々のSTLがFrame本体形状を
-どこまでカバーするかは、実ファイル取得後に確認する。
+- 製品ページ：variant、互換性、主要仕様、完成外観。
+- Frame Downloadページ：公式配布資料の入口。現時点ではInstallation Instructionsが公開されている。
+- Frame Installation：組立順、構造部品、搭載位置、ねじ・支柱、内部部品との境界。
+- Frame Installation PDF：図版を含む一次資料。
+- Master3X Frame Screws：上面／下面からの固定位置確認。
+- Master 3X User Manual：完成機構成と搭載部品の確認。
+- 3D Printing Files / Installation Guide：Head、camera support、antenna mount等の局所部品だけを補強する資料。
 
-3D資料の根拠の強さは、原則として次の順で扱う。
+公式Frame Installationでは、少なくとも`Middle Plate`、`Top plate`、`Bottom Plate`、`Arm`、
+`Arm Pad`、`Injection Molded Front Support`、`Injection Molded Side Plate`、
+`Receiver Cover`、`Battery Anti-slip Pad`、`CNC Battery Strap Fixing Piece`、
+`Multi-function GPS Mount`、`VTX Module`等が別部品として示されている。
+またAIO、receiver、motor / motor wireはFrame同梱部品とは別扱いである。
+この区分をCatalogのFrame / Electronics / Accessories境界の一次根拠にする。
+
+Headについても、O3 Aluminum Alloy Head、O4 Pro Aluminum Alloy Head、Injection Molded Headが
+別の組立手順として案内されている。したがってHeadをCamera本体へ焼き込まず、
+Frame variantまたはFrameへ接続される構造部品として扱う方が自然である。
+
+現時点では、carbon plateを含むMaster3X本体の完全なSTEP/DXF/CADが公式公開されている
+ことは確認できていない。完全CADが見つからない限り、Frame本体は組立図・寸法・写真を
+組み合わせてHakoniwa側のprimitive geometryへ落とす。
+
+### 資料は「権威性」と「coverage」を分けて評価する
+
+資料の強さは、メーカー公式かどうかだけでは決めない。まず、その資料が**対象部品のどこまでを
+表現しているか**を確認する。同じメーカー公式STLでも、antenna mountだけを表すファイルから
+arm長やcenter plate外形を推定してはいけない。
+
+同じ部品・同じvariantを扱う場合の目安は次の通り。
 
 ```text
-manufacturer CAD / STEP / DXF
-  > manufacturer STL / mesh
-  > manufacturer dimension drawing / installation manual
+manufacturer CAD / STEP / DXF for the target rigid body
+  > manufacturer dimension / assembly drawing for the target rigid body
+  > manufacturer STL / mesh for the exact subpart it covers
   > manufacturer multi-view photographs
   > third-party measured CAD / STL
   > photo-based inference
 ```
 
-第三者データは寸法検証には利用できるが、再配布・同梱する場合は個別ライセンスを確認する。
+異なるcoverageの資料同士は、この順序で単純比較しない。例えば「公式の小物STL」よりも、
+Frame全体を示す公式組立図の方がFrame本体の剛体再現には有効である。
+
+### STLは計測用証拠として扱い、Catalogへ抱え込まない
+
+外部STLは最終成果物ではなく、必要な寸法を取り出すための証拠資料として扱う。
+利用条件に問題がなければ、次の流れを基本とする。
+
+```text
+manufacturer STL
+  -> bounds / dimensions / mount geometry / origin / axisを確認
+  -> 必要な数値と由来をCatalog YAMLへ反映
+  -> source URL、対象ファイル名、必要ならhashだけを記録
+  -> STL本体はリポジトリへ同梱せず、計測後は保持しない
+```
+
+これにより、メーカーmeshへの実行時依存や再配布上の曖昧さを避け、
+Catalog YAMLを正本としてGLB / MJCFを再生成できる。
 
 ## 情報の優先順位
 
@@ -133,7 +177,7 @@ manufacturer CAD / STEP / DXF
 | 接続面の情報 | 組立に必須 | mount位置、取付面、向き、consumer側の原点 | めり込み、浮き、向き違い、回転中心のずれ |
 | 色・材質の参照 | 必須 | 黒い板、黄色い樹脂、金属、ガラスなどの区分 | シルエットは合っても製品らしく見えない |
 | 寸法図・組立説明書 | 強く推奨 | 穴位置、板厚、支柱長、断面、部品番号 | 写真の遠近による誤差、隠れた寸法の推測 |
-| CAD・3Dスキャン・mesh | さらに精度を上げる場合 | 単位・座標・部品分割が分かるデータ | 複雑な曲面、正確な切り欠き、穴、細部 |
+| CAD・3Dスキャン・mesh | さらに精度を上げる場合 | 単位・座標・部品分割とcoverageが分かるデータ | 複雑な曲面、正確な切り欠き、穴、細部 |
 | Texture・材質資料 | 表面再現を上げる場合 | ラベル、ロゴ、繊維模様、透明度・粗さの参照 | 形状モデルだけでは再現しにくい表面の見た目 |
 
 飛行中の画像は完成イメージとして役立つが、回転ブラーのあるPropellerは羽根形状の
@@ -225,21 +269,19 @@ CADファイルを入手しただけで、現在のCatalogが自動で読み込�
 
 ## Master3X次回作業チェックリスト
 
-公式3D Printing Filesを取得したら、推測でYAMLを修正する前に次を確認する。
+公式STLは小型のprinted/accessory partsだけを対象として使い、Frame全体の再構成は
+Frame Installationと製品資料を中心に進める。
 
-- [ ] 配布ファイル一覧を保存し、STL/STEP/DXF等の形式と対象variantを特定する。
-- [ ] 各meshの単位、bounds、原点、軸方向を確認する。
-- [ ] 各ファイルをFrame / Head / Camera / Accessory / Electronicsのどれに属するか分類する。
-- [ ] carbon plate本体を表すCAD/meshが含まれるか確認する。
-- [ ] Head / camera supportの実寸と現在の`master3x_demo_camera_head`を比較する。
-- [ ] FrameのMotor中心間隔、arm角、中央胴体の外形、高さを現在YAMLと比較する。
-- [ ] AIO / VTX / receiver等の主要内部部品について、公式寸法・搭載位置が得られるか確認する。
+- [ ] Frame Installation PDFからTop / Middle / Bottom plate、arm、standoff、side plate、front supportの構造関係を整理する。
+- [ ] Frame ScrewsのTop / Bottom Viewで固定位置と部品境界を確認する。
+- [ ] wheelbase以外にMotor中心の前後・左右間隔を確定できる資料があるか再確認する。見つからなければ推測値へ置換しない。
+- [ ] center plate / arm / headの外形と高さを、公式写真の上面・側面・斜め前から比較する。
+- [ ] Head variantをFrame構造として分離し、`master3x_demo_camera_head`からFrame側部材を移せるか整理する。
+- [ ] AIO / VTX / receiver / GPSについて、Frame InstallationとUser Manualから搭載位置とおおよその占有体積を整理する。
+- [ ] printed STLがHead / camera support / antenna mount等の局所部品に有用なら、寸法だけ計測してYAMLへ反映し、STL本体は保持しない。
 - [ ] 推定値を`manufacturer` / `derived` / `estimated`へ再分類する。
 - [ ] 修正後にFrame単体GLBを生成し、上面・側面・斜め前から公式写真と比較する。
-- [ ] 完成Assemblyを再生成し、Frame構造とCamera部品の責務が混ざっていないことを確認する。
-
-3D Printing Filesが補助TPU部品のみでcarbon plate CADを含まない場合は、
-公式組立図・寸法図を一次資料としてFrame剛体を再構成し、不足寸法だけ写真から推定する。
+- [ ] 完成Assemblyを再生成し、Frame構造とCamera / Electronicsの責務が混ざっていないことを確認する。
 
 ## 次の製品追加で渡す情報のテンプレート
 
