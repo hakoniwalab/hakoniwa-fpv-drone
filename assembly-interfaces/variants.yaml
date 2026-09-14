@@ -8,12 +8,38 @@ items:
     parameters: {}
     evidence_status: declared
 
+  - id: fpv.motor-mount.16x16
+    name: FPV 16x16 mm motor mount
+    description: Common 5-inch FPV motor mounting pattern with 16 mm hole-center spacing.
+    interface: motor-mount
+    parameters:
+      pattern_x_mm: 16
+      pattern_y_mm: 16
+      hole_diameter_mm: 3
+    evidence_status: verified
+    metadata:
+      source_urls:
+        - https://www.speedybee.com/speedybee-master-5-v2-frame/
+        - https://shop.iflight.com/index.php?product_id=3371&route=product%2Fproduct
+
   - id: hakoniwa.generic.propeller-shaft
     name: Hakoniwa generic propeller shaft
     description: Simulation-only generic motor-to-propeller shaft; no real shaft size is claimed.
     interface: propeller-shaft
     parameters: {}
     evidence_status: declared
+
+  - id: fpv.propeller-shaft.5mm
+    name: FPV 5 mm propeller shaft
+    description: Five-millimeter motor shaft / propeller bore used by the selected commercial 5-inch parts.
+    interface: propeller-shaft
+    parameters:
+      shaft_diameter_mm: 5
+    evidence_status: verified
+    metadata:
+      source_urls:
+        - https://shop.iflight.com/index.php?product_id=3371&route=product%2Fproduct
+        - https://www.hqprop.com/hq-freestyle-prop-5x43x3v2s-2cw2ccw-poly-carbonate-p0233.html
 
   - id: hakoniwa.generic.battery-mount
     name: Hakoniwa generic battery mount
@@ -28,6 +54,19 @@ items:
     interface: camera-mount
     parameters: {}
     evidence_status: declared
+
+  - id: fpv.camera-mount.19mm-m2
+    name: FPV 19 mm M2 camera mount
+    description: Side-mounted 19 mm FPV camera interface using nominal M2 fasteners.
+    interface: camera-mount
+    parameters:
+      camera_width_mm: 19
+      fastener_nominal_diameter_mm: 2
+    evidence_status: verified
+    metadata:
+      source_urls:
+        - https://www.speedybee.com/speedybee-master-5-v2-frame/
+        - https://www.runcam.com/download/Phoenix2/Phoenix_2_Manual.pdf
 
   - id: hakoniwa.generic.electronics-mount
     name: Hakoniwa generic electronics mount
