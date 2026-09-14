@@ -16,6 +16,11 @@ dependencies = [
   "PyYAML>=6.0",
 ]
 
+[project.optional-dependencies]
+showroom = [
+  "mujoco>=3.3,<4",
+]
+
 [project.scripts]
 fpv-drone = "fpv_drone_generator.cli:main"
 
