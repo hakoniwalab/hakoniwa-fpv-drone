@@ -219,7 +219,18 @@ function cardList(){
     cardPreview(item,card.querySelector(".preview"));
   }
 }
-async function objectFor(n){ const item=state.manifest.items.find((entry)=>entry.kind===n.kind&&entry.id===n.product); const group=new THREE.Group(); group.userData.nodeId=n.id; root.add(group); state.objects.set(n.id,group); try { const gltf=await loader.loadAsync(`${assetRoot}/${item.asset}`); group.add(gltf.scene); } catch(error) { const fallback=new THREE.Mesh(new THREE.BoxGeometry(.04,.04,.02),new THREE.MeshStandardMaterial({color:0x49a9d4})); group.add(fallback); console.warn(error); } return group; }
+function visualDockingOffset(n, item) {
+  const connection=connectionFor(n.id);
+  if(n.kind!=="propeller" || !connection) return 0;
+  const providerNode=node(connection.provider.node);
+  if(providerNode?.kind!=="motor") return 0;
+  const providerItem=state.manifest.items.find((entry)=>entry.kind===providerNode.kind && entry.id===providerNode.product);
+  const motorTop=providerItem?.bounds_m?.[1]?.[2];
+  const propellerBottom=item.bounds_m?.[0]?.[2];
+  if(!Number.isFinite(motorTop) || !Number.isFinite(propellerBottom)) return 0;
+  return Math.max(0,motorTop-propellerBottom);
+}
+async function objectFor(n){ const item=state.manifest.items.find((entry)=>entry.kind===n.kind&&entry.id===n.product); const group=new THREE.Group(); group.userData.nodeId=n.id; root.add(group); state.objects.set(n.id,group); try { const gltf=await loader.loadAsync(`${assetRoot}/${item.asset}`); gltf.scene.position.z=visualDockingOffset(n,item); group.add(gltf.scene); } catch(error) { const fallback=new THREE.Mesh(new THREE.BoxGeometry(.04,.04,.02),new THREE.MeshStandardMaterial({color:0x49a9d4})); group.add(fallback); console.warn(error); } return group; }
 async function redraw(){ root.clear(); state.objects.clear(); for(const n of state.nodes){ const group=await objectFor(n); group.matrixAutoUpdate=false; group.matrix.copy(worldMatrix(n.id)); group.matrix.decompose(group.position,group.quaternion,group.scale); group.matrixAutoUpdate=true; } inspector(); portList(); assemblyList(); graph(); setStatus(`${state.nodes.length} parts · ${state.connections.length} connections`); }
 function vectorFields(label, value, units, allowedAxes, limits, change){
   const wrapper=document.createElement("label");

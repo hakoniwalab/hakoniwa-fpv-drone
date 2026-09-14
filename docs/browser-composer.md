@@ -67,6 +67,11 @@ The browser renders GLB assets, applies already-declared connection rules, and
 stores an Assembly Graph. It does not calculate mass, inertia, thrust, physical
 compatibility, MJCF, or Drone PRO configuration.
 
+For the generic Catalog's visual-only GLB presentation, a propeller mesh is
+lifted from its centre-origin until its lower visual bound touches the mounted
+motor's upper visual bound. This uses `manifest.json` bounds only; it does not
+change an Assembly Graph pose or Python Generator output.
+
 ## MVP scope
 
 - select a Frame as the first part, then select a provider port as the
