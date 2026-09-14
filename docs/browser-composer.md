@@ -31,6 +31,25 @@ The Composer vendors the exact Three.js release it uses (`0.169.0`) under
 `composer/vendor/three/`. It therefore needs no CDN or Internet connection
 after the repository has been checked out.
 
+## Catalog details
+
+Selecting an assembled part shows its complete exported engineering `specs`,
+Catalog vendor and description in the right-side inspector. The interface ports
+for that Catalog item are also available as a collapsible reference list.
+
+A real product Catalog may declare its authoritative product page as optional
+metadata:
+
+```yaml
+metadata:
+  product_url: https://manufacturer.example/products/example-motor
+```
+
+`product_url` is carried into `manifest.json` by the existing Catalog metadata
+export and appears as a `Product page` link. Generic example parts intentionally
+do not invent product URLs. The Browser only creates links for HTTP or HTTPS
+URLs.
+
 ## Manual smoke check
 
 1. Select one Frame from the initial Catalog candidates.
@@ -41,15 +60,19 @@ after the repository has been checked out.
    `Propellers` once and apply one compatible propeller model to every Motor
    shaft. Add one Battery, Camera, and Controller by selecting their
    respective ports in the same way.
-4. Select a mounted Battery or Camera and change its local pose in the right
+4. Select an assembled part and confirm that its complete Catalog specs,
+   description, vendor, and interfaces appear in the inspector. For a Catalog
+   entry with `metadata.product_url`, confirm that `Product page` opens that URL
+   in a new tab.
+5. Select a mounted Battery or Camera and change its local pose in the right
    panel. Position inputs are centimetres; RPY inputs are degrees. Confirm
    that the fixed Motor mount fields are disabled, and adjustable fields stay
    within the limits declared by the connection rule.
-5. Export the Assembly Graph, reload the page, then import the exported JSON.
-6. Confirm that an incompatible port cannot accept another component, that a
+6. Export the Assembly Graph, reload the page, then import the exported JSON.
+7. Confirm that an incompatible port cannot accept another component, that a
    full port requests replacement confirmation, and that singleton parts
    replace their preceding selection.
-7. Confirm that the right-side Assembly Parts list follows the current graph;
+8. Confirm that the right-side Assembly Parts list follows the current graph;
    delete a part from it and confirm that dependent parts are also removed.
 
 ## Data flow and boundary
@@ -82,6 +105,8 @@ change an Assembly Graph pose or Python Generator output.
   selected propeller model to all of them;
 - show only Catalog cards compatible with that port, with a GLB preview;
 - click a Catalog card to snap it to the selected port;
+- show full Catalog specs for the selected assembled part and an optional
+  authoritative product-page link from `metadata.product_url`;
 - snap only to a compatible port declared in `assembly-contract.json`, with a
   confirmation before replacing a full port;
 - replacing Battery, Camera, Controller, or Landing Gear removes the previous
@@ -96,7 +121,8 @@ change an Assembly Graph pose or Python Generator output.
 - use a bright, multi-light showroom scene for the central GLB preview;
 - save a local draft, import a graph, and export graph JSON.
 
-The current MVP creates a `quad_x` draft and assigns a display-oriented rotor
-sequence to newly added motors. A production Composer should obtain vehicle
-profile and rotor-assignment policy from a generated Assembly Contract rather
-than introduce new compatibility or control policy in JavaScript.
+The current MVP derives `quad_x` versus `multirotor` from the selected Frame's
+motor-mount profile and assigns a display-oriented rotor sequence to newly added
+motors. A production Composer should obtain the complete vehicle profile and
+rotor-assignment policy from a generated Assembly Contract rather than introduce
+new compatibility or control policy in JavaScript.
