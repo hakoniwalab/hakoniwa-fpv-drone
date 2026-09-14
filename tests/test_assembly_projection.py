@@ -72,6 +72,20 @@ class AssemblyProjectionTest(unittest.TestCase):
         self.assertEqual(["prop1", "prop2", "prop3", "prop4", "prop5", "prop6"], [entry["name"] for entry in projected["rotor_layout"]["rotors"]])
         self.assertEqual([1, -1, 1, -1, 1, -1], [entry["rotation_direction"] for entry in projected["rotor_layout"]["rotors"]])
 
+    def test_commercial_5inch_assembly_uses_dimensional_interfaces(self):
+        catalogs = load_catalogs(CATALOGS)
+        graph = load_assembly_graph(ROOT / "recipes" / "examples" / "speedybee-master5-commercial.assembly.yaml")
+        projected = project_recipe(resolve_assembly(graph, catalogs))
+
+        self.assertEqual("speedybee_master5_v2", projected["components"]["frame"])
+        self.assertEqual("iflight_xing2_2207_1855kv", projected["components"]["motors"]["product"])
+        self.assertEqual("hqprop_5x4_3x3v2s", projected["components"]["propeller"])
+        self.assertEqual("tattu_rline_v5_1200mah_6s", projected["components"]["battery"])
+        self.assertEqual("runcam_phoenix2", projected["components"]["camera"])
+        self.assertEqual(4, len(projected["rotor_layout"]["rotors"]))
+        self.assertAlmostEqual(0.0191, projected["rotor_layout"]["rotors"][0]["position_flu_m"][2])
+        self.assertAlmostEqual(20.0, projected["placements"]["camera"]["rpy_deg"][1])
+
 
 if __name__ == "__main__":
     unittest.main()
