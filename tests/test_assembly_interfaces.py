@@ -47,6 +47,23 @@ class AssemblyInterfaceCatalogTest(unittest.TestCase):
                 self.assertTrue(all(port.interface in variant_ids for port in ports))
                 self.assertTrue(all(port.role in ("provider", "consumer") for port in ports))
 
+        master3x = catalogs.frames.get("speedybee_master3x")
+        motor = catalogs.motors.get("speedybee_1507_3600kv")
+        propeller = catalogs.propellers.get("hqprop_t35x25x3_1_5mm")
+        compatible_pairs = {
+            (rule["provider_interface"], rule["consumer_interface"])
+            for rule in rules["items"]
+            if rule["status"] == "compatible"
+        }
+        self.assertIn(
+            (master3x.assembly_ports[0].interface, motor.assembly_ports[0].interface),
+            compatible_pairs,
+        )
+        self.assertIn(
+            (motor.assembly_ports[1].interface, propeller.assembly_ports[0].interface),
+            compatible_pairs,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

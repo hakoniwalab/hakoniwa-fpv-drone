@@ -21,6 +21,16 @@ items:
       rotation_axes: []
     metadata: {scope: dimensional_mechanical}
 
+  - id: fpv-motor-mount-9x9-or-12x12
+    provider_interface: fpv.motor-mount.9x9-or-12x12
+    consumer_interface: fpv.motor-mount.9x9-or-12x12
+    status: compatible
+    description: Match the Master3X frame mount with a motor supporting its 9x9 mm or 12x12 mm M2 pattern.
+    adjustment:
+      translation_axes: []
+      rotation_axes: []
+    metadata: {scope: dimensional_mechanical}
+
   - id: generic-propeller-shaft
     provider_interface: hakoniwa.generic.propeller-shaft
     consumer_interface: hakoniwa.generic.propeller-shaft
@@ -36,6 +46,16 @@ items:
     consumer_interface: fpv.propeller-shaft.5mm
     status: compatible
     description: Match a 5 mm motor shaft with a 5 mm propeller bore.
+    adjustment:
+      translation_axes: []
+      rotation_axes: []
+    metadata: {scope: dimensional_mechanical}
+
+  - id: fpv-propeller-shaft-t-mount-1-5mm
+    provider_interface: fpv.propeller-shaft.t-mount-1.5mm
+    consumer_interface: fpv.propeller-shaft.t-mount-1.5mm
+    status: compatible
+    description: Match a 1.5 mm T-mount motor attachment with its matching propeller.
     adjustment:
       translation_axes: []
       rotation_axes: []

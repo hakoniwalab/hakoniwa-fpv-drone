@@ -18,6 +18,14 @@ class CatalogFragmentTest(unittest.TestCase):
         self.assertEqual("HQProp", catalogs.propellers.get("hqprop_5x4_3x3v2s").vendor)
         self.assertEqual("Tattu", catalogs.batteries.get("tattu_rline_v5_1200mah_6s").vendor)
         self.assertEqual("RunCam", catalogs.cameras.get("runcam_phoenix2").vendor)
+        master3x = catalogs.frames.get("speedybee_master3x")
+        self.assertEqual("SpeedyBee", master3x.vendor)
+        self.assertEqual(0.171, master3x.wheelbase_m)
+        self.assertEqual("fpv.motor-mount.9x9-or-12x12", master3x.assembly_ports[0].interface)
+        master3x_motor = catalogs.motors.get("speedybee_1507_3600kv")
+        self.assertEqual(3600, master3x_motor.kv_rpm_per_v)
+        self.assertEqual("fpv.motor-mount.9x9-or-12x12", master3x_motor.assembly_ports[0].interface)
+        self.assertEqual("HQProp", catalogs.propellers.get("hqprop_t35x25x3_1_5mm").vendor)
         self.assertEqual("sources/frames/speedybee/master5-v2.yaml", frame.metadata["source_ref"])
         self.assertEqual(
             ["https://www.speedybee.com/speedybee-master-5-v2-frame/?setCurrencyId=2"],
@@ -26,6 +34,10 @@ class CatalogFragmentTest(unittest.TestCase):
         self.assertEqual(
             ["https://shop.iflight.com/index.php?product_id=3371&route=product/product"],
             motor.metadata["source_urls"],
+        )
+        self.assertEqual(
+            "https://www.speedybee.com/speedybee-master3x-frame/",
+            master3x.metadata["source_urls"][0],
         )
 
     def test_generic_catalog_collections_live_under_products(self):

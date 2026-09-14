@@ -19,6 +19,17 @@ items:
         description: Nominal mounting-hole diameter when known.
         required: false
         schema: {type: number, exclusiveMinimum: 0}
+      - id: pattern_options_mm
+        description: Alternative square mounting-hole spacings accepted by one frame mount.
+        required: false
+        schema:
+          type: array
+          minItems: 1
+          items:
+            type: array
+            minItems: 2
+            maxItems: 2
+            items: {type: number, exclusiveMinimum: 0}
 
   - id: propeller-shaft
     name: Propeller shaft

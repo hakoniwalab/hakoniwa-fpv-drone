@@ -1,0 +1,9 @@
+schema_version: 1
+kind: catalog-source
+product_id: hqprop_t35x25x3_1_5mm
+product_kind: propeller
+sources:
+  - url: https://hqprop.com/hqprop-t35x25x3grey-2cw2ccw-poly-carbonate-p0354.html
+    role: manufacturer_product
+  - url: https://www.speedybee.com/accessories-for-speedybee-master-3x/
+    role: other

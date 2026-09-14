@@ -1,0 +1,32 @@
+schema_version: 1
+kind: propeller
+source_ref: sources/propellers/hqprop/t35x25x3-1-5mm.yaml
+item:
+  id: hqprop_t35x25x3_1_5mm
+  name: HQProp T3.5X2.5X3 1.5 mm
+  vendor: HQProp
+  description: Commercial 3.5-inch three-blade propeller, listed by SpeedyBee as a Master3X-compatible accessory. The published geometry and mass are retained; aerodynamic coefficients remain simulation estimates.
+  mass_kg: 0.00155
+  diameter_m: 0.0889
+  pitch_m: 0.0635
+  blade_count: 3
+  thrust_coefficient_ns2_rad2: 0.00000045
+  torque_coefficient_nms2_rad2: 0.000000009
+  metadata:
+    manufacturer_product: HQProp T3.5X2.5X3
+    hub_diameter_mm: 10
+    hub_thickness_mm: 4.7
+    value_origin:
+      mass_kg: manufacturer
+      diameter_m: manufacturer
+      pitch_m: manufacturer
+      blade_count: manufacturer
+      thrust_coefficient_ns2_rad2: simulation_estimate
+      torque_coefficient_nms2_rad2: simulation_estimate
+  assembly_ports:
+    - {id: motor_shaft, role: consumer, interface: fpv.propeller-shaft.t-mount-1.5mm, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
+  geometry:
+    visual:
+      - {name: propeller_disk, type: cylinder, radius_m: 0.04445, length_m: 0.003, rgba: [0.26, 0.26, 0.28, 0.75]}
+    inertial:
+      - {name: mass_proxy, type: cylinder, radius_m: 0.04445, length_m: 0.003}

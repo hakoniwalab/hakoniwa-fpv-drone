@@ -22,6 +22,19 @@ items:
         - https://www.speedybee.com/speedybee-master-5-v2-frame/
         - https://shop.iflight.com/index.php?product_id=3371&route=product%2Fproduct
 
+  - id: fpv.motor-mount.9x9-or-12x12
+    name: FPV 9x9 mm or 12x12 mm motor mount
+    description: Master3X frame motor-mount pattern accepting either 9x9 mm or 12x12 mm M2 mounting holes.
+    interface: motor-mount
+    parameters:
+      pattern_options_mm: [[9, 9], [12, 12]]
+      hole_diameter_mm: 2
+    evidence_status: verified
+    metadata:
+      source_urls:
+        - https://www.speedybee.com/speedybee-master3x-frame/
+        - https://spcdn.speedybee.cn/cdn/142107666636869632.pdf?attname=sbee_master3x_frame_manual-en.pdf
+
   - id: hakoniwa.generic.propeller-shaft
     name: Hakoniwa generic propeller shaft
     description: Simulation-only generic motor-to-propeller shaft; no real shaft size is claimed.
@@ -40,6 +53,18 @@ items:
       source_urls:
         - https://shop.iflight.com/index.php?product_id=3371&route=product%2Fproduct
         - https://www.hqprop.com/hq-freestyle-prop-5x43x3v2s-2cw2ccw-poly-carbonate-p0233.html
+
+  - id: fpv.propeller-shaft.t-mount-1.5mm
+    name: FPV 1.5 mm T-mount propeller attachment
+    description: Three-bolt T-mount propeller attachment with a nominal 1.5 mm center feature.
+    interface: propeller-shaft
+    parameters:
+      shaft_diameter_mm: 1.5
+    evidence_status: verified
+    metadata:
+      source_urls:
+        - https://www.speedybee.com/accessories-for-speedybee-master-3x/
+        - https://hqprop.com/hqprop-t35x25x3grey-2cw2ccw-poly-carbonate-p0354.html
 
   - id: hakoniwa.generic.battery-mount
     name: Hakoniwa generic battery mount

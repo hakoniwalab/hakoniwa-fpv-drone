@@ -1,0 +1,11 @@
+schema_version: 1
+kind: catalog-source
+product_id: speedybee_1507_3600kv
+product_kind: motor
+sources:
+  - url: https://www.speedybee.com/speedybee-1507-3600kv-motor-master3x-3-3-6-inch-fpv/
+    role: manufacturer_product
+  - url: https://docs.speedybee.cn/en/fpv/motors/1507-3600kv-motormaster-3x/1507-3600kv-motor-user-manual.html
+    role: manufacturer_manual
+  - url: https://www.flyingtech.co.uk/product/speedybee-1507-3600kv-motor-for-master3x-3-3-6/
+    role: other

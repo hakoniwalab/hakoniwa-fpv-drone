@@ -1,0 +1,38 @@
+schema_version: 1
+kind: motor
+source_ref: sources/motors/speedybee/1507-3600kv-master3x.yaml
+item:
+  id: speedybee_1507_3600kv
+  name: SpeedyBee 1507 3600KV Motor (Master3X)
+  vendor: SpeedyBee
+  description: Commercial 4S 1507 motor specified for the Master3X 3–3.6-inch frame. Published electrical data is retained; rotor inertia and visual envelope remain explicit simulation estimates.
+  mass_kg: 0.0152
+  kv_rpm_per_v: 3600
+  max_current_a: 23.73
+  dynamics:
+    resistance_ohm: 0.09485
+    torque_constant_nm_per_a: 0.0026526
+    viscous_drag_nm_s_per_rad: 0.0
+    rotor_inertia_kg_m2: 0.000002
+  metadata:
+    manufacturer_product: 1507-3600KV Motor Master3X
+    stator_configuration: 12N14P
+    operating_voltage: 4S
+    shaft_diameter_mm: 2
+    propeller_attachment: 1.5mm_t_mount
+    value_origin:
+      mass_kg: distributor_listing
+      kv_rpm_per_v: manufacturer
+      max_current_a: distributor_listing
+      resistance_ohm: distributor_listing_phase_resistance
+      torque_constant_nm_per_a: derived_from_kv
+      rotor_inertia_kg_m2: simulation_estimate
+      geometry: simulation_estimate
+  assembly_ports:
+    - {id: frame_mount, role: consumer, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
+    - {id: propeller_shaft, role: provider, interface: fpv.propeller-shaft.t-mount-1.5mm, pose: {position_m: [0, 0, 0.008], rpy_deg: [0, 0, 0]}}
+  geometry:
+    visual:
+      - {name: motor_bell, type: cylinder, radius_m: 0.011, length_m: 0.016, rgba: [0.12, 0.12, 0.14, 1.0]}
+    inertial:
+      - {name: mass_proxy, type: cylinder, radius_m: 0.011, length_m: 0.016}

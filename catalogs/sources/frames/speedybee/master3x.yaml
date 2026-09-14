@@ -1,0 +1,13 @@
+schema_version: 1
+kind: catalog-source
+product_id: speedybee_master3x
+product_kind: frame
+sources:
+  - url: https://www.speedybee.com/speedybee-master3x-frame/
+    role: manufacturer_product
+  - url: https://spcdn.speedybee.cn/cdn/142107666636869632.pdf?attname=sbee_master3x_frame_manual-en.pdf
+    role: manufacturer_manual
+  - url: https://www.speedybee.com/accessories-for-speedybee-master-3x/
+    role: other
+  - url: https://www.speedybee.com/speedybee-master3x-drone/
+    role: other

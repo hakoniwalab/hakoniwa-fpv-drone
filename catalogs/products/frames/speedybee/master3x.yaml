@@ -1,0 +1,57 @@
+schema_version: 1
+kind: frame
+source_ref: sources/frames/speedybee/master3x.yaml
+item:
+  id: speedybee_master3x
+  name: SpeedyBee Master3X Modular Frame
+  vendor: SpeedyBee
+  description: Commercial modular 3–3.6-inch freestyle/racing frame. Published mass, wheelbase, motor-mount options, camera pitch and supported battery envelope are retained. Local origin, envelope and port poses are Hakoniwa simulation estimates pending a CAD-origin contract.
+  mass_kg: 0.087
+  dimensions_m: [0.171, 0.171, 0.021]
+  wheelbase_m: 0.171
+  motor_mount_positions_m:
+    - [0.06046, -0.06046, 0.0]
+    - [0.06046, 0.06046, 0.0]
+    - [-0.06046, 0.06046, 0.0]
+    - [-0.06046, -0.06046, 0.0]
+  metadata:
+    class: 3-3.6-inch
+    manufacturer_product: Master3X Modular Frame
+    compatible_propeller_inches: [3.0, 3.6]
+    motor_mount_patterns_mm: [[9, 9], [12, 12]]
+    fc_mounts_mm: [25.5]
+    camera_widths_mm: [19, 20]
+    maximum_battery_dimensions_mm: [67, 31, 40]
+    value_origin:
+      mass_kg: manufacturer
+      wheelbase_m: manufacturer
+      compatible_propeller_inches: manufacturer
+      motor_mount_patterns_mm: manufacturer
+      fc_mounts_mm: manufacturer
+      camera_widths_mm: manufacturer
+      maximum_battery_dimensions_mm: manufacturer
+      dimensions_m: simulation_envelope_from_wheelbase_and_published_stack_height
+      motor_mount_positions_m: derived_true_x_from_wheelbase
+      motor_mount_interface: manufacturer
+      battery_mount_pose: simulation_estimate
+      camera_mount_pose: simulation_estimate
+      electronics_mount_pose: simulation_estimate
+  assembly_ports:
+    - {id: motor_mount_1, role: provider, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [0.06046, -0.06046, 0.0], rpy_deg: [0, 0, 0]}}
+    - {id: motor_mount_2, role: provider, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [0.06046, 0.06046, 0.0], rpy_deg: [0, 0, 0]}}
+    - {id: motor_mount_3, role: provider, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [-0.06046, 0.06046, 0.0], rpy_deg: [0, 0, 0]}}
+    - {id: motor_mount_4, role: provider, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [-0.06046, -0.06046, 0.0], rpy_deg: [0, 0, 0]}}
+    - {id: battery_mount, role: provider, interface: hakoniwa.generic.battery-mount, pose: {position_m: [0, 0, 0.0105], rpy_deg: [0, 0, 0]}}
+    - {id: camera_mount, role: provider, interface: hakoniwa.generic.camera-mount, pose: {position_m: [0.045, 0, 0.0105], rpy_deg: [0, 0, 0]}}
+    - {id: electronics_mount, role: provider, interface: hakoniwa.generic.electronics-mount, pose: {position_m: [0, 0, 0.0105], rpy_deg: [0, 0, 0]}}
+    - {id: landing_gear_mount, role: provider, interface: hakoniwa.generic.landing-gear-mount, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
+    - {id: accessory_mount, role: provider, interface: hakoniwa.generic.accessory-mount, capacity: 8, pose: {position_m: [0, 0, 0.0105], rpy_deg: [0, 0, 0]}}
+  geometry:
+    visual:
+      - {name: center_plate, type: box, dimensions_m: [0.075, 0.060, 0.004], rgba: [0.12, 0.13, 0.14, 1.0]}
+      - {name: arm_front_right, type: box, center_m: [0.037, -0.037, 0], dimensions_m: [0.092, 0.009, 0.004], rpy_deg: [0, 0, -45], rgba: [0.14, 0.15, 0.16, 1.0]}
+      - {name: arm_front_left, type: box, center_m: [0.037, 0.037, 0], dimensions_m: [0.092, 0.009, 0.004], rpy_deg: [0, 0, 45], rgba: [0.14, 0.15, 0.16, 1.0]}
+      - {name: arm_rear_left, type: box, center_m: [-0.037, 0.037, 0], dimensions_m: [0.092, 0.009, 0.004], rpy_deg: [0, 0, -45], rgba: [0.14, 0.15, 0.16, 1.0]}
+      - {name: arm_rear_right, type: box, center_m: [-0.037, -0.037, 0], dimensions_m: [0.092, 0.009, 0.004], rpy_deg: [0, 0, 45], rgba: [0.14, 0.15, 0.16, 1.0]}
+    inertial:
+      - {name: mass_proxy, type: box, dimensions_m: [0.120, 0.120, 0.018]}
