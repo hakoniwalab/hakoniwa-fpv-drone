@@ -107,6 +107,56 @@ class Master3XRigidBodyModelTest(unittest.TestCase):
         pad_top = pad.center_m[2] + pad.dimensions_m[2] / 2.0
         self.assertAlmostEqual(pad_top, ports["battery_mount"].position_m[2], places=9)
 
+    def test_side_body_uses_photo_inferred_taper(self):
+        catalogs = load_catalogs(CATALOGS)
+        frame = catalogs.frames.get("speedybee_master3x")
+        primitives = {primitive.name: primitive for primitive in frame.geometry.visual}
+
+        lower = primitives["side_plate_right"]
+        middle = primitives["side_plate_mid_right"]
+        upper = primitives["side_plate_upper_right"]
+
+        # The photo-inferred proxy gets shorter and thinner toward the top.
+        self.assertGreater(lower.dimensions_m[0], middle.dimensions_m[0])
+        self.assertGreater(middle.dimensions_m[0], upper.dimensions_m[0])
+        self.assertGreater(lower.dimensions_m[1], middle.dimensions_m[1])
+        self.assertGreater(middle.dimensions_m[1], upper.dimensions_m[1])
+
+        # All tiers keep a common inner face while the outer face tapers inward.
+        lower_inner = lower.center_m[1] + lower.dimensions_m[1] / 2.0
+        middle_inner = middle.center_m[1] + middle.dimensions_m[1] / 2.0
+        upper_inner = upper.center_m[1] + upper.dimensions_m[1] / 2.0
+        self.assertAlmostEqual(-0.014, lower_inner, places=9)
+        self.assertAlmostEqual(lower_inner, middle_inner, places=9)
+        self.assertAlmostEqual(middle_inner, upper_inner, places=9)
+
+        # The tiers exactly fill the existing 11 mm internal stack bay.
+        middle_plate = primitives["middle_plate"]
+        top_plate = primitives["top_plate"]
+        bay_bottom = middle_plate.center_m[2] + middle_plate.dimensions_m[2] / 2.0
+        bay_top = top_plate.center_m[2] - top_plate.dimensions_m[2] / 2.0
+        lower_bottom = lower.center_m[2] - lower.dimensions_m[2] / 2.0
+        lower_top = lower.center_m[2] + lower.dimensions_m[2] / 2.0
+        middle_bottom = middle.center_m[2] - middle.dimensions_m[2] / 2.0
+        middle_top = middle.center_m[2] + middle.dimensions_m[2] / 2.0
+        upper_bottom = upper.center_m[2] - upper.dimensions_m[2] / 2.0
+        upper_top = upper.center_m[2] + upper.dimensions_m[2] / 2.0
+        self.assertAlmostEqual(bay_bottom, lower_bottom, places=9)
+        self.assertAlmostEqual(lower_top, middle_bottom, places=9)
+        self.assertAlmostEqual(middle_top, upper_bottom, places=9)
+        self.assertAlmostEqual(upper_top, bay_top, places=9)
+
+        # Wedge-like front/rear transitions remain explicit photo-inferred parts.
+        for name in (
+            "side_front_ramp_right",
+            "side_front_ramp_left",
+            "side_rear_ramp_right",
+            "side_rear_ramp_left",
+            "side_nose_bridge_right",
+            "side_nose_bridge_left",
+        ):
+            self.assertIn(name, primitives)
+
 
 if __name__ == "__main__":
     unittest.main()

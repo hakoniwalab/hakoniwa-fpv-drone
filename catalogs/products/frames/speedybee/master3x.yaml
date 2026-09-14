@@ -27,11 +27,12 @@ item:
       stack_clearance: docs/master3x-dimension-evidence.md#conditional-derivations-usable-only-with-explicit-assumptions
       standoff_length: docs/master3x-dimension-evidence.md#confirmed--corroborated-dimensions
       camera_opening: docs/master3x-dimension-evidence.md#confirmed--corroborated-dimensions
+      side_structure_photo_inference: docs/master3x-side-body-photo-inference-v1.md
       unresolved_planform: docs/master3x-dimension-evidence.md#current-yaml-values-that-are-not-yet-evidence-confirmed
     geometry_origin:
       plate_stack: manufacturer_and_corroborated_dimensions_with_estimated_planform
       arm_layout: wheelbase_derived_true_x_pending_primary_dimensions
-      side_structure: manufacturer_assembly_structure_with_evidence_constrained_height
+      side_structure: manufacturer_side_plate_boundary_with_photo_inferred_taper_and_evidence_constrained_height
       front_support: manufacturer_assembly_structure_with_20mm_camera_opening_inference
       motor_feet_and_wire_guards: photo_reference_approximation
     value_origin:
@@ -48,7 +49,7 @@ item:
       battery_mount_pose: derived_from_top_plate_surface_and_pad_proxy
       camera_mount_pose: simulation_estimate
       electronics_mount_pose: derived_from_middle_plate_mounting_surface
-      geometry: evidence_matrix_constrained_with_estimated_planform
+      geometry: evidence_matrix_constrained_with_photo_inferred_side_body_and_estimated_planform
   assembly_ports:
     - {id: motor_mount_1, role: provider, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [0.06046, -0.06046, 0.0], rpy_deg: [0, 0, 0]}}
     - {id: motor_mount_2, role: provider, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [0.06046, 0.06046, 0.0], rpy_deg: [0, 0, 0]}}
@@ -78,13 +79,29 @@ item:
       - {name: front_support_left, type: box, center_m: [0.057, 0.0115, 0.012], dimensions_m: [0.028, 0.003, 0.022], rpy_deg: [0, -8, 0], rgba: [0.95, 0.72, 0.03, 1]}
       - {name: front_support_top, type: box, center_m: [0.055, 0, 0.022], dimensions_m: [0.024, 0.026, 0.003], rgba: [0.055, 0.065, 0.075, 1]}
 
-      # Side structures span the evidence-constrained 11 mm internal stack bay.
-      - {name: side_plate_right, type: box, center_m: [0.000, -0.018, 0.013], dimensions_m: [0.068, 0.002, 0.011], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_plate_left, type: box, center_m: [0.000, 0.018, 0.013], dimensions_m: [0.068, 0.002, 0.011], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_brace_right_front, type: box, center_m: [0.022, -0.018, 0.013], dimensions_m: [0.004, 0.003, 0.011], rpy_deg: [0, -20, 0], rgba: [0.80, 0.58, 0.02, 1]}
-      - {name: side_brace_right_rear, type: box, center_m: [-0.022, -0.018, 0.013], dimensions_m: [0.004, 0.003, 0.011], rpy_deg: [0, 20, 0], rgba: [0.80, 0.58, 0.02, 1]}
-      - {name: side_brace_left_front, type: box, center_m: [0.022, 0.018, 0.013], dimensions_m: [0.004, 0.003, 0.011], rpy_deg: [0, -20, 0], rgba: [0.80, 0.58, 0.02, 1]}
-      - {name: side_brace_left_rear, type: box, center_m: [-0.022, 0.018, 0.013], dimensions_m: [0.004, 0.003, 0.011], rpy_deg: [0, 20, 0], rgba: [0.80, 0.58, 0.02, 1]}
+      # Official photos show the injection-molded side body as a tapered volume,
+      # not a constant-thickness flat plate. Three stacked tiers preserve the
+      # evidence-constrained 11 mm bay while tapering inward toward the top.
+      - {name: side_plate_right, type: box, center_m: [0.000, -0.0170, 0.0095], dimensions_m: [0.068, 0.006, 0.004], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_plate_left, type: box, center_m: [0.000, 0.0170, 0.0095], dimensions_m: [0.068, 0.006, 0.004], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_plate_mid_right, type: box, center_m: [0.000, -0.0165, 0.0130], dimensions_m: [0.062, 0.005, 0.003], rgba: [0.97, 0.73, 0.035, 1]}
+      - {name: side_plate_mid_left, type: box, center_m: [0.000, 0.0165, 0.0130], dimensions_m: [0.062, 0.005, 0.003], rgba: [0.97, 0.73, 0.035, 1]}
+      - {name: side_plate_upper_right, type: box, center_m: [0.000, -0.0160, 0.0165], dimensions_m: [0.054, 0.004, 0.004], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_plate_upper_left, type: box, center_m: [0.000, 0.0160, 0.0165], dimensions_m: [0.054, 0.004, 0.004], rgba: [0.95, 0.72, 0.03, 1]}
+
+      # Front/rear ramps and diagonal ribs approximate the molded wedge silhouette
+      # visible in SpeedyBee product photos. These are rooted visual inferences,
+      # not manufacturer dimensions.
+      - {name: side_front_ramp_right, type: box, center_m: [0.030, -0.0165, 0.0130], dimensions_m: [0.016, 0.005, 0.004], rpy_deg: [0, -18, 0], rgba: [0.92, 0.66, 0.02, 1]}
+      - {name: side_front_ramp_left, type: box, center_m: [0.030, 0.0165, 0.0130], dimensions_m: [0.016, 0.005, 0.004], rpy_deg: [0, -18, 0], rgba: [0.92, 0.66, 0.02, 1]}
+      - {name: side_rear_ramp_right, type: box, center_m: [-0.030, -0.0165, 0.0125], dimensions_m: [0.016, 0.005, 0.004], rpy_deg: [0, 18, 0], rgba: [0.92, 0.66, 0.02, 1]}
+      - {name: side_rear_ramp_left, type: box, center_m: [-0.030, 0.0165, 0.0125], dimensions_m: [0.016, 0.005, 0.004], rpy_deg: [0, 18, 0], rgba: [0.92, 0.66, 0.02, 1]}
+      - {name: side_nose_bridge_right, type: box, center_m: [0.041, -0.0145, 0.0140], dimensions_m: [0.014, 0.005, 0.004], rpy_deg: [0, -12, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_nose_bridge_left, type: box, center_m: [0.041, 0.0145, 0.0140], dimensions_m: [0.014, 0.005, 0.004], rpy_deg: [0, -12, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_brace_right_front, type: box, center_m: [0.016, -0.0185, 0.013], dimensions_m: [0.004, 0.003, 0.009], rpy_deg: [0, -24, 0], rgba: [0.80, 0.58, 0.02, 1]}
+      - {name: side_brace_right_rear, type: box, center_m: [-0.016, -0.0185, 0.013], dimensions_m: [0.004, 0.003, 0.009], rpy_deg: [0, 24, 0], rgba: [0.80, 0.58, 0.02, 1]}
+      - {name: side_brace_left_front, type: box, center_m: [0.016, 0.0185, 0.013], dimensions_m: [0.004, 0.003, 0.009], rpy_deg: [0, -24, 0], rgba: [0.80, 0.58, 0.02, 1]}
+      - {name: side_brace_left_rear, type: box, center_m: [-0.016, 0.0185, 0.013], dimensions_m: [0.004, 0.003, 0.009], rpy_deg: [0, 24, 0], rgba: [0.80, 0.58, 0.02, 1]}
 
       # Manufacturer installation material identifies M2x11 mm aluminum standoffs.
       - {name: standoff_rear_right, type: cylinder, center_m: [-0.035, -0.012, 0.013], radius_m: 0.0018, length_m: 0.011, rgba: [0.95, 0.67, 0.025, 1]}
