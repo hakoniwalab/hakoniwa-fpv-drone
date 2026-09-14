@@ -1,0 +1,26 @@
+schema_version: 1
+kind: camera
+source_ref: sources/cameras/runcam/phoenix2.yaml
+item:
+  id: runcam_phoenix2
+  name: RunCam Phoenix 2
+  vendor: RunCam
+  description: Commercial analog FPV camera using the 19 mm side-mount format. Published mass, envelope and optical FOV are retained from RunCam.
+  mass_kg: 0.009
+  dimensions_m: [0.019, 0.019, 0.019]
+  fov_deg: 155
+  metadata:
+    manufacturer_product: RunCam Phoenix 2
+    lens: 2.1mm_M12
+    viewer_backend: hakoniwa-threejs-drone
+    value_origin:
+      mass_kg: manufacturer
+      dimensions_m: manufacturer
+      fov_deg: manufacturer
+  assembly_ports:
+    - {id: frame_mount, role: consumer, interface: fpv.camera-mount.19mm-m2, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
+  geometry:
+    visual:
+      - {name: camera_body, type: box, dimensions_m: [0.019, 0.019, 0.019], rgba: [0.12, 0.12, 0.13, 1.0]}
+    inertial:
+      - {name: mass_proxy, type: box, dimensions_m: [0.019, 0.019, 0.019]}

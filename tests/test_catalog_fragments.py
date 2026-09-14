@@ -1,0 +1,91 @@
+import tempfile
+import unittest
+from pathlib import Path
+
+from fpv_drone_generator.catalog import load_catalogs
+from fpv_drone_generator.errors import ValidationError
+from fpv_drone_generator.yaml_io import load_yaml
+
+from .support import CATALOGS
+
+
+class CatalogFragmentTest(unittest.TestCase):
+    def test_commercial_products_are_loaded_from_product_fragments(self):
+        catalogs = load_catalogs(CATALOGS)
+        self.assertEqual("SpeedyBee", catalogs.frames.get("speedybee_master5_v2").vendor)
+        self.assertEqual("iFlight", catalogs.motors.get("iflight_xing2_2207_1855kv").vendor)
+        self.assertEqual("HQProp", catalogs.propellers.get("hqprop_5x4_3x3v2s").vendor)
+        self.assertEqual("Tattu", catalogs.batteries.get("tattu_rline_v5_1200mah_6s").vendor)
+        self.assertEqual("RunCam", catalogs.cameras.get("runcam_phoenix2").vendor)
+
+    def test_commercial_entries_are_not_kept_in_legacy_monoliths(self):
+        expected_absent = {
+            "frames.yaml": "speedybee_master5_v2",
+            "motors.yaml": "iflight_xing2_2207_1855kv",
+            "propellers.yaml": "hqprop_5x4_3x3v2s",
+            "batteries.yaml": "tattu_rline_v5_1200mah_6s",
+            "cameras.yaml": "runcam_phoenix2",
+        }
+        for filename, item_id in expected_absent.items():
+            raw = load_yaml(CATALOGS / filename)
+            self.assertNotIn(item_id, {entry["id"] for entry in raw["items"]})
+
+    def test_fragment_requires_matching_source_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "products" / "cameras" / "test").mkdir(parents=True)
+            (root / "sources" / "cameras" / "test").mkdir(parents=True)
+            (root / "sources" / "cameras" / "test" / "camera.yaml").write_text(
+                """schema_version: 1
+kind: catalog-source
+product_id: wrong_id
+product_kind: camera
+sources:
+  - url: https://example.com/camera
+    role: manufacturer_product
+""",
+                encoding="utf-8",
+            )
+            (root / "products" / "cameras" / "test" / "camera.yaml").write_text(
+                """schema_version: 1
+kind: camera
+source_ref: sources/cameras/test/camera.yaml
+item:
+  id: private_camera
+  name: Private Camera
+  vendor: null
+  description: Test fragment.
+  mass_kg: 0.01
+  dimensions_m: [0.02, 0.02, 0.02]
+  assembly_ports: []
+""",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValidationError, "product_id must match private_camera"):
+                load_catalogs([CATALOGS, root])
+
+    def test_fragment_source_ref_cannot_escape_catalog_root(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "products" / "cameras" / "test").mkdir(parents=True)
+            (root / "products" / "cameras" / "test" / "camera.yaml").write_text(
+                """schema_version: 1
+kind: camera
+source_ref: ../outside.yaml
+item:
+  id: private_camera
+  name: Private Camera
+  vendor: null
+  description: Test fragment.
+  mass_kg: 0.01
+  dimensions_m: [0.02, 0.02, 0.02]
+  assembly_ports: []
+""",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValidationError, "must stay inside the catalog root"):
+                load_catalogs([CATALOGS, root])
+
+
+if __name__ == "__main__":
+    unittest.main()

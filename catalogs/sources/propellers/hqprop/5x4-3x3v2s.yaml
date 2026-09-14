@@ -1,0 +1,7 @@
+schema_version: 1
+kind: catalog-source
+product_id: hqprop_5x4_3x3v2s
+product_kind: propeller
+sources:
+  - url: https://www.hqprop.com/hq-freestyle-prop-5x43x3v2s-2cw2ccw-poly-carbonate-p0233.html
+    role: manufacturer_product

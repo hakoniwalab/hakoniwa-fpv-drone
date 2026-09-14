@@ -1,0 +1,7 @@
+schema_version: 1
+kind: catalog-source
+product_id: speedybee_master5_v2
+product_kind: frame
+sources:
+  - url: https://www.speedybee.com/speedybee-master-5-v2-frame/
+    role: manufacturer_product

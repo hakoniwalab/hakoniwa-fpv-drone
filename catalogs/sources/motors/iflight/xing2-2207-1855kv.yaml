@@ -1,0 +1,7 @@
+schema_version: 1
+kind: catalog-source
+product_id: iflight_xing2_2207_1855kv
+product_kind: motor
+sources:
+  - url: https://shop.iflight.com/index.php?product_id=3371&route=product%2Fproduct
+    role: manufacturer_product

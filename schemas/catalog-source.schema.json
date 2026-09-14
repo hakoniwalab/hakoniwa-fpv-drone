@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hakoniwalab.github.io/hakoniwa-fpv-drone/catalog-source.schema.json",
+  "title": "Hakoniwa FPV analog product source",
+  "type": "object",
+  "required": ["schema_version", "kind", "product_id", "product_kind", "sources"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "catalog-source"},
+    "product_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "product_kind": {
+      "enum": ["frame", "motor", "propeller", "battery", "camera", "controller", "landing_gear", "attachment"]
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": {"type": "string", "format": "uri"},
+          "role": {
+            "enum": ["manufacturer_product", "manufacturer_manual", "manufacturer_datasheet", "other"]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
