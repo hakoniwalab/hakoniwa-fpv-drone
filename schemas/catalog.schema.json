@@ -29,6 +29,9 @@
         "inertial": {"type": "array", "items": {"$ref": "#/$defs/primitive"}}
       },
       "additionalProperties": false
+    },
+    "assemblyPort": {
+      "$ref": "assembly-port.schema.json"
     }
   },
   "type": "object",
@@ -48,6 +51,12 @@
           "description": {"type": "string"},
           "metadata": {"type": "object"},
           "geometry": {"$ref": "#/$defs/geometry"},
+          "assembly_ports": {
+            "type": "array",
+            "description": "Optional until the Catalog migration to Assembly Interface Specification v1 is complete.",
+            "minItems": 1,
+            "items": {"$ref": "#/$defs/assemblyPort"}
+          },
           "motor_mount_positions_m": {
             "type": "array",
             "minItems": 4,

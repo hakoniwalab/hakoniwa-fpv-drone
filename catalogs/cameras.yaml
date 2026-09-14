@@ -11,6 +11,8 @@ items:
     metadata:
       viewer_backend: hakoniwa-threejs-drone
       value_origin: generic_example
+    assembly_ports:
+      - {id: frame_mount, role: consumer, interface: hakoniwa.generic.camera-mount, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
     geometry:
       inertial:
         - {name: mass_proxy, type: box, dimensions_m: [0.020, 0.020, 0.020]}

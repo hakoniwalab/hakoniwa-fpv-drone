@@ -55,6 +55,16 @@ class GeometryAssembly:
 
 
 @dataclass(frozen=True)
+class AssemblyPort:
+    id: str
+    role: str
+    interface: str
+    position_m: Vector3
+    rpy_deg: Vector3
+    capacity: int
+
+
+@dataclass(frozen=True)
 class Common:
     id: str
     name: str
@@ -62,6 +72,7 @@ class Common:
     description: str
     metadata: dict[str, Any]
     geometry: GeometryAssembly | None
+    assembly_ports: tuple[AssemblyPort, ...]
 
 
 @dataclass(frozen=True)
@@ -241,7 +252,40 @@ def _common(raw: dict[str, Any], path: str) -> Common:
     metadata = raw.get("metadata", {})
     if not isinstance(metadata, dict):
         raise ValidationError(f"{path}.metadata must be an object")
-    return Common(item_id, name, vendor, description, metadata, _make_geometry(raw.get("geometry"), f"{path}.geometry"))
+    ports_raw = raw.get("assembly_ports", [])
+    if not isinstance(ports_raw, list):
+        raise ValidationError(f"{path}.assembly_ports must be an array")
+    ports: list[AssemblyPort] = []
+    for index, entry in enumerate(ports_raw):
+        entry_path = f"{path}.assembly_ports[{index}]"
+        if not isinstance(entry, dict):
+            raise ValidationError(f"{entry_path} must be an object")
+        port_id = entry.get("id")
+        role = entry.get("role")
+        interface = entry.get("interface")
+        pose = entry.get("pose")
+        capacity = entry.get("capacity", 1)
+        if not isinstance(port_id, str) or not port_id:
+            raise ValidationError(f"{entry_path}.id must be a non-empty string")
+        if role not in ("provider", "consumer"):
+            raise ValidationError(f"{entry_path}.role must be provider or consumer")
+        if not isinstance(interface, str) or not interface:
+            raise ValidationError(f"{entry_path}.interface must be a non-empty string")
+        if not isinstance(pose, dict):
+            raise ValidationError(f"{entry_path}.pose must be an object")
+        if not isinstance(capacity, int) or isinstance(capacity, bool) or capacity <= 0:
+            raise ValidationError(f"{entry_path}.capacity must be a positive integer")
+        ports.append(AssemblyPort(
+            id=port_id,
+            role=role,
+            interface=interface,
+            position_m=_vector3(pose.get("position_m"), f"{entry_path}.pose.position_m"),
+            rpy_deg=_vector3(pose.get("rpy_deg"), f"{entry_path}.pose.rpy_deg"),
+            capacity=capacity,
+        ))
+    if len({port.id for port in ports}) != len(ports):
+        raise ValidationError(f"{path}.assembly_ports ids must be unique")
+    return Common(item_id, name, vendor, description, metadata, _make_geometry(raw.get("geometry"), f"{path}.geometry"), tuple(ports))
 
 
 def _make_frame(raw: dict[str, Any], path: str) -> Frame:

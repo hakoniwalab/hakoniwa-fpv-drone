@@ -86,7 +86,13 @@ controller:
   mode: angle
 ```
 
-詳しくは[Catalog仕様](docs/catalog-spec.md)と[Recipe仕様](docs/recipe-spec.md)を参照してください。
+詳しくは[Catalog仕様](docs/catalog-spec.md)、[Recipe仕様](docs/recipe-spec.md)、
+[Assembly Interface Specification](docs/assembly-interface-spec.md)を参照してください。
+
+Assembly Interfaceは、Browser Composerが部品を接続してVehicle Recipeへ投影するための
+契約です。部品固有のportはCatalogが所有し、port間の接続ruleは独立したinterface
+variantで定義します。ComposerはこのAssembly Graphを編集するだけで、物理特性と
+MuJoCo / Drone PRO成果物は既存のPython Generatorが生成します。
 
 ## FPV飛行コース
 

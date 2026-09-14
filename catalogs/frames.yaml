@@ -11,6 +11,16 @@ items:
     metadata:
       class: 5-inch
       value_origin: generic_example
+    assembly_ports:
+      - {id: motor_mount_1, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [0.07955, -0.07955, 0.0], rpy_deg: [0, 0, 0]}}
+      - {id: motor_mount_2, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [0.07955, 0.07955, 0.0], rpy_deg: [0, 0, 0]}}
+      - {id: motor_mount_3, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [-0.07955, 0.07955, 0.0], rpy_deg: [0, 0, 0]}}
+      - {id: motor_mount_4, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [-0.07955, -0.07955, 0.0], rpy_deg: [0, 0, 0]}}
+      - {id: battery_mount, role: provider, interface: hakoniwa.generic.battery-mount, pose: {position_m: [0, 0, 0.015], rpy_deg: [0, 0, 0]}}
+      - {id: camera_mount, role: provider, interface: hakoniwa.generic.camera-mount, pose: {position_m: [0.06, 0, 0.01], rpy_deg: [0, 0, 0]}}
+      - {id: electronics_mount, role: provider, interface: hakoniwa.generic.electronics-mount, pose: {position_m: [0, 0, 0.01], rpy_deg: [0, 0, 0]}}
+      - {id: landing_gear_mount, role: provider, interface: hakoniwa.generic.landing-gear-mount, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
+      - {id: accessory_mount, role: provider, interface: hakoniwa.generic.accessory-mount, capacity: 8, pose: {position_m: [0, 0, 0.015], rpy_deg: [0, 0, 0]}}
 
   - id: generic_4inch_x
     name: Generic 4-inch X Frame
@@ -23,6 +33,16 @@ items:
     metadata:
       class: 4-inch
       value_origin: generic_example
+    assembly_ports:
+      - {id: motor_mount_1, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [0.06718, -0.06718, 0.0], rpy_deg: [0, 0, 0]}}
+      - {id: motor_mount_2, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [0.06718, 0.06718, 0.0], rpy_deg: [0, 0, 0]}}
+      - {id: motor_mount_3, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [-0.06718, 0.06718, 0.0], rpy_deg: [0, 0, 0]}}
+      - {id: motor_mount_4, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [-0.06718, -0.06718, 0.0], rpy_deg: [0, 0, 0]}}
+      - {id: battery_mount, role: provider, interface: hakoniwa.generic.battery-mount, pose: {position_m: [0, 0, 0.0135], rpy_deg: [0, 0, 0]}}
+      - {id: camera_mount, role: provider, interface: hakoniwa.generic.camera-mount, pose: {position_m: [0.05, 0, 0.009], rpy_deg: [0, 0, 0]}}
+      - {id: electronics_mount, role: provider, interface: hakoniwa.generic.electronics-mount, pose: {position_m: [0, 0, 0.009], rpy_deg: [0, 0, 0]}}
+      - {id: landing_gear_mount, role: provider, interface: hakoniwa.generic.landing-gear-mount, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
+      - {id: accessory_mount, role: provider, interface: hakoniwa.generic.accessory-mount, capacity: 8, pose: {position_m: [0, 0, 0.0135], rpy_deg: [0, 0, 0]}}
 
   - id: generic_utility_quad_frame
     name: Generic Utility Quad Frame
@@ -39,6 +59,16 @@ items:
     metadata:
       class: utility-quad
       value_origin: generic_example
+    assembly_ports:
+      - {id: motor_mount_1, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [0.1768, -0.1768, 0.02], rpy_deg: [0, 0, 0]}}
+      - {id: motor_mount_2, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [0.1768, 0.1768, 0.02], rpy_deg: [0, 0, 0]}}
+      - {id: motor_mount_3, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [-0.1768, 0.1768, 0.02], rpy_deg: [0, 0, 0]}}
+      - {id: motor_mount_4, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [-0.1768, -0.1768, 0.02], rpy_deg: [0, 0, 0]}}
+      - {id: battery_mount, role: provider, interface: hakoniwa.generic.battery-mount, pose: {position_m: [0, 0, 0.04], rpy_deg: [0, 0, 0]}}
+      - {id: camera_mount, role: provider, interface: hakoniwa.generic.camera-mount, pose: {position_m: [0.10, 0, 0.02], rpy_deg: [0, 0, 0]}}
+      - {id: electronics_mount, role: provider, interface: hakoniwa.generic.electronics-mount, pose: {position_m: [0, 0, 0.02], rpy_deg: [0, 0, 0]}}
+      - {id: landing_gear_mount, role: provider, interface: hakoniwa.generic.landing-gear-mount, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
+      - {id: accessory_mount, role: provider, interface: hakoniwa.generic.accessory-mount, capacity: 8, pose: {position_m: [0, 0, 0.04], rpy_deg: [0, 0, 0]}}
     geometry:
       visual:
         - name: center_plate
@@ -75,6 +105,18 @@ items:
     metadata:
       class: utility-hexa
       value_origin: generic_example
+    assembly_ports:
+      - {id: motor_mount_1, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [0.25, 0, 0], rpy_deg: [0, 0, 0]}}
+      - {id: motor_mount_2, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [0.125, 0.216506, 0], rpy_deg: [0, 0, 0]}}
+      - {id: motor_mount_3, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [-0.125, 0.216506, 0], rpy_deg: [0, 0, 0]}}
+      - {id: motor_mount_4, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [-0.25, 0, 0], rpy_deg: [0, 0, 0]}}
+      - {id: motor_mount_5, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [-0.125, -0.216506, 0], rpy_deg: [0, 0, 0]}}
+      - {id: motor_mount_6, role: provider, interface: hakoniwa.generic.motor-mount, pose: {position_m: [0.125, -0.216506, 0], rpy_deg: [0, 0, 0]}}
+      - {id: battery_mount, role: provider, interface: hakoniwa.generic.battery-mount, pose: {position_m: [0, 0, 0.04], rpy_deg: [0, 0, 0]}}
+      - {id: camera_mount, role: provider, interface: hakoniwa.generic.camera-mount, pose: {position_m: [0.12, 0, 0.02], rpy_deg: [0, 0, 0]}}
+      - {id: electronics_mount, role: provider, interface: hakoniwa.generic.electronics-mount, pose: {position_m: [0, 0, 0.02], rpy_deg: [0, 0, 0]}}
+      - {id: landing_gear_mount, role: provider, interface: hakoniwa.generic.landing-gear-mount, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
+      - {id: accessory_mount, role: provider, interface: hakoniwa.generic.accessory-mount, capacity: 8, pose: {position_m: [0, 0, 0.04], rpy_deg: [0, 0, 0]}}
     geometry:
       visual:
         - {name: center_plate, type: cylinder, radius_m: 0.09, length_m: 0.04, rgba: [0.18, 0.22, 0.25, 1.0]}

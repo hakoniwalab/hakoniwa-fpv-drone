@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hakoniwalab.github.io/hakoniwa-fpv-drone/assembly-connection-rule.schema.json",
+  "title": "Hakoniwa FPV assembly connection rule catalog",
+  "$defs": {
+    "vector3": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+    "adjustment": {
+      "type": "object",
+      "required": ["translation_axes", "rotation_axes"],
+      "properties": {
+        "translation_axes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": ["x", "y", "z"]}
+        },
+        "rotation_axes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": ["roll", "pitch", "yaw"]}
+        },
+        "translation_limits_m": {"$ref": "#/$defs/vector3"},
+        "rotation_limits_deg": {"$ref": "#/$defs/vector3"}
+      },
+      "additionalProperties": false
+    },
+    "rule": {
+      "type": "object",
+      "required": ["id", "provider_interface", "consumer_interface", "status", "adjustment"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9._-]*$"},
+        "provider_interface": {"type": "string", "minLength": 1},
+        "consumer_interface": {"type": "string", "minLength": 1},
+        "status": {"enum": ["compatible", "incompatible", "unknown"]},
+        "adjustment": {"$ref": "#/$defs/adjustment"},
+        "description": {"type": "string"},
+        "metadata": {"type": "object"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "type": "object",
+  "required": ["schema_version", "kind", "items"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "assembly-connection-rule"},
+    "items": {"type": "array", "items": {"$ref": "#/$defs/rule"}}
+  },
+  "additionalProperties": false
+}

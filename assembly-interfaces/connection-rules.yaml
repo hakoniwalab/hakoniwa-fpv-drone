@@ -1,0 +1,80 @@
+schema_version: 1
+kind: assembly-connection-rule
+items:
+  - id: generic-motor-mount
+    provider_interface: hakoniwa.generic.motor-mount
+    consumer_interface: hakoniwa.generic.motor-mount
+    status: compatible
+    description: Snap a motor to its frame-owned motor mount; pose is fixed.
+    adjustment:
+      translation_axes: []
+      rotation_axes: []
+    metadata: {scope: simulation_only}
+
+  - id: generic-propeller-shaft
+    provider_interface: hakoniwa.generic.propeller-shaft
+    consumer_interface: hakoniwa.generic.propeller-shaft
+    status: compatible
+    description: Snap a propeller to its motor-owned shaft; pose is fixed.
+    adjustment:
+      translation_axes: []
+      rotation_axes: []
+    metadata: {scope: simulation_only}
+
+  - id: generic-battery-mount
+    provider_interface: hakoniwa.generic.battery-mount
+    consumer_interface: hakoniwa.generic.battery-mount
+    status: compatible
+    description: Snap a battery to the frame battery zone, then allow local adjustment.
+    adjustment:
+      translation_axes: [x, y, z]
+      rotation_axes: [yaw]
+      translation_limits_m: [0.08, 0.06, 0.04]
+      rotation_limits_deg: [0, 0, 180]
+    metadata: {scope: simulation_only}
+
+  - id: generic-camera-mount
+    provider_interface: hakoniwa.generic.camera-mount
+    consumer_interface: hakoniwa.generic.camera-mount
+    status: compatible
+    description: Snap a camera to the frame camera zone, then allow local adjustment.
+    adjustment:
+      translation_axes: [x, y, z]
+      rotation_axes: [roll, pitch, yaw]
+      translation_limits_m: [0.05, 0.04, 0.03]
+      rotation_limits_deg: [20, 45, 30]
+    metadata: {scope: simulation_only}
+
+  - id: generic-electronics-mount
+    provider_interface: hakoniwa.generic.electronics-mount
+    consumer_interface: hakoniwa.generic.electronics-mount
+    status: compatible
+    description: Snap an electronics module to the frame electronics zone, then allow local adjustment.
+    adjustment:
+      translation_axes: [x, y, z]
+      rotation_axes: [yaw]
+      translation_limits_m: [0.05, 0.05, 0.03]
+      rotation_limits_deg: [0, 0, 180]
+    metadata: {scope: simulation_only}
+
+  - id: generic-landing-gear-mount
+    provider_interface: hakoniwa.generic.landing-gear-mount
+    consumer_interface: hakoniwa.generic.landing-gear-mount
+    status: compatible
+    description: Snap landing gear to its frame mount; pose is fixed.
+    adjustment:
+      translation_axes: []
+      rotation_axes: []
+    metadata: {scope: simulation_only}
+
+  - id: generic-accessory-mount
+    provider_interface: hakoniwa.generic.accessory-mount
+    consumer_interface: hakoniwa.generic.accessory-mount
+    status: compatible
+    description: Snap an accessory to the frame accessory zone, then allow local adjustment.
+    adjustment:
+      translation_axes: [x, y, z]
+      rotation_axes: [roll, pitch, yaw]
+      translation_limits_m: [0.10, 0.10, 0.08]
+      rotation_limits_deg: [180, 180, 180]
+    metadata: {scope: simulation_only}

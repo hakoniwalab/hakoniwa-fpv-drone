@@ -14,6 +14,8 @@ items:
     metadata:
       coefficient_definition: thrust_N=Ct*omega_rad_s^2
       value_origin: generic_example
+    assembly_ports:
+      - {id: motor_shaft, role: consumer, interface: hakoniwa.generic.propeller-shaft, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
     geometry:
       inertial:
         - {name: mass_proxy, type: cylinder, radius_m: 0.0635, length_m: 0.003}
@@ -31,6 +33,8 @@ items:
     metadata:
       coefficient_definition: thrust_N=Ct*omega_rad_s^2
       value_origin: generic_example
+    assembly_ports:
+      - {id: motor_shaft, role: consumer, interface: hakoniwa.generic.propeller-shaft, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
     geometry:
       inertial:
         - {name: mass_proxy, type: cylinder, radius_m: 0.0508, length_m: 0.003}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hakoniwalab.github.io/hakoniwa-fpv-drone/assembly-port.schema.json",
+  "title": "Hakoniwa FPV component assembly port",
+  "$defs": {
+    "vector3": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+    "pose": {
+      "type": "object",
+      "required": ["position_m", "rpy_deg"],
+      "properties": {
+        "position_m": {"$ref": "#/$defs/vector3"},
+        "rpy_deg": {"$ref": "#/$defs/vector3"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "type": "object",
+  "required": ["id", "role", "interface", "pose"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9._-]*$"},
+    "role": {"enum": ["provider", "consumer"]},
+    "interface": {
+      "type": "string",
+      "description": "The stable ID of an assembly-interface variant."
+    },
+    "pose": {"$ref": "#/$defs/pose"},
+    "capacity": {"type": "integer", "minimum": 1, "default": 1},
+    "metadata": {"type": "object"}
+  },
+  "additionalProperties": false
+}

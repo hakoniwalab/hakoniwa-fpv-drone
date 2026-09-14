@@ -1,0 +1,51 @@
+schema_version: 1
+kind: assembly-interface-definition
+items:
+  - id: motor-mount
+    name: Motor mount
+    description: Mechanical mounting relation between a frame and a motor.
+    domain: mechanical
+    roles: [provider, consumer]
+    parameters: []
+
+  - id: propeller-shaft
+    name: Propeller shaft
+    description: Rotational mounting relation between a motor and a propeller.
+    domain: mechanical
+    roles: [provider, consumer]
+    parameters: []
+
+  - id: battery-mount
+    name: Battery mount
+    description: Adjustable mounting zone for a battery on a frame.
+    domain: mechanical
+    roles: [provider, consumer]
+    parameters: []
+
+  - id: camera-mount
+    name: Camera mount
+    description: Adjustable mounting zone for an FPV camera on a frame.
+    domain: mechanical
+    roles: [provider, consumer]
+    parameters: []
+
+  - id: electronics-mount
+    name: Electronics mount
+    description: Mounting zone for an onboard controller or electronics module.
+    domain: mechanical
+    roles: [provider, consumer]
+    parameters: []
+
+  - id: landing-gear-mount
+    name: Landing gear mount
+    description: Mounting relation between a frame and landing gear.
+    domain: mechanical
+    roles: [provider, consumer]
+    parameters: []
+
+  - id: accessory-mount
+    name: Accessory mount
+    description: Adjustable mounting zone for an attachment or payload.
+    domain: mechanical
+    roles: [provider, consumer]
+    parameters: []

@@ -9,6 +9,8 @@ items:
     physical_role: visual_only
     metadata:
       value_origin: generic_example
+    assembly_ports:
+      - {id: frame_mount, role: consumer, interface: hakoniwa.generic.accessory-mount, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
     geometry:
       visual:
         - name: antenna
@@ -29,6 +31,8 @@ items:
     physical_role: physical
     metadata:
       value_origin: generic_example
+    assembly_ports:
+      - {id: frame_mount, role: consumer, interface: hakoniwa.generic.accessory-mount, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
     geometry:
       visual:
         - {name: case, type: box, dimensions_m: [0.025, 0.018, 0.012], rgba: [0.20, 0.35, 0.50, 1.0]}

@@ -8,6 +8,8 @@ items:
     mass_kg: 0.030
     metadata:
       value_origin: generic_example
+    assembly_ports:
+      - {id: frame_mount, role: consumer, interface: hakoniwa.generic.landing-gear-mount, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
     geometry:
       visual:
         - name: left_skid

@@ -73,6 +73,19 @@ geometry:
 
 `attachment.physical_role: visual_only` は外観だけを追加し、独立質量をBOM合計へ加えません。外観部品の質量をframeへまとめている場合の二重計上防止に使います。
 
+## Assembly interfaces
+
+Browser Composer向けの部品組立契約は、物理属性やgeometryとは分離した
+`assembly_ports`で表す予定です。portは部品ローカルFLU座標の接続点を、独立した
+interface variantへ対応付けます。接続可否と編集可能な相対poseは、部品IDではなく
+interface variant間のruleで決まります。
+
+v1の詳細は[Assembly Interface Specification](assembly-interface-spec.md)を参照してください。
+同梱generic Catalogは全itemへ`assembly_ports`を持たせ、`hakoniwa.generic.*` variantを
+参照します。これはsimulation Composerの接続グラフを表すだけで、ネジ規格・shaft径・
+実機取付可否を主張しません。実在部品では根拠付きvariantへ置換します。現行Generatorの
+物理計算やRecipe生成はこのfieldをまだ読まないため、従来の生成結果に影響しません。
+
 推力係数は無次元係数ではなく、Drone PROが使用する次元付き係数です。
 
 ```text

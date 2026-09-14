@@ -1,0 +1,51 @@
+schema_version: 1
+kind: assembly-interface-variant
+items:
+  - id: hakoniwa.generic.motor-mount
+    name: Hakoniwa generic motor mount
+    description: Simulation-only generic motor mount; no real bolt pattern is claimed.
+    interface: motor-mount
+    parameters: {}
+    evidence_status: declared
+
+  - id: hakoniwa.generic.propeller-shaft
+    name: Hakoniwa generic propeller shaft
+    description: Simulation-only generic motor-to-propeller shaft; no real shaft size is claimed.
+    interface: propeller-shaft
+    parameters: {}
+    evidence_status: declared
+
+  - id: hakoniwa.generic.battery-mount
+    name: Hakoniwa generic battery mount
+    description: Simulation-only adjustable frame battery zone.
+    interface: battery-mount
+    parameters: {}
+    evidence_status: declared
+
+  - id: hakoniwa.generic.camera-mount
+    name: Hakoniwa generic camera mount
+    description: Simulation-only adjustable frame camera zone.
+    interface: camera-mount
+    parameters: {}
+    evidence_status: declared
+
+  - id: hakoniwa.generic.electronics-mount
+    name: Hakoniwa generic electronics mount
+    description: Simulation-only adjustable frame electronics zone.
+    interface: electronics-mount
+    parameters: {}
+    evidence_status: declared
+
+  - id: hakoniwa.generic.landing-gear-mount
+    name: Hakoniwa generic landing gear mount
+    description: Simulation-only generic landing gear mount.
+    interface: landing-gear-mount
+    parameters: {}
+    evidence_status: declared
+
+  - id: hakoniwa.generic.accessory-mount
+    name: Hakoniwa generic accessory mount
+    description: Simulation-only adjustable frame accessory zone.
+    interface: accessory-mount
+    parameters: {}
+    evidence_status: declared

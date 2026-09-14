@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hakoniwalab.github.io/hakoniwa-fpv-drone/assembly-graph.schema.json",
+  "title": "Hakoniwa FPV assembly graph",
+  "$defs": {
+    "vector3": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+    "portReference": {
+      "type": "object",
+      "required": ["node", "port"],
+      "properties": {
+        "node": {"type": "string", "minLength": 1},
+        "port": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "kind", "product"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["frame", "motor", "propeller", "battery", "camera", "controller", "landing_gear", "attachment"]},
+        "product": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "connection": {
+      "type": "object",
+      "required": ["provider", "consumer"],
+      "properties": {
+        "provider": {"$ref": "#/$defs/portReference"},
+        "consumer": {"$ref": "#/$defs/portReference"},
+        "adjustment": {
+          "type": "object",
+          "properties": {
+            "position_m": {"$ref": "#/$defs/vector3"},
+            "rpy_deg": {"$ref": "#/$defs/vector3"}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "type": "object",
+  "required": ["schema_version", "kind", "name", "type", "controller_mode", "nodes", "connections"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "fpv-assembly"},
+    "name": {"type": "string", "minLength": 1},
+    "type": {"enum": ["quad_x", "multirotor"]},
+    "controller_mode": {"enum": ["angle", "rate"]},
+    "nodes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/node"}},
+    "connections": {"type": "array", "items": {"$ref": "#/$defs/connection"}}
+  },
+  "additionalProperties": false
+}

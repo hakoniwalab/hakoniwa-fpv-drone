@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hakoniwalab.github.io/hakoniwa-fpv-drone/assembly-interface.schema.json",
+  "title": "Hakoniwa FPV assembly interface definition and variant catalog",
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]*$"
+    },
+    "parameterDefinition": {
+      "type": "object",
+      "required": ["id", "schema"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "description": {"type": "string"},
+        "required": {"type": "boolean", "default": true},
+        "schema": {
+          "type": "object",
+          "description": "A JSON Schema fragment that validates this parameter value."
+        }
+      },
+      "additionalProperties": false
+    },
+    "interfaceDefinition": {
+      "type": "object",
+      "required": ["id", "name", "description", "domain", "roles", "parameters"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "name": {"type": "string", "minLength": 1},
+        "description": {"type": "string"},
+        "domain": {"enum": ["mechanical", "electrical", "data", "logical"]},
+        "roles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["provider", "consumer"]}
+        },
+        "parameters": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/parameterDefinition"}
+        },
+        "metadata": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "interfaceVariant": {
+      "type": "object",
+      "required": ["id", "name", "description", "interface", "parameters"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "name": {"type": "string", "minLength": 1},
+        "description": {"type": "string"},
+        "interface": {"$ref": "#/$defs/id"},
+        "parameters": {"type": "object"},
+        "evidence_status": {"enum": ["verified", "declared", "unknown"]},
+        "metadata": {"type": "object"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "type": "object",
+  "required": ["schema_version", "kind", "items"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"enum": ["assembly-interface-definition", "assembly-interface-variant"]},
+    "items": {"type": "array", "minItems": 1}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"kind": {"const": "assembly-interface-definition"}}},
+      "then": {"properties": {"items": {"items": {"$ref": "#/$defs/interfaceDefinition"}}}}
+    },
+    {
+      "if": {"properties": {"kind": {"const": "assembly-interface-variant"}}},
+      "then": {"properties": {"items": {"items": {"$ref": "#/$defs/interfaceVariant"}}}}
+    }
+  ],
+  "additionalProperties": false
+}

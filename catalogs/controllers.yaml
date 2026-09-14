@@ -75,6 +75,8 @@ items:
     metadata:
       runtime_controller: RadioController
       value_origin: generic_initial_values
+    assembly_ports:
+      - {id: frame_mount, role: consumer, interface: hakoniwa.generic.electronics-mount, pose: {position_m: [0, 0, 0], rpy_deg: [0, 0, 0]}}
     geometry:
       inertial:
         - {name: mass_proxy, type: box, dimensions_m: [0.036, 0.036, 0.008]}
