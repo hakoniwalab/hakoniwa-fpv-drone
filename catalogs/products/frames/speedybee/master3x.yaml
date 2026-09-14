@@ -5,7 +5,7 @@ item:
   id: speedybee_master3x
   name: SpeedyBee Master3X Modular Frame
   vendor: SpeedyBee
-  description: Commercial modular 3–3.6-inch freestyle/racing frame. Published mass, wheelbase, motor-mount options, camera pitch and supported battery envelope are retained. Local origin, envelope and port poses are Hakoniwa simulation estimates pending a CAD-origin contract.
+  description: Commercial modular 3–3.6-inch freestyle/racing frame. Published mass, wheelbase, motor-mount options, camera pitch and supported battery envelope are retained. Structural visual geometry follows the official assembly decomposition where known; unresolved planform dimensions remain explicit simulation estimates.
   mass_kg: 0.087
   dimensions_m: [0.171, 0.171, 0.021]
   wheelbase_m: 0.171
@@ -22,6 +22,12 @@ item:
     fc_mounts_mm: [25.5]
     camera_widths_mm: [19, 20]
     maximum_battery_dimensions_mm: [67, 31, 40]
+    geometry_origin:
+      plate_stack: manufacturer_assembly_structure_with_estimated_planform
+      arm_layout: wheelbase_derived_true_x_pending_primary_dimensions
+      side_structure: manufacturer_assembly_structure_with_photo_inferred_dimensions
+      front_support: manufacturer_assembly_structure_with_photo_inferred_dimensions
+      motor_feet_and_wire_guards: photo_reference_approximation
     value_origin:
       mass_kg: manufacturer
       wheelbase_m: manufacturer
@@ -36,7 +42,7 @@ item:
       battery_mount_pose: simulation_estimate
       camera_mount_pose: simulation_estimate
       electronics_mount_pose: simulation_estimate
-      geometry: photo_reference_approximation_not_manufacturer_cad
+      geometry: manufacturer_structure_plus_photo_reference_approximation
   assembly_ports:
     - {id: motor_mount_1, role: provider, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [0.06046, -0.06046, 0.0], rpy_deg: [0, 0, 0]}}
     - {id: motor_mount_2, role: provider, interface: fpv.motor-mount.9x9-or-12x12, pose: {position_m: [0.06046, 0.06046, 0.0], rpy_deg: [0, 0, 0]}}
@@ -49,57 +55,54 @@ item:
     - {id: accessory_mount, role: provider, interface: hakoniwa.generic.accessory-mount, capacity: 8, pose: {position_m: [0, 0, 0.0105], rpy_deg: [0, 0, 0]}}
   geometry:
     visual:
-      - {name: center_plate, type: box, dimensions_m: [0.098, 0.036, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
-      - {name: deck_left, type: box, center_m: [0, 0.013, 0.014], dimensions_m: [0.091, 0.005, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
-      - {name: deck_right, type: box, center_m: [0, -0.013, 0.014], dimensions_m: [0.091, 0.005, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
-      - {name: deck_crossbar_0, type: box, center_m: [-0.036, 0, 0.014], dimensions_m: [0.006, 0.029, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
-      - {name: deck_crossbar_1, type: box, center_m: [-0.018, 0, 0.014], dimensions_m: [0.006, 0.029, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
-      - {name: deck_crossbar_2, type: box, center_m: [0.000, 0, 0.014], dimensions_m: [0.006, 0.029, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
-      - {name: deck_crossbar_3, type: box, center_m: [0.018, 0, 0.014], dimensions_m: [0.006, 0.029, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
-      - {name: deck_crossbar_4, type: box, center_m: [0.036, 0, 0.014], dimensions_m: [0.006, 0.029, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
-      - {name: top_nose, type: box, center_m: [0.044, 0, 0.014], dimensions_m: [0.016, 0.023, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
+      # Carbon plate stack. Thicknesses follow the published assembly/specification;
+      # planform dimensions remain approximations until plate CAD/drawings are available.
+      - {name: bottom_plate, type: box, center_m: [0.000, 0, 0.000], dimensions_m: [0.098, 0.036, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: middle_plate, type: box, center_m: [0.000, 0, 0.0065], dimensions_m: [0.086, 0.034, 0.002], rgba: [0.060, 0.070, 0.080, 1]}
+      - {name: top_plate, type: box, center_m: [0.000, 0, 0.014], dimensions_m: [0.091, 0.030, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: top_nose, type: box, center_m: [0.045, 0, 0.014], dimensions_m: [0.022, 0.026, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
       - {name: battery_pad_front, type: box, center_m: [0.013, 0, 0.0155], dimensions_m: [0.012, 0.024, 0.001], rgba: [0.025, 0.028, 0.032, 1]}
       - {name: battery_pad_rear, type: box, center_m: [-0.023, 0, 0.0155], dimensions_m: [0.012, 0.024, 0.001], rgba: [0.025, 0.028, 0.032, 1]}
-      - {name: head_bridge, type: box, center_m: [0.052, 0, 0], dimensions_m: [0.026, 0.024, 0.002], rgba: [0.055, 0.065, 0.075, 1]}
+
+      # Front support / camera cage belongs to the frame, not to the camera.
+      - {name: front_support_bottom, type: box, center_m: [0.055, 0, 0.002], dimensions_m: [0.030, 0.030, 0.004], rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: front_support_right, type: box, center_m: [0.057, -0.015, 0.012], dimensions_m: [0.028, 0.003, 0.022], rpy_deg: [0, -8, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: front_support_left, type: box, center_m: [0.057, 0.015, 0.012], dimensions_m: [0.028, 0.003, 0.022], rpy_deg: [0, -8, 0], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: front_support_top, type: box, center_m: [0.055, 0, 0.022], dimensions_m: [0.024, 0.032, 0.003], rgba: [0.055, 0.065, 0.075, 1]}
+
+      # Side plates give the center body its rigid-volume silhouette.
+      - {name: side_plate_right, type: box, center_m: [0.000, -0.018, 0.007], dimensions_m: [0.068, 0.002, 0.012], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_plate_left, type: box, center_m: [0.000, 0.018, 0.007], dimensions_m: [0.068, 0.002, 0.012], rgba: [0.95, 0.72, 0.03, 1]}
+      - {name: side_brace_right_front, type: box, center_m: [0.022, -0.018, 0.007], dimensions_m: [0.004, 0.003, 0.013], rpy_deg: [0, -20, 0], rgba: [0.80, 0.58, 0.02, 1]}
+      - {name: side_brace_right_rear, type: box, center_m: [-0.022, -0.018, 0.007], dimensions_m: [0.004, 0.003, 0.013], rpy_deg: [0, 20, 0], rgba: [0.80, 0.58, 0.02, 1]}
+      - {name: side_brace_left_front, type: box, center_m: [0.022, 0.018, 0.007], dimensions_m: [0.004, 0.003, 0.013], rpy_deg: [0, -20, 0], rgba: [0.80, 0.58, 0.02, 1]}
+      - {name: side_brace_left_rear, type: box, center_m: [-0.022, 0.018, 0.007], dimensions_m: [0.004, 0.003, 0.013], rpy_deg: [0, 20, 0], rgba: [0.80, 0.58, 0.02, 1]}
+
+      # Standoffs keep the published plate stack visibly separated.
       - {name: standoff_rear_right, type: cylinder, center_m: [-0.035, -0.012, 0.007], radius_m: 0.0018, length_m: 0.012, rgba: [0.95, 0.67, 0.025, 1]}
-      - {name: top_screw_rear_right, type: cylinder, center_m: [-0.035, -0.012, 0.0154], radius_m: 0.0023, length_m: 0.0008, rgba: [0.38, 0.40, 0.43, 1]}
       - {name: standoff_rear_left, type: cylinder, center_m: [-0.035, 0.012, 0.007], radius_m: 0.0018, length_m: 0.012, rgba: [0.95, 0.67, 0.025, 1]}
-      - {name: top_screw_rear_left, type: cylinder, center_m: [-0.035, 0.012, 0.0154], radius_m: 0.0023, length_m: 0.0008, rgba: [0.38, 0.40, 0.43, 1]}
       - {name: standoff_front_right, type: cylinder, center_m: [0.035, -0.012, 0.007], radius_m: 0.0018, length_m: 0.012, rgba: [0.95, 0.67, 0.025, 1]}
-      - {name: top_screw_front_right, type: cylinder, center_m: [0.035, -0.012, 0.0154], radius_m: 0.0023, length_m: 0.0008, rgba: [0.38, 0.40, 0.43, 1]}
       - {name: standoff_front_left, type: cylinder, center_m: [0.035, 0.012, 0.007], radius_m: 0.0018, length_m: 0.012, rgba: [0.95, 0.67, 0.025, 1]}
-      - {name: top_screw_front_left, type: cylinder, center_m: [0.035, 0.012, 0.0154], radius_m: 0.0023, length_m: 0.0008, rgba: [0.38, 0.40, 0.43, 1]}
-      - {name: foot_rear_right, type: cylinder, center_m: [-0.06046, -0.06046, -0.004], radius_m: 0.0105, length_m: 0.004, rgba: [0.95, 0.67, 0.025, 1]}
-      - {name: motor_pad_rear_right, type: cylinder, center_m: [-0.06046, -0.06046, 0], radius_m: 0.010, length_m: 0.004, rgba: [0.055, 0.065, 0.075, 1]}
-      - {name: wire_guard_rear_right, type: box, center_m: [-0.039903600000000004, -0.039903600000000004, 0.003], dimensions_m: [0.029, 0.006, 0.003], rpy_deg: [0, 0, 45], rgba: [0.95, 0.67, 0.025, 1]}
-      - {name: foot_rear_left, type: cylinder, center_m: [-0.06046, 0.06046, -0.004], radius_m: 0.0105, length_m: 0.004, rgba: [0.95, 0.67, 0.025, 1]}
-      - {name: motor_pad_rear_left, type: cylinder, center_m: [-0.06046, 0.06046, 0], radius_m: 0.010, length_m: 0.004, rgba: [0.055, 0.065, 0.075, 1]}
-      - {name: wire_guard_rear_left, type: box, center_m: [-0.039903600000000004, 0.039903600000000004, 0.003], dimensions_m: [0.029, 0.006, 0.003], rpy_deg: [0, 0, -45], rgba: [0.95, 0.67, 0.025, 1]}
-      - {name: foot_front_right, type: cylinder, center_m: [0.06046, -0.06046, -0.004], radius_m: 0.0105, length_m: 0.004, rgba: [0.95, 0.67, 0.025, 1]}
-      - {name: motor_pad_front_right, type: cylinder, center_m: [0.06046, -0.06046, 0], radius_m: 0.010, length_m: 0.004, rgba: [0.055, 0.065, 0.075, 1]}
-      - {name: wire_guard_front_right, type: box, center_m: [0.039903600000000004, -0.039903600000000004, 0.003], dimensions_m: [0.029, 0.006, 0.003], rpy_deg: [0, 0, -45], rgba: [0.95, 0.67, 0.025, 1]}
-      - {name: foot_front_left, type: cylinder, center_m: [0.06046, 0.06046, -0.004], radius_m: 0.0105, length_m: 0.004, rgba: [0.95, 0.67, 0.025, 1]}
-      - {name: motor_pad_front_left, type: cylinder, center_m: [0.06046, 0.06046, 0], radius_m: 0.010, length_m: 0.004, rgba: [0.055, 0.065, 0.075, 1]}
-      - {name: wire_guard_front_left, type: box, center_m: [0.039903600000000004, 0.039903600000000004, 0.003], dimensions_m: [0.029, 0.006, 0.003], rpy_deg: [0, 0, 45], rgba: [0.95, 0.67, 0.025, 1]}
-      - {name: side_rail_right_bottom, type: box, center_m: [0, -0.018, 0.002], dimensions_m: [0.065, 0.002, 0.002], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_rail_right_top, type: box, center_m: [0, -0.018, 0.011], dimensions_m: [0.065, 0.002, 0.002], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_rib_right_0, type: box, center_m: [-0.0280, -0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_rib_right_1, type: box, center_m: [-0.0168, -0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_rib_right_2, type: box, center_m: [-0.0056, -0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_rib_right_3, type: box, center_m: [0.0056, -0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_rib_right_4, type: box, center_m: [0.0168, -0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_rib_right_5, type: box, center_m: [0.0280, -0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_rail_left_bottom, type: box, center_m: [0, 0.018, 0.002], dimensions_m: [0.065, 0.002, 0.002], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_rail_left_top, type: box, center_m: [0, 0.018, 0.011], dimensions_m: [0.065, 0.002, 0.002], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_rib_left_0, type: box, center_m: [-0.0280, 0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_rib_left_1, type: box, center_m: [-0.0168, 0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_rib_left_2, type: box, center_m: [-0.0056, 0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_rib_left_3, type: box, center_m: [0.0056, 0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_rib_left_4, type: box, center_m: [0.0168, 0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
-      - {name: side_rib_left_5, type: box, center_m: [0.0280, 0.018, 0.0065], dimensions_m: [0.0035, 0.002, 0.010], rpy_deg: [0, -20, 0], rgba: [0.95, 0.72, 0.03, 1]}
+
+      # Arm and motor-center geometry remains unchanged until primary dimensions
+      # beyond the published wheelbase are available.
       - {name: arm_front_right, type: box, center_m: [0.037, -0.037, 0], dimensions_m: [0.0664, 0.009, 0.004], rpy_deg: [0, 0, -45], rgba: [0.08, 0.09, 0.10, 1.0]}
       - {name: arm_front_left, type: box, center_m: [0.037, 0.037, 0], dimensions_m: [0.0664, 0.009, 0.004], rpy_deg: [0, 0, 45], rgba: [0.08, 0.09, 0.10, 1.0]}
       - {name: arm_rear_left, type: box, center_m: [-0.037, 0.037, 0], dimensions_m: [0.0664, 0.009, 0.004], rpy_deg: [0, 0, -45], rgba: [0.08, 0.09, 0.10, 1.0]}
       - {name: arm_rear_right, type: box, center_m: [-0.037, -0.037, 0], dimensions_m: [0.0664, 0.009, 0.004], rpy_deg: [0, 0, 45], rgba: [0.08, 0.09, 0.10, 1.0]}
+
+      - {name: foot_rear_right, type: cylinder, center_m: [-0.06046, -0.06046, -0.004], radius_m: 0.0105, length_m: 0.004, rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: motor_pad_rear_right, type: cylinder, center_m: [-0.06046, -0.06046, 0], radius_m: 0.010, length_m: 0.004, rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: wire_guard_rear_right, type: box, center_m: [-0.03990, -0.03990, 0.003], dimensions_m: [0.029, 0.006, 0.003], rpy_deg: [0, 0, 45], rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: foot_rear_left, type: cylinder, center_m: [-0.06046, 0.06046, -0.004], radius_m: 0.0105, length_m: 0.004, rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: motor_pad_rear_left, type: cylinder, center_m: [-0.06046, 0.06046, 0], radius_m: 0.010, length_m: 0.004, rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: wire_guard_rear_left, type: box, center_m: [-0.03990, 0.03990, 0.003], dimensions_m: [0.029, 0.006, 0.003], rpy_deg: [0, 0, -45], rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: foot_front_right, type: cylinder, center_m: [0.06046, -0.06046, -0.004], radius_m: 0.0105, length_m: 0.004, rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: motor_pad_front_right, type: cylinder, center_m: [0.06046, -0.06046, 0], radius_m: 0.010, length_m: 0.004, rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: wire_guard_front_right, type: box, center_m: [0.03990, -0.03990, 0.003], dimensions_m: [0.029, 0.006, 0.003], rpy_deg: [0, 0, -45], rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: foot_front_left, type: cylinder, center_m: [0.06046, 0.06046, -0.004], radius_m: 0.0105, length_m: 0.004, rgba: [0.95, 0.67, 0.025, 1]}
+      - {name: motor_pad_front_left, type: cylinder, center_m: [0.06046, 0.06046, 0], radius_m: 0.010, length_m: 0.004, rgba: [0.055, 0.065, 0.075, 1]}
+      - {name: wire_guard_front_left, type: box, center_m: [0.03990, 0.03990, 0.003], dimensions_m: [0.029, 0.006, 0.003], rpy_deg: [0, 0, 45], rgba: [0.95, 0.67, 0.025, 1]}
     inertial:
+      # Keep the existing inertial proxy unchanged in this visual-structure pass.
       - {name: mass_proxy, type: box, dimensions_m: [0.120, 0.120, 0.018]}
