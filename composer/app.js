@@ -26,7 +26,18 @@ function used(nodeId, portId){ return state.connections.filter((entry)=>entry.pr
 function poseMatrix(pose){ const [r,p,y]=pose.rpy_deg.map((v)=>THREE.MathUtils.degToRad(v)); return new THREE.Matrix4().compose(new THREE.Vector3(...pose.position_m),new THREE.Quaternion().setFromEuler(new THREE.Euler(r,p,y,"ZYX")),new THREE.Vector3(1,1,1)); }
 function connectionFor(id){ return state.connections.find((entry)=>entry.consumer.node===id); }
 function worldMatrix(id, seen=new Set()) { if(seen.has(id)) return new THREE.Matrix4(); seen.add(id); const n=node(id); const connection=connectionFor(id); if(!connection) return new THREE.Matrix4(); const providerNode=node(connection.provider.node); const provider=port(providerNode,connection.provider.port,"provider"); const consumer=port(n,connection.consumer.port,"consumer"); const adjustment={position_m:connection.adjustment.position_m,rpy_deg:connection.adjustment.rpy_deg}; return worldMatrix(providerNode.id,seen).multiply(poseMatrix(provider.pose)).multiply(poseMatrix(adjustment)).multiply(poseMatrix(consumer.pose).invert()); }
-function compatibleTargets(part) { const consumerPorts=part.assembly_ports.filter((p)=>p.role==="consumer"); return state.nodes.flatMap((providerNode)=>component(providerNode.kind,providerNode.product).assembly_ports.filter((p)=>p.role==="provider" && used(providerNode.id,p.id)<p.capacity).flatMap((provider)=>consumerPorts.filter((consumer)=>rule(provider,consumer)).map((consumer)=>({providerNode,provider,consumer,rule:rule(provider,consumer)}))); }
+function compatibleTargets(part) {
+  const consumerPorts=part.assembly_ports.filter((entry)=>entry.role==="consumer");
+  return state.nodes.flatMap((providerNode)=>{
+    const providerPorts=component(providerNode.kind,providerNode.product).assembly_ports.filter((entry)=>
+      entry.role==="provider" && used(providerNode.id,entry.id)<entry.capacity
+    );
+    return providerPorts.flatMap((provider)=>consumerPorts
+      .filter((consumer)=>rule(provider,consumer))
+      .map((consumer)=>({providerNode,provider,consumer,rule:rule(provider,consumer)}))
+    );
+  });
+}
 function rotor(index){ return {index, name:`prop${index}`, rotation_direction:index%2? -1:1}; }
 function removeNode(entry){ state.nodes=state.nodes.filter((n)=>n.id!==entry.id); state.connections=state.connections.filter((c)=>c.provider.node!==entry.id && c.consumer.node!==entry.id); }
 function addPart(kind,id) {
