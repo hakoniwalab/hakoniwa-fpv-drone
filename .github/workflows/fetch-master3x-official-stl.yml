@@ -5,9 +5,16 @@ on:
     branches: [main]
 
 jobs:
-  fetch:
+  inspect:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Download official Master3X STL files
         shell: bash
         run: |
@@ -32,11 +39,30 @@ jobs:
           curl -fL --retry 3 -o '16-Gimbal-camera-limit-stop-3D-printed-part.stl' 'https://spcdn.speedybee.cn/cdn/254144655690567680.STL?attname=Gimbal-camera-limit-stop-3D-printed-part.STL'
           curl -fL --retry 3 -o '17-O4WA-Updated-Aluminum-Alloy-Antenna-Mount-TPU.stl' 'https://spcdn.speedybee.cn/cdn/293198260783288320.STL?attname=O4WA+%E2%80%93+Updated+Aluminum+Alloy+Antenna+Mount+%E2%80%93+TPU.STL'
           sha256sum *.stl > SHA256SUMS.txt
-          ls -lh
+
       - name: Upload official STL set
         uses: actions/upload-artifact@v4
         with:
           name: master3x-official-stl
           path: master3x-official-stl/
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Install showroom dependencies
+        run: python -m pip install -e '.[showroom]'
+
+      - name: Run Master3X regression tests
+        run: python -m unittest tests.test_master3x_rigid_body_model
+
+      - name: Regenerate Master3X frame GLB
+        run: python tools/fpv-catalog.py export-glb frame speedybee_master3x
+
+      - name: Upload regenerated Master3X GLB
+        uses: actions/upload-artifact@v4
+        with:
+          name: master3x-regenerated-glb
+          path: |
+            build/catalog-showroom/glb/frame/speedybee_master3x.glb
+            build/catalog-showroom/glb/manifest.json
           if-no-files-found: error
           retention-days: 1
