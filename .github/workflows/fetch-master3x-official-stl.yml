@@ -48,11 +48,14 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      - name: Install showroom dependencies
+      - name: Install test dependencies
         run: python -m pip install -e '.[showroom]'
 
       - name: Run Master3X regression tests
         run: python -m unittest tests.test_master3x_rigid_body_model
+
+      - name: Prepare managed showroom
+        run: python tools/fpv-catalog.py prepare
 
       - name: Regenerate Master3X frame GLB
         run: python tools/fpv-catalog.py export-glb frame speedybee_master3x
