@@ -111,6 +111,7 @@ PS5飛行用Packageは`RadioController`を使用します。一方、オフラ�
 - 質量、慣性、Ct/Cq、最大回転数に根拠または明示した近似がある
 - 通常飛行は`RadioController`、tuning作業コピーは`TuningController`になっている
 - tuning作業コピーではCSV loggingが有効になっている
+- tuning作業コピーの初期高度が2 mで、地面に支持された静止をHoverとして評価しない
 - 物理モデル、制御周期、シミュレーション周期をprofile作成後に変更していない
 - profileが入力3ファイルのhashで識別されている
 
@@ -128,13 +129,23 @@ python3.12 tools/fpv.py tune-hover
 
 Hoverのhard gate、離陸成立、波形を確認してから進みます。
 
+Hoverでは姿勢系を探索しません。Rate Kp/Ki/Kdを`0.15/0.08/0.005`、Angle Kp/Ki/Kdを`6/0.5/0.75`へ固定し、垂直速度PIDだけを探索します。これは地面上では合格してしまう高ゲイン候補を排除し、まず自由空間で維持できる高度系を確立してからAngle探索へ進むためです。高度2 mからの自由空間開始では初期Pitch過渡に約3.5秒を要する実測結果に基づき、Hover entry hard gateはFPV profile内で5秒とします。
+
 ```bash
 python3.12 tools/fpv.py tune-angle --angle-trials 40 --angle-refine
 python3.12 tools/fpv.py tune-apply
 python3.12 tools/fpv.py start
 ```
 
-`tune-apply`は採用候補を`build/<package>/runtime/vehicle/control-param.txt`へ一時適用するだけです。Catalog、Recipe、生成時の初期制御値は変更しません。`configure`を再実行すると生成初期値へ戻ります。
+Drone PRO標準hard gateの後、FPV側は各trialを次の条件で再判定します。
+
+- 評価区間の最低高度が0.1 m以上
+- 評価区間中に接触回数が増えない
+- Motor Dutyが0または1へ張り付くサンプルの比率が10%以下
+
+条件を満たすtrialのうちスコアが最も高い候補だけが`pid-tuning-<phase>-selected-params.json`へ保存されます。`tune-apply`はAngleの選択結果を`build/<package>/runtime/vehicle/control-param.txt`へ一時適用します。Catalog、Recipe、生成時の初期制御値は変更しません。`configure`を再実行すると生成初期値へ戻ります。
+
+Angle候補を選択した後は、そのPIDを使って地面ありのMuJoCoモデル上で最終Hover検証を行います。初期高度2 m、試験時間15秒とし、2秒後から10秒以上、垂直速度±0.15 m/s、Roll/Pitch±2度を維持することに加え、最低高度、接触、Motor Duty飽和のFPV flight gateを通過しなければなりません。この結果は`pid-tuning-post-angle-hover.json`へ保存されます。
 
 ## この手順が保証しないこと
 
@@ -143,4 +154,4 @@ python3.12 tools/fpv.py start
 - Betaflight互換のフィルタ、Feedforward、Dynamic Notch等の挙動
 - すべての飛行領域やバッテリー状態における安定性
 
-今回確認できたのは、CatalogとRecipeから生成したFPV機体を、既存のDrone PRO PID調整経路へ接続し、Hover、Angle、PS5実操作まで一貫して評価できることです。
+CatalogとRecipeから生成したFPV機体をDrone PRO PID調整経路へ接続し、Drone PRO標準評価とFPV flight gateの両方を通過した候補だけをPS5確認へ進めます。

@@ -323,6 +323,10 @@ class FpvToolTest(unittest.TestCase):
             self.assertEqual("csv", generated["simulation"]["logging"]["mode"])
             self.assertEqual("none", original["simulation"]["logging"]["mode"])
             self.assertEqual("drone.xml", generated["components"]["droneDynamics"]["mujoco"]["modelPath"])
+            self.assertEqual(
+                [0.0, 0.0, -2.0],
+                generated["components"]["droneDynamics"]["position_meter"],
+            )
             self.assertEqual("TuningController", generated["controller"]["moduleName"])
             self.assertEqual("adapter-hakoniwa", generated["controller"]["backendType"])
 
@@ -332,6 +336,8 @@ class FpvToolTest(unittest.TestCase):
             (profile / "controller").mkdir()
             (profile / "search-space").mkdir()
             (profile / "manifests").mkdir()
+            (profile / "param-sets").mkdir()
+            (profile / "score").mkdir()
             (profile / "controller" / "controller-params.txt").write_text(
                 "PID_ALT_Kp 10\nPID_ALT_Kd 5\nPID_ALT_SPD_Kp 10\n"
                 "PID_ALT_SPD_Ki 0\nPID_ALT_SPD_Kd 5\n",
@@ -339,6 +345,16 @@ class FpvToolTest(unittest.TestCase):
             )
             (profile / "search-space" / "hover-optuna.json").write_text(
                 json.dumps({"parameters": {"PID_ALT_SPD_Kp": {}, "PID_ALT_SPD_Ki": {}, "PID_ALT_SPD_Kd": {}}}),
+                encoding="utf-8",
+            )
+            (profile / "param-sets" / "base-overrides.json").write_text(
+                json.dumps({"PID_ROLL_RATE_Kp": 3.0}), encoding="utf-8"
+            )
+            (profile / "score" / "hover-score.json").write_text(
+                json.dumps({
+                    "hard_gates": [{"id": "hover_entry_time", "value": 3.0}],
+                    "score_terms": [{"id": "hover_entry_time", "worst": 3.0}],
+                }),
                 encoding="utf-8",
             )
             (profile / "manifests" / "01-hover.json").write_text(
@@ -352,6 +368,17 @@ class FpvToolTest(unittest.TestCase):
             self.assertIn("PID_ALT_SPD_Kd", params)
             search = json.loads((profile / "search-space" / "hover-optuna.json").read_text(encoding="utf-8"))
             self.assertEqual({"min": 0.0, "max": 2.0, "step": 0.25}, search["parameters"]["PID_ALT_SPD_Kd"])
+            self.assertEqual({"value": 6.0}, search["parameters"]["PID_ROLL_Kp"])
+            base = json.loads(
+                (profile / "param-sets" / "base-overrides.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(0.15, base["PID_ROLL_RATE_Kp"])
+            self.assertEqual(0.005, base["PID_ROLL_RATE_Kd"])
+            score = json.loads(
+                (profile / "score" / "hover-score.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(5.0, score["hard_gates"][0]["value"])
+            self.assertEqual(5.0, score["score_terms"][0]["worst"])
             manifest = json.loads((profile / "manifests" / "01-hover.json").read_text(encoding="utf-8"))
             self.assertEqual(40, manifest["phases"][0]["args"]["trials"])
 
@@ -380,11 +407,102 @@ class FpvToolTest(unittest.TestCase):
             self.assertEqual(40, manifest["phases"][0]["args"]["trials"])
             search = json.loads(search_path.read_text(encoding="utf-8"))
             self.assertEqual(
-                {"min": 0.09, "max": 0.15, "step": 0.01},
+                {"min": 0.0, "max": 0.03, "step": 0.005},
                 search["parameters"]["PID_ROLL_RATE_Kd"],
             )
+            self.assertLessEqual(search["parameters"]["PID_ROLL_RATE_Kp"]["min"], 0.15)
+            self.assertGreaterEqual(search["parameters"]["PID_ROLL_Kp"]["max"], 6.0)
             with self.assertRaisesRegex(FPV_TOOL.RuntimeErrorWithMessage, "angle-trials"):
                 FPV_TOOL.configure_fpv_angle_profile(profile, 0)
+
+    def test_fpv_trial_flight_gate_rejects_motor_saturation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            trial = root / "trial_0000"
+            scenarios = trial / "suite" / "generated_scenarios"
+            log_dir = root / "scenario-output" / "drone_log0"
+            scenarios.mkdir(parents=True)
+            log_dir.mkdir(parents=True)
+            (scenarios / "roll-step.json").write_text(
+                json.dumps({
+                    "prepare": {"settle_time_sec": 0.0},
+                    "logging": {"output_dir": str(log_dir.parent)},
+                }),
+                encoding="utf-8",
+            )
+            (log_dir / "drone_dynamics.csv").write_text(
+                "timestamp,X,Y,Z,Rx,Ry,Rz,Vx,Vy,Vz,VRx,VRy,VRz,collided_counts\n"
+                "0,0,0,-2,0,0,0,0,0,0,0,0,0,0\n"
+                "1000,0,0,-2,0,0,0,0,0,0,0,0,0,0\n",
+                encoding="utf-8",
+            )
+            for index in range(4):
+                (log_dir / f"log_rotor_{index}.csv").write_text(
+                    "timestamp,Duty,RadPerSec,Current\n"
+                    "0,0.5,100,1\n1000,0.5,100,1\n",
+                    encoding="utf-8",
+                )
+
+            passed = FPV_TOOL.evaluate_fpv_trial_flight_gate(trial, root)
+            self.assertTrue(passed["passed"])
+
+            (log_dir / "log_rotor_0.csv").write_text(
+                "timestamp,Duty,RadPerSec,Current\n"
+                "0,1.0,100,1\n1000,0.5,100,1\n",
+                encoding="utf-8",
+            )
+            failed = FPV_TOOL.evaluate_fpv_trial_flight_gate(trial, root)
+            self.assertFalse(failed["passed"])
+            self.assertGreater(
+                failed["scenarios"][0]["motor_saturation_ratio"], 0.1
+            )
+
+            with (log_dir / "drone_dynamics.csv").open("a", encoding="utf-8") as stream:
+                stream.write("2000,0,0\n")
+            still_failed = FPV_TOOL.evaluate_fpv_trial_flight_gate(trial, root)
+            self.assertFalse(still_failed["passed"])
+
+    def test_post_angle_hover_validation_requires_hover_and_flight_gates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            drone_pro = root / "drone-pro"
+            profile = drone_pro / "work" / "profile"
+            runtime = root / "runtime"
+            foundation_python = root / "python3"
+            selected = runtime / "selected.json"
+            (drone_pro / "tuning" / "tools" / "suites").mkdir(parents=True)
+            (drone_pro / "tuning" / "tools" / "suites" / "run_hover_sanity.py").write_text(
+                "# test", encoding="utf-8"
+            )
+            (profile / "phases").mkdir(parents=True)
+            (profile / "phases" / "hover.json").write_text("{}", encoding="utf-8")
+            runtime.mkdir()
+            foundation_python.write_text("", encoding="utf-8")
+            selected.write_text("{}", encoding="utf-8")
+
+            def materialize_result(_command, **_kwargs):
+                suite = profile / "results" / "autotune" / "fpv-post-angle-hover" / "trial_0000" / "suite"
+                suite.mkdir(parents=True)
+                (suite / "hover-sanity-eval.json").write_text(
+                    json.dumps({"status": "PASS"}), encoding="utf-8"
+                )
+
+            with mock.patch.object(FPV_TOOL, "run", side_effect=materialize_result), mock.patch.object(
+                FPV_TOOL,
+                "evaluate_fpv_trial_flight_gate",
+                return_value={"passed": True, "scenarios": []},
+            ):
+                report = FPV_TOOL.run_post_angle_hover_validation(
+                    profile, selected, drone_pro, foundation_python, runtime
+                )
+
+            payload = json.loads(report.read_text(encoding="utf-8"))
+            self.assertEqual("passed", payload["status"])
+            self.assertEqual(10, payload["requirements"]["sustain_sec"])
+            validation_phase = json.loads(
+                (runtime / "pid-tuning-post-angle-hover-phase.json").read_text(encoding="utf-8")
+            )
+            self.assertFalse(validation_phase["simulation_model_overrides"]["remove_floor"])
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 import math
@@ -31,6 +32,33 @@ DEFAULT_THREEJS_ROOT = ROOT.parent / "hakoniwa-threejs-drone"
 DEFAULT_BUSINESS_PACK_ROOT = ROOT.parent / "hakoniwa-business-pack"
 DEFAULT_FOUNDATION_PYTHON = ROOT.parent / "hakoniwa-business-pack" / "work" / "foundation" / "install" / "python" / "bin" / "python3"
 BASE_THREEJS_WHEELBASE_M = math.hypot(0.47, 0.38)
+FPV_TUNING_INITIAL_ALTITUDE_M = 2.0
+FPV_TUNING_MIN_ALTITUDE_M = 0.1
+FPV_TUNING_MAX_MOTOR_SATURATION_RATIO = 0.1
+FPV_HOVER_ENTRY_MAX_SEC = 5.0
+FPV_HOVER_ATTITUDE_BASE = {
+    # Flight-proven 5-inch gains are a conservative starting point for the
+    # light Master3X plant.  Hover tunes the vertical loop only; Angle owns
+    # the attitude-loop search.
+    "PID_ROLL_RATE_Kp": 0.15,
+    "PID_ROLL_RATE_Ki": 0.08,
+    "PID_ROLL_RATE_Kd": 0.005,
+    "PID_PITCH_RATE_Kp": 0.15,
+    "PID_PITCH_RATE_Ki": 0.08,
+    "PID_PITCH_RATE_Kd": 0.005,
+    "PID_YAW_RATE_Kp": 0.1,
+    "PID_YAW_RATE_Ki": 0.0,
+    "PID_YAW_RATE_Kd": 0.0,
+    "PID_ROLL_Kp": 6.0,
+    "PID_ROLL_Ki": 0.5,
+    "PID_ROLL_Kd": 0.75,
+    "PID_PITCH_Kp": 6.0,
+    "PID_PITCH_Ki": 0.5,
+    "PID_PITCH_Kd": 0.75,
+    "PID_YAW_Kp": 1.0,
+    "PID_YAW_Ki": 0.0,
+    "PID_YAW_Kd": 0.0,
+}
 
 
 class RuntimeErrorWithMessage(RuntimeError):
@@ -398,6 +426,15 @@ def materialize_tuning_inputs(vehicle_dir: Path, output_dir: Path) -> Path:
     config["simulation"]["logOutputDirectory"] = "."
     config["simulation"].setdefault("logOutput", {"sensors": {}, "mavlink": {}})
     config["components"]["droneDynamics"]["mujoco"]["modelPath"] = "drone.xml"
+    # Hover/Angle tuning starts in free flight.  The Drone PRO angle tuning
+    # path controls vertical speed and does not consume the scenario's
+    # prepare.target_altitude_m as a takeoff command.
+    position = config["components"]["droneDynamics"].setdefault(
+        "position_meter", [0.0, 0.0, 0.0]
+    )
+    if len(position) != 3:
+        raise RuntimeErrorWithMessage("droneDynamics.position_meter must have 3 elements")
+    position[2] = -FPV_TUNING_INITIAL_ALTITUDE_M
     # The offline tuning runner drives the built-in TuningController, not the
     # interactive RadioController used by PS5 flight. This adaptation exists
     # only in the ignored tuning input copy.
@@ -447,11 +484,12 @@ def configure_fpv_hover_profile(profile: Path, hover_trials: int) -> None:
     if hover_trials <= 0:
         raise RuntimeErrorWithMessage("--hover-trials must be positive")
     seed = {
+        **FPV_HOVER_ATTITUDE_BASE,
         "PID_ALT_Kp": 4.0,
         "PID_ALT_Kd": 2.0,
-        "PID_ALT_SPD_Kp": 2.0,
+        "PID_ALT_SPD_Kp": 5.0,
         "PID_ALT_SPD_Ki": 0.0,
-        "PID_ALT_SPD_Kd": 1.0,
+        "PID_ALT_SPD_Kd": 0.0,
     }
     controller_path = require_file(
         profile / "controller" / "controller-params.txt",
@@ -461,20 +499,53 @@ def configure_fpv_hover_profile(profile: Path, hover_trials: int) -> None:
         apply_parameter_overrides(controller_path.read_text(encoding="utf-8"), seed),
         encoding="utf-8",
     )
+    base_overrides_path = require_file(
+        profile / "param-sets" / "base-overrides.json",
+        "PID tuning profile base overrides",
+    )
+    base_overrides = json.loads(base_overrides_path.read_text(encoding="utf-8"))
+    base_overrides.update(FPV_HOVER_ATTITUDE_BASE)
+    base_overrides_path.write_text(
+        json.dumps(base_overrides, indent=2) + "\n", encoding="utf-8"
+    )
     search_path = require_file(
         profile / "search-space" / "hover-optuna.json",
         "PID tuning hover search space",
     )
     search = json.loads(search_path.read_text(encoding="utf-8"))
     parameters = search["parameters"]
-    parameters["PID_ALT_SPD_Kp"] = {"min": 0.5, "max": 4.0, "step": 0.25}
+    parameters["PID_ROLL_Kp"] = {"value": FPV_HOVER_ATTITUDE_BASE["PID_ROLL_Kp"]}
+    parameters["PID_ROLL_Ki"] = {"value": FPV_HOVER_ATTITUDE_BASE["PID_ROLL_Ki"]}
+    parameters["PID_ROLL_Kd"] = {"value": FPV_HOVER_ATTITUDE_BASE["PID_ROLL_Kd"]}
+    parameters["PID_PITCH_Kp"] = {"mirror_of": "PID_ROLL_Kp"}
+    parameters["PID_PITCH_Ki"] = {"mirror_of": "PID_ROLL_Ki"}
+    parameters["PID_PITCH_Kd"] = {"mirror_of": "PID_ROLL_Kd"}
+    parameters["PID_ALT_SPD_Kp"] = {"min": 3.0, "max": 8.0, "step": 0.5}
     parameters["PID_ALT_SPD_Ki"] = {"value": 0.0}
     parameters["PID_ALT_SPD_Kd"] = {"min": 0.0, "max": 2.0, "step": 0.25}
     search["description"] = (
-        "FPV hover sanity search: retain the canonical attitude search and "
-        "explore vertical-speed proportional and derivative gains."
+        "FPV staged hover search: hold the flight-proven attitude loops fixed "
+        "and explore only vertical-speed proportional and derivative gains."
     )
     search_path.write_text(json.dumps(search, indent=2) + "\n", encoding="utf-8")
+    score_path = require_file(
+        profile / "score" / "hover-score.json", "PID tuning hover score configuration"
+    )
+    score = json.loads(score_path.read_text(encoding="utf-8"))
+    entry_gate = next(
+        (gate for gate in score.get("hard_gates", []) if gate.get("id") == "hover_entry_time"),
+        None,
+    )
+    if entry_gate is None:
+        raise RuntimeErrorWithMessage(f"hover_entry_time hard gate is absent: {score_path}")
+    entry_gate["value"] = FPV_HOVER_ENTRY_MAX_SEC
+    entry_term = next(
+        (term for term in score.get("score_terms", []) if term.get("id") == "hover_entry_time"),
+        None,
+    )
+    if entry_term is not None:
+        entry_term["worst"] = FPV_HOVER_ENTRY_MAX_SEC
+    score_path.write_text(json.dumps(score, indent=2) + "\n", encoding="utf-8")
     manifest_path = require_file(profile / "manifests" / "01-hover.json", "PID tuning hover manifest")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     hover_phase = next(
@@ -497,15 +568,15 @@ def configure_fpv_angle_profile(profile: Path, angle_trials: int, *, refine: boo
         )
         search = json.loads(search_path.read_text(encoding="utf-8"))
         parameters = search["parameters"]
-        parameters["PID_ROLL_RATE_Kp"] = {"min": 2.5, "max": 3.0, "step": 0.25}
-        parameters["PID_ROLL_RATE_Ki"] = {"min": 0.1, "max": 0.5, "step": 0.1}
-        parameters["PID_ROLL_RATE_Kd"] = {"min": 0.09, "max": 0.15, "step": 0.01}
-        parameters["PID_ROLL_Kp"] = {"min": 14.0, "max": 18.0, "step": 1.0}
-        parameters["PID_ROLL_Ki"] = {"min": 0.0, "max": 1.0, "step": 0.5}
-        parameters["PID_ROLL_Kd"] = {"min": 1.5, "max": 2.5, "step": 0.25}
+        parameters["PID_ROLL_RATE_Kp"] = {"min": 0.1, "max": 0.6, "step": 0.05}
+        parameters["PID_ROLL_RATE_Ki"] = {"min": 0.0, "max": 0.2, "step": 0.02}
+        parameters["PID_ROLL_RATE_Kd"] = {"min": 0.0, "max": 0.03, "step": 0.005}
+        parameters["PID_ROLL_Kp"] = {"min": 3.0, "max": 10.0, "step": 1.0}
+        parameters["PID_ROLL_Ki"] = {"min": 0.0, "max": 1.0, "step": 0.25}
+        parameters["PID_ROLL_Kd"] = {"min": 0.0, "max": 1.5, "step": 0.25}
         search["description"] = (
-            "FPV Angle refinement around Master3X trial 59: preserve low-frequency "
-            "tracking while extending rate derivative damping."
+            "FPV Angle safe search including the flight-proven 5-inch gain region; "
+            "candidate acceptance also requires the FPV flight-envelope gate."
         )
         search_path.write_text(json.dumps(search, indent=2) + "\n", encoding="utf-8")
     manifest_path = require_file(profile / "manifests" / "02-angle.json", "PID tuning angle manifest")
@@ -517,6 +588,206 @@ def configure_fpv_angle_profile(profile: Path, angle_trials: int, *, refine: boo
         raise RuntimeErrorWithMessage(f"angle_roll phase is absent from tuning manifest: {manifest_path}")
     angle_phase.setdefault("args", {})["trials"] = angle_trials
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+
+def _read_csv_window(path: Path, start_sec: float) -> list[dict[str, str]]:
+    with path.open(newline="", encoding="utf-8") as stream:
+        rows = [
+            row for row in csv.DictReader(stream)
+            if row.get("timestamp")
+            and all(value not in (None, "") for value in row.values())
+            and float(row["timestamp"]) / 1e6 >= start_sec
+        ]
+    if not rows:
+        raise RuntimeErrorWithMessage(f"no tuning samples after {start_sec}s: {path}")
+    return rows
+
+
+def evaluate_fpv_trial_flight_gate(trial_dir: Path, drone_pro: Path) -> dict[str, object]:
+    """Validate that a Drone PRO trial ran airborne without actuator saturation."""
+    scenarios = sorted((trial_dir / "suite" / "generated_scenarios").glob("*.json"))
+    if not scenarios:
+        raise RuntimeErrorWithMessage(f"generated tuning scenarios not found: {trial_dir}")
+
+    results: list[dict[str, object]] = []
+    for scenario_path in scenarios:
+        scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
+        output_value = scenario.get("logging", {}).get("output_dir")
+        if not output_value:
+            continue
+        output_dir = Path(output_value)
+        if not output_dir.is_absolute():
+            output_dir = drone_pro / output_dir
+        start_sec = float(scenario.get("prepare", {}).get("settle_time_sec", 0.0))
+        dynamics_path = require_file(output_dir / "drone_log0" / "drone_dynamics.csv", "tuning dynamics CSV")
+        dynamics = _read_csv_window(dynamics_path, start_sec)
+        altitudes = [-float(row["Z"]) for row in dynamics]
+        collision_counts = [int(float(row.get("collided_counts", "0"))) for row in dynamics]
+
+        motor_rows = 0
+        saturated_rows = 0
+        rotor_paths = sorted((output_dir / "drone_log0").glob("log_rotor_*.csv"))
+        if not rotor_paths:
+            raise RuntimeErrorWithMessage(f"tuning rotor CSVs not found: {output_dir}")
+        for rotor_path in rotor_paths:
+            for row in _read_csv_window(rotor_path, start_sec):
+                duty = float(row["Duty"])
+                motor_rows += 1
+                if duty <= 1e-6 or duty >= 1.0 - 1e-6:
+                    saturated_rows += 1
+        saturation_ratio = saturated_rows / motor_rows
+        collision_delta = max(collision_counts) - min(collision_counts)
+        minimum_altitude = min(altitudes)
+        passed = (
+            minimum_altitude >= FPV_TUNING_MIN_ALTITUDE_M
+            and collision_delta == 0
+            and saturation_ratio <= FPV_TUNING_MAX_MOTOR_SATURATION_RATIO
+        )
+        results.append({
+            "scenario": scenario_path.name,
+            "minimum_altitude_m": minimum_altitude,
+            "maximum_altitude_m": max(altitudes),
+            "collision_count_delta": collision_delta,
+            "motor_saturation_ratio": saturation_ratio,
+            "saturated_motor_samples": saturated_rows,
+            "motor_samples": motor_rows,
+            "passed": passed,
+        })
+
+    if not results:
+        raise RuntimeErrorWithMessage(f"no logged tuning scenarios found: {trial_dir}")
+    return {
+        "passed": all(bool(result["passed"]) for result in results),
+        "limits": {
+            "minimum_altitude_m": FPV_TUNING_MIN_ALTITUDE_M,
+            "maximum_motor_saturation_ratio": FPV_TUNING_MAX_MOTOR_SATURATION_RATIO,
+            "maximum_collision_count_delta": 0,
+        },
+        "scenarios": results,
+    }
+
+
+def select_fpv_tuning_candidate(
+    profile: Path, phase: str, drone_pro: Path, runtime_dir: Path
+) -> Path:
+    phase_dir = profile / "results" / "autotune" / (
+        "hover" if phase == "hover" else "angle_roll/roll"
+    )
+    candidates: list[tuple[float, dict[str, object], Path, dict[str, object]]] = []
+    trial_reports: list[dict[str, object]] = []
+    for breakdown_path in sorted(phase_dir.glob("trial_*/score-breakdown.json")):
+        breakdown = json.loads(breakdown_path.read_text(encoding="utf-8"))
+        existing_gate = bool(breakdown.get("details", {}).get("hard_gate_passed", False))
+        flight_gate = evaluate_fpv_trial_flight_gate(breakdown_path.parent, drone_pro)
+        report = {
+            "trial": breakdown_path.parent.name,
+            "score": float(breakdown["score"]),
+            "drone_pro_hard_gate_passed": existing_gate,
+            "fpv_flight_gate": flight_gate,
+        }
+        trial_reports.append(report)
+        if existing_gate and flight_gate["passed"]:
+            candidates.append((float(breakdown["score"]), breakdown, breakdown_path.parent, flight_gate))
+
+    report_path = runtime_dir / f"pid-tuning-{phase}-flight-gate.json"
+    selection_report: dict[str, object] = {
+        "schema_version": 1,
+        "phase": phase,
+        "trials": trial_reports,
+    }
+    if not candidates:
+        selection_report["status"] = "failed"
+        report_path.write_text(json.dumps(selection_report, indent=2) + "\n", encoding="utf-8")
+        raise RuntimeErrorWithMessage(
+            f"{phase} tuning produced no airborne, unsaturated candidate; review {report_path}"
+        )
+
+    score, breakdown, trial_dir, flight_gate = max(candidates, key=lambda item: item[0])
+    selected_path = runtime_dir / f"pid-tuning-{phase}-selected-params.json"
+    selected_path.write_text(json.dumps(breakdown["overrides"], indent=2) + "\n", encoding="utf-8")
+    selection_report.update({
+        "status": "passed",
+        "selected_trial": trial_dir.name,
+        "selected_score": score,
+        "selected_params": str(selected_path),
+        "selected_flight_gate": flight_gate,
+    })
+    report_path.write_text(json.dumps(selection_report, indent=2) + "\n", encoding="utf-8")
+    return selected_path
+
+
+def run_post_angle_hover_validation(
+    profile: Path,
+    selected_params: Path,
+    drone_pro: Path,
+    foundation_python: Path,
+    runtime_dir: Path,
+) -> Path:
+    """Run a sustained free-flight hover after Angle candidate selection."""
+    suite_runner = require_file(
+        drone_pro / "tuning" / "tools" / "suites" / "run_hover_sanity.py",
+        "Drone PRO hover sanity suite",
+    )
+    source_phase = require_file(profile / "phases" / "hover.json", "PID tuning hover phase")
+    phase_payload = json.loads(source_phase.read_text(encoding="utf-8"))
+    phase_payload.setdefault("simulation_model_overrides", {})["remove_floor"] = False
+    phase = runtime_dir / "pid-tuning-post-angle-hover-phase.json"
+    phase.write_text(json.dumps(phase_payload, indent=2) + "\n", encoding="utf-8")
+    trial_dir = profile / "results" / "autotune" / "fpv-post-angle-hover" / "trial_0000"
+    suite_dir = trial_dir / "suite"
+
+    run(
+        [
+            str(foundation_python),
+            str(suite_runner),
+            "--phase", os.path.relpath(phase, drone_pro),
+            "--param-overrides-json", os.path.relpath(selected_params, drone_pro),
+            "--work-dir", os.path.relpath(suite_dir, drone_pro),
+            "--duration-sec", "15",
+            "--settle-time-sec", "2",
+            "--target-altitude-m", str(FPV_TUNING_INITIAL_ALTITUDE_M),
+            "--eval-start-time-sec", "2",
+            "--eval-sustain-sec", "10",
+            "--vz-threshold", "0.15",
+            "--roll-threshold-deg", "2",
+            "--pitch-threshold-deg", "2",
+            "--no-plot",
+        ],
+        cwd=drone_pro,
+    )
+    hover_evaluation_path = require_file(
+        suite_dir / "hover-sanity-eval.json", "post-Angle hover evaluation"
+    )
+    hover_evaluation = json.loads(hover_evaluation_path.read_text(encoding="utf-8"))
+    flight_gate = evaluate_fpv_trial_flight_gate(trial_dir, drone_pro)
+    passed = hover_evaluation.get("status") == "PASS" and bool(flight_gate["passed"])
+    report_path = runtime_dir / "pid-tuning-post-angle-hover.json"
+    report_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "passed" if passed else "failed",
+                "selected_params": str(selected_params),
+                "hover_evaluation": hover_evaluation,
+                "fpv_flight_gate": flight_gate,
+                "requirements": {
+                    "duration_sec": 15,
+                    "evaluation_start_sec": 2,
+                    "sustain_sec": 10,
+                    "maximum_abs_vertical_speed_m_s": 0.15,
+                    "maximum_abs_roll_deg": 2,
+                    "maximum_abs_pitch_deg": 2,
+                },
+            },
+            indent=2,
+        ) + "\n",
+        encoding="utf-8",
+    )
+    if not passed:
+        raise RuntimeErrorWithMessage(
+            f"Angle candidate failed the sustained post-Angle hover validation; review {report_path}"
+        )
+    return report_path
 
 
 def tune_build(args: argparse.Namespace) -> int:
@@ -565,7 +836,7 @@ def tune_prepare(args: argparse.Namespace) -> int:
     # The suffix separates the FPV-specific hover tuning policy from the
     # unmodified canonical template, and prevents stale Optuna trials from a
     # previous policy contaminating this run.
-    profile = drone_pro / "work" / "pid-tuning" / f"fpv-{resolved['output'].name}-{profile_digest[:12]}-hover-v2"
+    profile = drone_pro / "work" / "pid-tuning" / f"fpv-{resolved['output'].name}-{profile_digest[:12]}-flight-gate-v5"
     creator = require_file(
         drone_pro / "tuning" / "tools" / "create_pid_tuning_profile.py",
         "Drone PRO PID tuning profile creator",
@@ -581,7 +852,7 @@ def tune_prepare(args: argparse.Namespace) -> int:
     configure_fpv_hover_profile(profile, args.hover_trials)
     configure_fpv_angle_profile(profile, args.angle_trials, refine=args.angle_refine)
     marker = {
-        "schema_version": 1,
+        "schema_version": 2,
         "adapter": "hakoniwa",
         "source_input_sha256": source_digest,
         "profile_input_sha256": profile_digest,
@@ -591,8 +862,8 @@ def tune_prepare(args: argparse.Namespace) -> int:
         "angle_manifest": str(profile / "manifests" / "02-angle.json"),
         "hover_trials": args.hover_trials,
         "angle_trials": args.angle_trials,
-        "hover_policy": "fpv-hover-v2: vertical-speed Kp/Kd search with conservative FPV seed",
-        "policy": "Run hover and review it before running angle.",
+        "hover_policy": "fpv-flight-gate-v5: fixed proven attitude baseline, 5s airborne entry gate, collision and motor-saturation rejection",
+        "policy": "Only FPV flight-gate-approved candidates may advance or be applied.",
     }
     tuning_marker(resolved).write_text(json.dumps(marker, indent=2) + "\n", encoding="utf-8")
     print(f"Prepared frozen FPV PID tuning profile: {profile}")
@@ -640,7 +911,22 @@ def tune_phase(args: argparse.Namespace, phase: str) -> int:
             f"{phase} tuning did not produce an accepted candidate "
             f"(status={report.get('status')}, failed_phase={failed_phase}); review {report_path}"
         )
+    selected_params = select_fpv_tuning_candidate(profile, phase, drone_pro, resolved["runtime"])
+    if phase == "angle":
+        hover_report = run_post_angle_hover_validation(
+            profile, selected_params, drone_pro, foundation_python, resolved["runtime"]
+        )
+        marker["post_angle_hover_report"] = str(hover_report)
+    # The next Drone PRO phase inherits final-params.json. Promote only the
+    # candidate accepted by the FPV-side flight envelope gate.
+    selected_overrides = json.loads(selected_params.read_text(encoding="utf-8"))
+    (profile / "final-params.json").write_text(
+        json.dumps(selected_overrides, indent=2) + "\n", encoding="utf-8"
+    )
+    marker[f"{phase}_selected_params"] = str(selected_params)
+    marker_path.write_text(json.dumps(marker, indent=2) + "\n", encoding="utf-8")
     print(f"{phase.capitalize()} tuning finished. Review: {profile / 'results' / 'autotune'}")
+    print(f"FPV flight-gate-approved parameters: {selected_params}")
     if phase == "hover":
         print("Only after reviewing the hover gates and plots: python3.12 tools/fpv.py tune-angle")
     return 0
@@ -677,7 +963,12 @@ def tune_apply(args: argparse.Namespace) -> int:
     report = json.loads(report_path.read_text(encoding="utf-8"))
     if report.get("status") not in ("completed", "completed_with_warnings"):
         raise RuntimeErrorWithMessage(f"latest PID phase is not accepted: {report_path}")
-    final_params_path = require_file(profile / "final-params.json", "tuned parameter set")
+    selected_value = marker.get("angle_selected_params")
+    if not selected_value:
+        raise RuntimeErrorWithMessage(
+            "FPV Angle flight-gate-approved parameters are absent; run tune-angle first"
+        )
+    final_params_path = require_file(Path(selected_value), "FPV flight-gate-approved parameter set")
     overrides = json.loads(final_params_path.read_text(encoding="utf-8"))
     runtime_param = require_file(
         resolved["vehicle"] / "control-param.txt", "FPV runtime controller parameters"

@@ -304,6 +304,8 @@ python3.12 tools/fpv.py tune-build
 
 通常の`configure`で生成した機体を、変更不能なPID tuning profileへコピーします。profile名には、`drone_config_0.json`、`drone.xml`、`control-param.txt`から計算したhashが含まれます。物理モデルを変更した場合は、新しいprofileを作り直します。`tune-audit`は、Catalogから集計した質量、`drone_config_0.json`、`control-param.txt`の`MASS`、MuJoCoが実際に生成した剛体質量・COM・慣性、ローター座標（FLU→FRD変換後）を照合します。`tune-prepare`はこの監査を自動実行し、不整合があればprofileを作成しません。
 
+FPV用のtuning copyは高度2 mから開始します。各trialはDrone PRO標準評価に加え、FPV側で全シナリオの高度、接触回数、Motor Dutyを検査します。高度0.1 m未満、評価区間中の接触増加、Duty 0/1への飽和率10%超のいずれかを検出した候補は適用対象になりません。判定結果は`build/<package>/runtime/pid-tuning-<phase>-flight-gate.json`へ保存されます。
+
 ```bash
 python3.12 tools/fpv.py configure
 python3.12 tools/fpv.py tune-audit
@@ -313,13 +315,17 @@ python3.12 tools/fpv.py tune-hover
 
 監査結果は`build/<package>/runtime/vehicle/tuning-input-audit.json`に保存されます。`drone_config_0.json`の`inertia`が`[0, 0, 0]`の場合、これは欠損値ではなく、生成済み`drone.xml`の`inertiafromgeom`へ委譲する指定です。監査レポートには、そのMuJoCo実算値も記録されます。
 
-FPV profileは、既存X500向けcanonical templateをそのまま流用せず、軽量機用のHover seed（`PID_ALT_Kp=4`、`PID_ALT_Kd=2`、`PID_ALT_SPD_Kp=2`、`PID_ALT_SPD_Kd=1`）を使います。Hover探索では垂直速度の`Kp`と`Kd`を探索し、既定で40 trialを実行します。`--hover-trials`で変更できます。
+FPV profileは、既存X500向けcanonical templateの姿勢ゲインをそのまま流用しません。Hover段階では5inch機で飛行実績のある保守的な姿勢基準（Rate Kp/Ki/Kd = `0.15/0.08/0.005`、Angle Kp/Ki/Kd = `6/0.5/0.75`）へ固定し、垂直速度の`Kp`と`Kd`だけを探索します。姿勢系を探索するのは次のAngle段階です。この段階分離により、不安定な内側姿勢ループを高度PIDの良否として誤評価することを防ぎます。自由空間開始時の初期姿勢過渡を考慮し、Hover entry hard gateはFPV profile内で5秒に設定します。Hoverは既定で40 trialを実行し、`--hover-trials`で変更できます。
 
 Hoverのhard gate、score、波形を確認して採用可能と判断した後だけ、Angleを実行します。
 
 ```bash
 python3.12 tools/fpv.py tune-angle --angle-trials 40 --angle-refine
 ```
+
+`--angle-refine`は、飛行実績のある5inch PIDを含む低ゲイン範囲（Rate Kp 0.1–0.6、Rate Kd 0–0.03、Angle Kp 3–10）を探索します。旧Master3X trial 59周辺の高ゲイン範囲は使用しません。
+
+Angle候補の選択後、地面を含む同じMuJoCoモデルで15秒の最終Hover検証を自動実行します。2秒後から10秒間、垂直速度±0.15 m/s、Roll/Pitch±2度を維持し、同時にFPV flight gateも通過する必要があります。結果は`build/<package>/runtime/pid-tuning-post-angle-hover.json`へ保存され、この検証が失敗すると`tune-angle`は成功になりません。
 
 Angle結果を人間が確認した後、PS5実行用の`build/`へ一時適用します。Catalogや生成初期値は変更されません。
 
@@ -328,7 +334,7 @@ python3.12 tools/fpv.py tune-apply
 python3.12 tools/fpv.py start
 ```
 
-`tune-apply`の適用先は`build/<package>/runtime/vehicle/control-param.txt`だけです。`configure`を再実行すると生成初期値へ戻ります。
+`tune-apply`はAngleのFPV flight gateを通過した選択結果だけを、`build/<package>/runtime/vehicle/control-param.txt`へ適用します。`configure`を再実行すると生成初期値へ戻ります。
 
 2026-08-29にPS5で確認したサンプル機体は、物理モデル・実行設定・PIDを`verified-configs/example-5inch-angle/`へ一体で固定しています。既定RecipeとWorldで`configure`すると、入力hashが一致する検証済み構成が自動適用されます。通常手順は次の2コマンドです。
 
