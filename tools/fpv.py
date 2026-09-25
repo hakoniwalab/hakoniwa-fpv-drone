@@ -7,6 +7,7 @@ import json
 import math
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import webbrowser
@@ -336,7 +337,8 @@ def materialize_verified_config(source: Path, vehicle_dir: Path) -> None:
     )
 
 
-def discover_verified_config(recipe: Path, world: Path) -> Path | None:
+def discover_verified_config(recipe: Path, world: Path, assembly: Path | None = None) -> Path | None:
+    """Find the reviewed config for a Recipe, or for the Recipe projected from an Assembly."""
     recipe = recipe.resolve()
     world = world.resolve()
     matches: list[Path] = []
@@ -347,7 +349,16 @@ def discover_verified_config(recipe: Path, world: Path) -> Path | None:
         inputs = receipt.get("inputs", {})
         if not isinstance(source_recipe, str) or not isinstance(source_world, str):
             continue
-        if (ROOT / source_recipe).resolve() != recipe or (ROOT / source_world).resolve() != world:
+        if assembly is None:
+            if (ROOT / source_recipe).resolve() != recipe:
+                continue
+        else:
+            # A projected Recipe lives in the build output, so identify it by
+            # its source Assembly; the SHA-256 check below still pins content.
+            source_assembly = receipt.get("source_assembly")
+            if not isinstance(source_assembly, str) or (ROOT / source_assembly).resolve() != assembly.resolve():
+                continue
+        if (ROOT / source_world).resolve() != world:
             continue
         if inputs.get("recipe_sha256") != sha256_file(recipe):
             continue
@@ -750,7 +761,7 @@ def configure(args: argparse.Namespace) -> int:
     runtime_config_path.write_text(json.dumps(runtime_config, indent=2) + "\n", encoding="utf-8")
 
     if not args.generated_defaults:
-        verified_config = None if assembly is not None else discover_verified_config(effective_recipe, args.world)
+        verified_config = discover_verified_config(effective_recipe, args.world, assembly)
         if verified_config is not None:
             materialize_verified_config(verified_config, resolved["vehicle"])
             print(f"Applied verified FPV config automatically: {verified_config}")
@@ -769,13 +780,23 @@ def configure(args: argparse.Namespace) -> int:
             asset_env=generator_env,
         )
 
+    install_prefix = business_pack_root / "work" / "foundation" / "install"
+    require_file(install_prefix / "bin" / "hako-cmd", "Foundation hako-cmd (run recipe.py configure)")
     launcher = {
         "version": "0.1",
         "defaults": {
             "cwd": str(ROOT),
             "stdout": str(resolved["logs"] / "${asset}.out"),
             "stderr": str(resolved["logs"] / "${asset}.err"),
-            "env": {"prepend": {"lib_path": ["/usr/local/hakoniwa/lib"], "PATH": ["/usr/local/hakoniwa/bin"]}},
+            # Resolve Hakoniwa Core libraries and hako-cmd from the Foundation
+            # only; a system /usr/local/hakoniwa install has incompatible ABIs.
+            # mac.zip ships libhako_service_c.dylib next to its executables.
+            "env": {
+                "prepend": {
+                    "lib_path": [str(install_prefix / "lib"), str(drone_core_bin)],
+                    "PATH": [str(install_prefix / "bin"), str(foundation_python.parent)],
+                }
+            },
             "start_grace_sec": 1,
             "delay_sec": 2,
         },
@@ -812,20 +833,9 @@ def configure(args: argparse.Namespace) -> int:
             drone_core / "config" / "assets" / "visual_state_publisher" / "visual_state_publisher-1.json",
             "single-drone visual-state publisher config",
         )
-        install_prefix = business_pack_root / "work" / "foundation" / "install"
         web_bridge = require_file(install_prefix / "bin" / "hakoniwa-pdu-web-bridge", "WebBridge")
         web_bridge_config = install_prefix / "share" / "hakoniwa-pdu-bridge" / "config" / "web_bridge_fleets"
         require_file(web_bridge_config / "bridge" / "bridge.json", "WebBridge fleet config")
-        launcher["defaults"]["env"]["prepend"]["lib_path"].extend([
-            str(install_prefix / "lib"),
-            # mac.zip ships libhako_service_c.dylib alongside the executables,
-            # not under a separate lib/ directory.
-            str(drone_core_bin),
-        ])
-        launcher["defaults"]["env"]["prepend"]["PATH"].extend([
-            str(install_prefix / "bin"),
-            str(foundation_python.parent),
-        ])
         assets = launcher["assets"]
         assets.insert(1, {
             "name": "fpv-visual-state-publisher",
@@ -865,11 +875,50 @@ def configure(args: argparse.Namespace) -> int:
     return 0
 
 
+THREEJS_PORTS = {"fpv-threejs-http-server": 8000, "fpv-threejs-web-bridge": 8765}
+
+
+def port_in_use(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        try:
+            probe.bind(("0.0.0.0", port))
+        except OSError:
+            return True
+    return False
+
+
+def port_owner(port: int) -> str:
+    if shutil.which("lsof") is None:
+        return "unknown process"
+    result = subprocess.run(
+        ["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN"], capture_output=True, text=True, check=False
+    )
+    rows = result.stdout.splitlines()[1:]
+    return ", ".join(f"{row.split()[0]} (pid {row.split()[1]})" for row in rows) or "unknown process"
+
+
+def require_free_ports(launcher_path: Path) -> None:
+    """Fail before launching when the Three.js HTTP or WebSocket port is taken.
+
+    Otherwise WebBridge fails to bind and the browser shows no vehicle state.
+    """
+    launcher = json.loads(launcher_path.read_text(encoding="utf-8"))
+    names = {asset.get("name") for asset in launcher.get("assets", [])}
+    busy = [
+        f"port {port} ({name}) is in use by {port_owner(port)}"
+        for name, port in THREEJS_PORTS.items()
+        if name in names and port_in_use(port)
+    ]
+    if busy:
+        raise RuntimeErrorWithMessage("; ".join(busy) + ". Stop that process and run start again.")
+
+
 def launcher_command(args: argparse.Namespace, action: str) -> int:
     resolved = paths(args)
     foundation_python = require_file(args.foundation_python.absolute(), "Foundation Python")
     require_file(resolved["launcher"], "FPV launcher (run configure first)")
     if action == "start":
+        require_free_ports(resolved["launcher"])
         run([
             str(foundation_python), "-m", "hakoniwa_pdu.apps.launcher.hako_launcher",
             str(resolved["launcher"]), "--background", str(resolved["session"]),

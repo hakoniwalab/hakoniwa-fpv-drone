@@ -137,6 +137,26 @@ foundation_requirements:
       hako_launcher: true
       launcher_background_lifecycle: true
       shm_backend: true
+  # Optional Three.js viewer (configure --threejs): WebBridge relays the
+  # visual state published by Drone Core to the browser.
+  hakoniwa-pdu-endpoint:
+    capabilities:
+      hakoniwa_core: true
+      core_callback: true
+      websocket: true
+  hakoniwa-pdu-bridge-core:
+    capabilities:
+      hakoniwa_app: true
+      web_bridge: true
+      web_bridge_fleets_config_format: true
+
+native_runtime_requirements:
+  schema_version: 1
+  components:
+    hakoniwa-drone-core:
+      profile: public-v4.1.1
+      required_roles: ["drone_service", "visual_state_publisher"]
+      optional_roles: []
 
 recipe_local_requirements_schema_version: 1
 recipe_local_requirements:
@@ -162,6 +182,19 @@ recipe_local_requirements:
         kind: file
       - path: drone_api/rc/rc_config/ps4-control.json
         kind: file
+  hakoniwa-threejs-drone:
+    root:
+      default_path: ../hakoniwa-threejs-drone
+      override_env: HAKONIWA_THREEJS_DRONE_ROOT
+      relative_to: recipe_repository
+    source:
+      type: git
+      url: https://github.com/hakoniwalab/hakoniwa-threejs-drone.git
+    required_artifacts:
+      - path: index.html
+        kind: file
+      - path: config/pdudef-fleets.json
+        kind: file
 
 runtime_dependencies:
   python:
@@ -174,6 +207,9 @@ runtime_dependencies:
       - name: PyYAML
         version: 6.0.3
         purpose: Load Catalogs and Vehicle Recipes when tools/fpv.py runs the generator with Foundation Python.
+      - name: trimesh
+        version: 4.9.0
+        purpose: Export the Assembly Graph body, propeller, and camera GLBs for the Three.js viewer.
 
 components:
   - id: hakoniwa-fpv-drone
@@ -254,11 +290,12 @@ artifact_sets:
     notes:
       - Generic component values and declared approximations are not real-product measurements.
   visualization_artifacts:
-    description: Native MuJoCo Viewer model and camera metadata.
-    status: partially_verified
-    artifacts: [drone.xml]
+    description: Native MuJoCo Viewer model and camera metadata, plus the optional Three.js viewer configuration and Assembly GLBs.
+    status: verified
+    artifacts: [drone.xml, runtime/threejs/viewer-config.json, runtime/threejs/scene-config.json, runtime/threejs/assets/drone-types.json]
     notes:
-      - Native MuJoCo visualization is verified; Three.js FPV visualization is a future adapter.
+      - Native MuJoCo visualization is verified.
+      - On 2026-09-25 the Master3X Assembly GLBs (body, propeller, camera) were shown in hakoniwa-threejs-drone through the Drone Core visual-state publisher and WebBridge, with position and rotor PWM updating while flown by PS5.
   pdu_artifacts:
     description: Existing Drone Core PDU definition used by the generated runtime.
     status: verified
@@ -293,7 +330,6 @@ missing_pieces:
   - Add and verify the Radio Controller Rate/Acro execution profile.
   - Replace generic example catalogs with evidence-backed product data before representing a real build.
   - Validate generated physics and tuned parameters against real-aircraft logs.
-  - Add the planned Three.js FPV camera and aircraft appearance adapter.
 
 agency_boundary:
   agent_actions:

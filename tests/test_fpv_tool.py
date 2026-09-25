@@ -239,6 +239,41 @@ class FpvToolTest(unittest.TestCase):
             ),
         )
 
+    def test_start_rejects_a_taken_threejs_port(self):
+        import socket
+
+        with tempfile.TemporaryDirectory() as directory, socket.socket() as holder:
+            holder.bind(("0.0.0.0", 0))
+            holder.listen()
+            port = holder.getsockname()[1]
+            launcher = Path(directory) / "launcher.json"
+            launcher.write_text(
+                json.dumps({"assets": [{"name": "fpv-threejs-web-bridge"}]}), encoding="utf-8"
+            )
+            with mock.patch.dict(FPV_TOOL.THREEJS_PORTS, {"fpv-threejs-web-bridge": port}):
+                with self.assertRaisesRegex(FPV_TOOL.RuntimeErrorWithMessage, f"port {port}"):
+                    FPV_TOOL.require_free_ports(launcher)
+                launcher.write_text(
+                    json.dumps({"assets": [{"name": "fpv-drone-service"}]}), encoding="utf-8"
+                )
+                FPV_TOOL.require_free_ports(launcher)
+
+    def test_master3x_assembly_projection_discovers_tuned_config(self):
+        assembly = FPV_TOOL.ROOT / "recipes" / "examples" / "master3x-visual-demo.assembly.json"
+        with tempfile.TemporaryDirectory() as directory:
+            projected = Path(directory) / "assembly-projected-recipe.yaml"
+            projected.write_bytes(
+                (FPV_TOOL.ROOT / "recipes" / "examples" / "master3x.yaml").read_bytes()
+            )
+            self.assertEqual(
+                FPV_TOOL.ROOT / "verified-configs" / "master3x-angle" / "drone-config",
+                FPV_TOOL.discover_verified_config(projected, FPV_TOOL.DEFAULT_WORLD, assembly),
+            )
+            projected.write_text(projected.read_text(encoding="utf-8") + "# edited\n", encoding="utf-8")
+            self.assertIsNone(
+                FPV_TOOL.discover_verified_config(projected, FPV_TOOL.DEFAULT_WORLD, assembly)
+            )
+
     def test_master3x_recipe_matches_its_assembly_projection(self):
         # The tuned config is keyed to master3x.yaml, so it must not drift from
         # the Assembly Graph that the Three.js assets are built from.

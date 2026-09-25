@@ -104,18 +104,7 @@ Assembly Graphから、Three.js用の機体ボディ・プロペラ・カメラ�
 viewer用の配置定義を生成する場合は、[Assembly Graph to Three.js assets](docs/threejs-assembly-assets.md)
 を参照してください。`--assembly`を指定すると`configure --threejs`へも接続できます。
 
-```bash
-python3.12 tools/fpv.py configure --threejs
-python3.12 tools/fpv.py start
-python3.12 tools/fpv.py open-viewer
-```
-
-例えばMaster3XのCatalog外観を表示する場合は、次のようにAssembly Graphを指定します。
-
-```bash
-python3.12 tools/fpv.py configure --threejs \
-  --assembly recipes/examples/master3x-visual-demo.assembly.json
-```
+実行手順は[Three.jsビューアで見る](#8-threejsビューアで見る任意)を参照してください。
 
 `open-viewer`は生成済みURLを既定ブラウザで自動的に開きます。Three.jsではMuJoCo runtimeモデルの`fpv`カメラ位置・向き・FOVを正本として、主観映像をメイン、操作可能な客観映像を左上PiPに表示します。`Tab`で主・副画面を交換し、`F`でPiPを表示・非表示にできます。
 
@@ -267,12 +256,29 @@ python ../hakoniwa-fpv-drone/tools/fpv.py stop --output ../hakoniwa-fpv-drone/bu
 
 終了時は`hako-cmd stop`や`kill -9`ではなく、必ず`stop`でLauncherのterminate経路を使ってください。Workspaceを抜けるときは`exit`します。
 
+### 8. Three.jsビューアで見る（任意）
+
+MuJoCo Viewerに加えて、ブラウザのThree.jsビューアで機体とプロペラの回転を表示できます。Master3Xでは、Assembly Graphから機体ボディ・プロペラ・カメラのGLBを生成して表示します。手順3の`configure`で、WebBridge（`hakoniwa-pdu-bridge-core`）、`hakoniwa-threejs-drone`、`trimesh`はすでに用意されています。
+
+```bash
+python ../hakoniwa-fpv-drone/tools/fpv.py configure --threejs \
+  --assembly ../hakoniwa-fpv-drone/recipes/examples/master3x-visual-demo.assembly.json \
+  --output ../hakoniwa-fpv-drone/build/master3x
+python ../hakoniwa-fpv-drone/tools/fpv.py start       --output ../hakoniwa-fpv-drone/build/master3x
+python ../hakoniwa-fpv-drone/tools/fpv.py open-viewer --output ../hakoniwa-fpv-drone/build/master3x
+```
+
+`--assembly`から生成したRecipeが`recipes/examples/master3x.yaml`と一致するため、チューニング済みの[検証済み構成](verified-configs/master3x-angle/)が自動適用されます。ブラウザが開いたら、左上の**connect**を押してください。WebSocket（`ws://127.0.0.1:8765`）につながり、Drone Stateに位置とpwm0〜3が表示され、プロペラが回ります。PS5の操作は手順6と同じです。停止は`stop --output ../hakoniwa-fpv-drone/build/master3x`です。
+
+`--threejs`の構成では、HTTP（8000番）とWebSocket（8765番）のポートを使います。`start`はこれらのポートが空いているかを先に確認し、使用中の場合は使っているプロセスを表示して起動しません。
+
 ### うまく動かないとき
 
 - **×と△は効くのにスティックで何も起きない**：`<output>/runtime/logs/fpv-drone-service.out`に、`radio_control: 1`の直後の`[STATE] Hovering -> Landing`がないか確認してください。runtimeの`control-param.txt`に`CTRLMODE_LANDING_*`がないと、地上でRadio Controlを有効にした瞬間にLandingへ入り、抜けられなくなります。
 - **浮上するがホバリングしない**：`configure`の出力が`No verified FPV config matches ...`になっていないか確認してください。未調整の汎用PIDが使われています。
 - **`Drone Core service ... not found`**：手順4の`fpv-drone-core.py prepare`を実行してください。
 - **`[WARNING] Hakoniwa Workspace is not active`**：手順2の`(hako)`シェルの外で実行しています。
+- **Three.jsビューアに機体の状態が出ない**：左上の**connect**を押したか確認してください。`start`が`port 8765 ... is in use`で止まる場合は、表示されたプロセス（Dockerコンテナなど）を止めてから、もう一度`start`してください。
 
 ## FPV機体のHover・Angle PID tuning
 
