@@ -58,6 +58,17 @@ class FpvDroneCoreToolTest(unittest.TestCase):
                 TOOL.safe_extract_zip(archive, Path(directory) / "out")
             self.assertFalse((Path(directory) / "escape.txt").exists())
 
+    def test_safe_extract_restores_unix_permissions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / "release.zip"
+            with zipfile.ZipFile(archive, "w") as package:
+                executable = zipfile.ZipInfo("mac/mac-drone_service_rc")
+                executable.external_attr = 0o755 << 16
+                package.writestr(executable, "binary")
+            TOOL.safe_extract_zip(archive, Path(directory) / "out")
+            mode = (Path(directory) / "out" / "mac" / "mac-drone_service_rc").stat().st_mode & 0o777
+            self.assertEqual(0o755, mode)
+
     def test_prepare_requires_a_drone_core_checkout(self):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(TOOL.PrepareError, "recipe.py configure"):

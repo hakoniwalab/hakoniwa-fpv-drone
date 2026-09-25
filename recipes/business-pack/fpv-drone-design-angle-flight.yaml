@@ -169,12 +169,15 @@ recipe_local_requirements:
       type: git
       url: https://github.com/toppers/hakoniwa-drone-core.git
       revision: v4.1.1
+    # Only files the git checkout provides; configure validates these right
+    # after cloning. tools/fpv-drone-core.py prepare adds and verifies the
+    # release binaries and MuJoCo afterwards.
     required_artifacts:
-      - path: mac/mac-main_hako_drone_service
-        kind: executable
-      - path: mac/mac-drone_visual_state_publisher
-        kind: executable
-      - path: vendor/mujoco/lib/libmujoco.3.13.0.dylib
+      - path: MUJOCO_VERSION.txt
+        kind: file
+      - path: tools/install-mujoco-mac.bash
+        kind: file
+      - path: tools/link-mujoco-mac.bash
         kind: file
       - path: config/pdudef/drone-pdudef-1.json
         kind: file
@@ -396,7 +399,7 @@ demo:
     - order: 1
       id: prepare_business_pack_foundation
       component: hakoniwa-business-pack
-      action: Inside the (hako) Workspace shell from python tools/workspace.py enter, build the Foundation, clone hakoniwa-drone-core v4.1.1 when missing, and install the Recipe Python requirements. The first doctor reports the Drone Core release binaries and MuJoCo runtime as missing until step 2 runs.
+      action: Inside the (hako) Workspace shell from python tools/workspace.py enter, build the Foundation, clone hakoniwa-drone-core v4.1.1 when missing, and install the Recipe Python requirements. The Drone Core release binaries and MuJoCo runtime come from step 2.
       command: python3.12 tools/recipe.py configure --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
       agency: agent_action
       requires_gates: []
@@ -410,7 +413,7 @@ demo:
     - order: 3
       id: doctor_recipe
       component: hakoniwa-business-pack
-      action: Confirm that the Foundation and every Drone Core artifact report SATISFIED.
+      action: Confirm that the Foundation and every Recipe dependency report SATISFIED.
       command: python tools/recipe.py doctor --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
       agency: agent_action
       requires_gates: []

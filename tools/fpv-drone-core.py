@@ -96,6 +96,11 @@ def safe_extract_zip(archive: Path, destination: Path) -> None:
             if target != destination and destination not in target.parents:
                 raise PrepareError(f"archive contains an unsafe path: {member.filename}")
         package.extractall(destination)
+        # zipfile drops Unix permissions; restore them like unzip does.
+        for member in package.infolist():
+            mode = (member.external_attr >> 16) & 0o777
+            if mode and not member.is_dir():
+                (destination / member.filename).chmod(mode)
 
 
 def mujoco_asset(version: str, system: str, machine: str) -> str:

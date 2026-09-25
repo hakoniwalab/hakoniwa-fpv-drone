@@ -1003,7 +1003,7 @@ def configure(args: argparse.Namespace) -> int:
     foundation_python = require_file(args.foundation_python.absolute(), "Foundation Python")
     service = require_file(
         drone_core_bin / "mac-main_hako_drone_service",
-        "Drone Core service (extract the released mac.zip; see --drone-core-bin)",
+        "Drone Core service (run tools/fpv-drone-core.py prepare; see --drone-core-bin)",
     )
     pdudef = require_file(drone_core / "config" / "pdudef" / "drone-pdudef-1.json", "Drone PDU definition")
     rc_config = require_file(args.rc_config.resolve(), "RC config")
@@ -1118,7 +1118,7 @@ def configure(args: argparse.Namespace) -> int:
     if args.threejs:
         visual_state_publisher = require_file(
             drone_core_bin / "mac-drone_visual_state_publisher",
-            "Drone Core visual-state publisher (extract the released mac.zip; see --drone-core-bin)",
+            "Drone Core visual-state publisher (run tools/fpv-drone-core.py prepare; see --drone-core-bin)",
         )
         visual_state_config = require_file(
             drone_core / "config" / "assets" / "visual_state_publisher" / "visual_state_publisher-1.json",
