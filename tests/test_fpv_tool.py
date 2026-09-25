@@ -76,6 +76,10 @@ class FpvToolTest(unittest.TestCase):
             self.assertEqual([0.08, 0.0, 0.005], camera["position_m"])
             self.assertEqual(120.0, camera["fov_deg"])
 
+    @unittest.skipUnless(
+        importlib.util.find_spec("trimesh"),
+        "trimesh is not installed in this test interpreter",
+    )
     def test_assembly_threejs_viewer_uses_generated_three_asset_drone_type(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -183,13 +187,17 @@ class FpvToolTest(unittest.TestCase):
             ),
         )
 
-    def test_verified_config_keeps_generated_radio_state_machine_values(self):
+    def test_verified_configs_keep_generated_radio_state_machine_values(self):
         # configure overwrites the generated control-param.txt with the verified
         # copy, so a missing CTRLMODE_* key silently falls back to 0.0 at runtime.
         from fpv_drone_generator.catalog import load_catalogs
         from fpv_drone_generator.package import generate_package
         from fpv_drone_generator.recipe import load_recipe
         from fpv_drone_generator.resolver import resolve_vehicle
+        from fpv_drone_generator.target import (
+            bundled_drone_pro_rotor_contract_path,
+            load_drone_pro_rotor_contract,
+        )
 
         def ctrlmode_values(path):
             values = {}
@@ -199,17 +207,55 @@ class FpvToolTest(unittest.TestCase):
                     values[fields[0]] = float(fields[1])
             return values
 
-        vehicle = resolve_vehicle(
-            load_recipe(FPV_TOOL.DEFAULT_RECIPE), load_catalogs(FPV_TOOL.ROOT / "catalogs")
-        )
-        with tempfile.TemporaryDirectory() as directory:
-            generated = ctrlmode_values(
-                generate_package(vehicle, Path(directory) / "vehicle") / "control-param.txt"
-            )
-        verified = ctrlmode_values(FPV_TOOL.DEFAULT_VERIFIED_CONFIG / "control-param.txt")
+        catalogs = load_catalogs(FPV_TOOL.ROOT / "catalogs")
+        contract = load_drone_pro_rotor_contract(bundled_drone_pro_rotor_contract_path())
+        receipts = sorted((FPV_TOOL.ROOT / "verified-configs").glob("*/receipt.json"))
+        self.assertGreaterEqual(len(receipts), 2)
+        for receipt_path in receipts:
+            with self.subTest(verified_config=receipt_path.parent.name):
+                receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+                vehicle = resolve_vehicle(
+                    load_recipe(FPV_TOOL.ROOT / receipt["source_recipe"]), catalogs
+                )
+                with tempfile.TemporaryDirectory() as directory:
+                    generated = ctrlmode_values(
+                        generate_package(
+                            vehicle, Path(directory) / "vehicle", rotor_contract=contract
+                        ) / "control-param.txt"
+                    )
+                verified = ctrlmode_values(
+                    receipt_path.parent / "drone-config" / "control-param.txt"
+                )
+                self.assertIn("CTRLMODE_LANDING_COMPLETION_STABLE_ANGLE_DEG", generated)
+                self.assertEqual(generated, verified)
+                FPV_TOOL.validate_verified_config(receipt_path.parent / "drone-config")
 
-        self.assertIn("CTRLMODE_LANDING_COMPLETION_STABLE_ANGLE_DEG", generated)
-        self.assertEqual(generated, verified)
+    def test_master3x_recipe_discovers_tuned_config(self):
+        self.assertEqual(
+            FPV_TOOL.ROOT / "verified-configs" / "master3x-angle" / "drone-config",
+            FPV_TOOL.discover_verified_config(
+                FPV_TOOL.ROOT / "recipes" / "examples" / "master3x.yaml",
+                FPV_TOOL.DEFAULT_WORLD,
+            ),
+        )
+
+    def test_master3x_recipe_matches_its_assembly_projection(self):
+        # The tuned config is keyed to master3x.yaml, so it must not drift from
+        # the Assembly Graph that the Three.js assets are built from.
+        import yaml
+        from fpv_drone_generator.assembly import load_assembly_graph, project_recipe, resolve_assembly
+        from fpv_drone_generator.catalog import load_catalogs
+
+        graph = load_assembly_graph(
+            FPV_TOOL.ROOT / "recipes" / "examples" / "master3x-visual-demo.assembly.json"
+        )
+        projected = project_recipe(
+            resolve_assembly(graph, load_catalogs(FPV_TOOL.ROOT / "catalogs"))
+        )
+        committed = yaml.safe_load(
+            (FPV_TOOL.ROOT / "recipes" / "examples" / "master3x.yaml").read_text(encoding="utf-8")
+        )
+        self.assertEqual(projected, committed)
 
     def test_parameter_overrides_preserve_comments_and_append_missing_keys(self):
         source = "# generated\nPID_ROLL_Kp 1\nPID_ROLL_Ki 0\n"

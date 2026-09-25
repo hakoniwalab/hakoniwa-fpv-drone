@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "id": "master3x-angle-2026-09-25",
+  "source_recipe": "recipes/examples/master3x.yaml",
+  "source_world": "recipes/environments/fpv-training-course.yaml",
+  "source_assembly": "recipes/examples/master3x-visual-demo.assembly.json",
+  "inputs": {
+    "recipe_sha256": "60b1f12f0cd52e8a0834ae70dd3e23a79784225aa887b2253395eae5be866886",
+    "world_sha256": "32af1265d55b2bf0030ebbd3091ba1c80361d25e3c442ecb2bcde99bba850a54"
+  },
+  "verified_on": "2026-09-25",
+  "verification": {
+    "controller_backend": "adapter-hakoniwa",
+    "runtime_controller": "RadioController",
+    "runtime": "Hakoniwa Drone Core v4.1.1 (mac.zip release)",
+    "mode": "angle",
+    "max_roll_deg": 55.0,
+    "max_pitch_deg": 55.0,
+    "pid_tuning": {
+      "tool": "Hakoniwa Drone PRO auto-tuning with the FPV flight-gate-v5 policy",
+      "profile_input_sha256": "292b6f570af1cebc05836a8f2111ced289df96f89d528fc4deea5b64f87ef332",
+      "hover": {"status": "passed", "selected_trial": "trial_0034", "trials": 40},
+      "angle": {"status": "passed", "selected_trial": "trial_0052", "trials": 60},
+      "post_angle_hover": {"status": "passed"},
+      "applied_parameter_count": 21
+    },
+    "manual_acceptance": "PS5 Angle-mode lift-off and stable hover"
+  },
+  "history": [
+    {
+      "date": "2026-09-25",
+      "change": "Froze the Master3X vehicle with the flight-gate-approved Angle parameters. The generated drone.xml, drone_config.json, and pre-tuning control-param.txt were byte-identical to the tuning input. With the generic Catalog PIDs the aircraft lifted off but did not settle into a hover."
+    }
+  ],
+  "scope": [
+    "simulation model and controller configuration only",
+    "not validated against a real aircraft",
+    "PID tuning profile, search space, trials, and logs are not included"
+  ],
+  "files": {
+    "drone-config/drone.xml": {
+      "sha256": "340df795532a0ba2fe461521ee03dadb55d99a31d4ec9913e37064a614d64493"
+    },
+    "drone-config/drone_config_0.json": {
+      "sha256": "8bd930e0debd183c34aed217117a0cdb5d89610a690a093d2e84c78c89d16735"
+    },
+    "drone-config/control-param.txt": {
+      "sha256": "cff5cfe0ee5aed9295de6b03cf639ec78d0f81c59958945a5cd9c04025d7b2b6"
+    }
+  }
+}

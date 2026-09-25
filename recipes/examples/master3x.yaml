@@ -1,0 +1,88 @@
+schema_version: 2
+name: master3x-visual-demo
+type: quad_x
+components:
+  frame: speedybee_master3x
+  motors:
+    product: speedybee_1507_3600kv
+    count: 4
+  propeller: hqprop_t35x25x3_1_5mm
+  battery: generic_4s_850mah
+  camera: master3x_demo_camera_head
+controller:
+  product: hakoniwa_default
+  mode: angle
+rotor_layout:
+  contract: hakoniwa-drone-pro/rotor-layout-v1
+  rotors:
+  - name: prop1
+    position_flu_m:
+    - 0.06046
+    - -0.06046
+    - 0.008
+    motor_position_flu_m:
+    - 0.06046
+    - -0.06046
+    - 0.0
+    rotation_direction: -1
+  - name: prop2
+    position_flu_m:
+    - 0.06046
+    - 0.06046
+    - 0.008
+    motor_position_flu_m:
+    - 0.06046
+    - 0.06046
+    - 0.0
+    rotation_direction: 1
+  - name: prop3
+    position_flu_m:
+    - -0.06046
+    - 0.06046
+    - 0.008
+    motor_position_flu_m:
+    - -0.06046
+    - 0.06046
+    - 0.0
+    rotation_direction: -1
+  - name: prop4
+    position_flu_m:
+    - -0.06046
+    - -0.06046
+    - 0.008
+    motor_position_flu_m:
+    - -0.06046
+    - -0.06046
+    - 0.0
+    rotation_direction: 1
+placements:
+  battery:
+    position_m:
+    - -0.008
+    - 0.0
+    - 0.0375
+    rpy_deg:
+    - 0.0
+    - 0.0
+    - 0.0
+  camera:
+    position_m:
+    - 0.067
+    - 0.0
+    - 0.014
+    rpy_deg:
+    - 0.0
+    - 0.0
+    - 0.0
+  controller:
+    position_m:
+    - 0.0
+    - 0.0
+    - 0.0075
+    rpy_deg:
+    - 0.0
+    - 0.0
+    - 0.0
+attachments: []
+metadata:
+  source: assembly-graph

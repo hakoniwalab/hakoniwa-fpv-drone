@@ -32,28 +32,35 @@ Catalog属性を追加してもRecipeの参照形式を壊さず、実行backend
 
 ## Quick Start
 
-Python 3.10以上を使用します。
+このリポジトリは[箱庭ビジネスパック](https://github.com/hakoniwalab/hakoniwa-business-pack)の環境で使います。Python環境は、Business PackのFoundation Python（Python 3.12）に一本化します。
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -e .
+mkdir fpv-drone && cd fpv-drone
+git clone https://github.com/hakoniwalab/hakoniwa-business-pack.git
+git clone https://github.com/hakoniwalab/hakoniwa-fpv-drone.git
+cd hakoniwa-business-pack
+python3.12 tools/recipe.py doctor --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
+python3.12 tools/recipe.py configure --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
 ```
 
+`configure`がFoundationのビルド、必要な兄弟リポジトリのclone、Python依存のインストールを行います。そのあと、drone-coreのバイナリを用意して機体を生成し、PS5で飛ばすまでの手順は、[Angleモードで実行する](#angleモードで実行するcloneからps5操縦まで)を参照してください。
+
+機体の検証、BOM、生成パッケージだけを確認したい場合は、Business PackのWorkspace（`(hako)`プロンプト）の中で生成ツールを実行します。
+
 ```bash
-fpv-drone validate recipes/examples/5inch-fpv.yaml
-fpv-drone bom recipes/examples/5inch-fpv.yaml
-fpv-drone generate \
+cd hakoniwa-business-pack
+python tools/workspace.py enter
+cd ../hakoniwa-fpv-drone
+export PYTHONPATH=src
+python -m fpv_drone_generator.cli validate recipes/examples/5inch-fpv.yaml
+python -m fpv_drone_generator.cli bom recipes/examples/5inch-fpv.yaml
+python -m fpv_drone_generator.cli generate \
   recipes/examples/5inch-fpv.yaml \
   --world recipes/environments/fpv-training-course.yaml \
   --output build/example-5inch
 ```
 
-開発時はインストールせず、次の形式でも実行できます。
-
-```bash
-PYTHONPATH=src python -m fpv_drone_generator.cli validate recipes/examples/5inch-fpv.yaml
-```
+Workspaceの中では、`python`はFoundation Pythonを指します。
 
 ## CatalogとRecipe
 
@@ -228,7 +235,16 @@ python3.12 ../hakoniwa-fpv-drone/tools/fpv.py start
 python3.12 ../hakoniwa-fpv-drone/tools/fpv.py status
 ```
 
-`configure`は既定のRecipeとWorldから機体を生成し、入力hashが一致する[検証済み構成](verified-configs/example-5inch-angle/)を自動適用します。`start`でMuJoCo Viewerが開き、PS5コントローラの入力クライアントがバックグラウンドで起動します。ログは`build/example-5inch/runtime/logs/`に出力されます。
+`configure`は既定のRecipeとWorldから機体を生成し、入力hashが一致する[検証済み構成](verified-configs/example-5inch-angle/)を自動適用します。
+
+SpeedyBee Master3Xを飛ばす場合は、Master3XのRecipeと出力先を指定します。PID自動チューニング済みの[検証済み構成](verified-configs/master3x-angle/)が自動適用されます。`start`／`status`／`stop`にも同じ`--output`を付けてください。
+
+```bash
+python3.12 ../hakoniwa-fpv-drone/tools/fpv.py configure \
+  --recipe ../hakoniwa-fpv-drone/recipes/examples/master3x.yaml \
+  --output ../hakoniwa-fpv-drone/build/master3x
+python3.12 ../hakoniwa-fpv-drone/tools/fpv.py start --output ../hakoniwa-fpv-drone/build/master3x
+````start`でMuJoCo Viewerが開き、PS5コントローラの入力クライアントがバックグラウンドで起動します。ログは`build/example-5inch/runtime/logs/`に出力されます。
 
 ### 5. PS5で操縦する
 
