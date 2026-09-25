@@ -7,7 +7,7 @@ goal:
   description: >
     Resolve a component-owned FPV Vehicle Recipe against the FPV catalogs, compile
     a MuJoCo and Hakoniwa Generated Vehicle Package, and run the generated quad-X
-    aircraft with Hakoniwa Drone PRO. The Recipe keeps vehicle construction in this
+    aircraft with Hakoniwa Drone Core. The Recipe keeps vehicle construction in this
     repository while the Hakoniwa Business Pack Catalog provides ecosystem discovery.
 
 feasibility:
@@ -22,7 +22,9 @@ validation:
   status: verified
   summary: >
     Catalog resolution, package generation, coordinate conversion, Launcher operation,
-    PID tuning integration, and PS5 Angle-mode flight were verified on macOS. The
+    PID tuning integration, and PS5 Angle-mode flight were verified on macOS. PS5
+    Angle-mode flight was re-verified on 2026-09-25 with the public Hakoniwa Drone
+    Core v4.1.1 release binaries and a Foundation built by recipe.py configure. The
     physical approximations and generated PID values have not been validated against
     a real FPV aircraft.
   steps:
@@ -42,8 +44,11 @@ validation:
           revision: 715225d0299640e1cc010af4ee6fcc50513728ed
         - source: user-runtime-confirmation
           date: 2026-08-29
+        - source: user-runtime-confirmation
+          date: 2026-09-25
       notes:
         - The generated quad-X aircraft responded to PS5 input and maintained usable Angle-mode flight after tuning.
+        - The 2026-09-25 run used Hakoniwa Drone Core v4.1.1 instead of a Drone PRO checkout. It required the Catalog CTRLMODE_LANDING_* values in the verified control-param.txt; without them RadioController entered Landing on the ground and ignored stick input.
     - id: verify_pid_tuning_connection
       status: verified
       evidence:
@@ -78,7 +83,7 @@ target_environment:
     - name: MuJoCo
       required: true
       version: Drone-Core-compatible
-      path: hakoniwa-drone-pro/vendor/mujoco
+      path: hakoniwa-drone-core/vendor/mujoco
   hakoniwa:
     install_prefix: hakoniwa-business-pack/work/foundation/install
     components_built:
@@ -135,22 +140,40 @@ foundation_requirements:
 
 recipe_local_requirements_schema_version: 1
 recipe_local_requirements:
-  hakoniwa-drone-pro:
+  hakoniwa-drone-core:
     root:
-      default_path: ../hakoniwa-drone-pro
-      override_env: HAKONIWA_DRONE_PRO_ROOT
+      default_path: ../hakoniwa-drone-core
+      override_env: HAKONIWA_DRONE_CORE_ROOT
       relative_to: recipe_repository
     source:
-      type: local
+      type: git
+      url: https://github.com/toppers/hakoniwa-drone-core.git
+      revision: v4.1.1
     required_artifacts:
-      - path: .hako/install/bin/mac-main_hako_drone_service
+      - path: mac/mac-main_hako_drone_service
         kind: executable
+      - path: mac/mac-drone_visual_state_publisher
+        kind: executable
+      - path: vendor/mujoco/lib/libmujoco.3.13.0.dylib
+        kind: file
       - path: config/pdudef/drone-pdudef-1.json
         kind: file
       - path: drone_api/rc/rc-custom.py
         kind: file
       - path: drone_api/rc/rc_config/ps4-control.json
         kind: file
+
+runtime_dependencies:
+  python:
+    interpreter: work/foundation/install/python
+    requirements: recipes/requirements/fpv-drone-design-angle-flight.txt
+    packages:
+      - name: pygame
+        version: 2.6.1
+        purpose: Read PS5 DualSense controller events in the Drone Core rc-custom.py client.
+      - name: PyYAML
+        version: 6.0.3
+        purpose: Load Catalogs and Vehicle Recipes when tools/fpv.py runs the generator with Foundation Python.
 
 components:
   - id: hakoniwa-fpv-drone
@@ -174,8 +197,8 @@ connections:
     contract:
       status: verified
       requires:
-        - MuJoCo Z-up to Drone PRO NED initial-position conversion
-        - MuJoCo to Drone PRO rotor-position Y-axis conversion
+        - MuJoCo Z-up to Drone Core NED initial-position conversion
+        - MuJoCo to Drone Core rotor-position Y-axis conversion
         - Stable rotor index and direction correspondence
       validation_notes:
         - The generated example aircraft completed PS5 Angle-mode flight on 2026-08-29.
@@ -197,12 +220,12 @@ connections:
     contract:
       status: verified
       requires:
-        - Compatible Hakoniwa Core and Drone PRO build
+        - Compatible Hakoniwa Core and Drone Core build
       validation_notes:
         - The generated aircraft advanced under synchronized Hakoniwa simulation during the verified run.
 
 data_flow:
-  summary: Component catalogs and a Vehicle Recipe become a generated aircraft package, which Drone PRO simulates and a human operates with a PS5 controller.
+  summary: Component catalogs and a Vehicle Recipe become a generated aircraft package, which Drone Core simulates and a human operates with a PS5 controller.
   steps:
     - from: FPV component catalogs and Vehicle Recipe
       to: hakoniwa-fpv-drone
@@ -210,12 +233,12 @@ data_flow:
       description: Resolve one user-selected aircraft configuration into a typed physical vehicle model.
     - from: hakoniwa-fpv-drone
       to: hakoniwa-drone-core
-      data: [MuJoCo model, Drone PRO configuration, initial controller parameters]
+      data: [MuJoCo model, Drone Core configuration, initial controller parameters]
       description: Render the resolved vehicle into the existing runtime contracts.
     - from: PS5 DualSense controller
       to: hakoniwa-drone-core
       data: [throttle, yaw, pitch, roll, Radio Control toggle]
-      description: A human closes the outer FPV control loop while Drone PRO performs Angle and angular-rate control.
+      description: A human closes the outer FPV control loop while Drone Core performs Angle and angular-rate control.
 
 time_model:
   mode: shared-simulation-time
@@ -298,8 +321,8 @@ agency_boundary:
       confirmation_required: true
       required_before: [ps5_flight_review]
   required_permissions:
-    - id: hakoniwa_drone_pro_license
-      description: Confirm the applicable Hakoniwa Drone PRO entitlement for commercial runtime use.
+    - id: hakoniwa_drone_core_license
+      description: Confirm non-commercial use complies with the Hakoniwa Drone Core license terms (or that an applicable Hakoniwa Drone PRO entitlement covers commercial runtime use).
       status: required
       required_before: [run_simulation]
     - id: pid_auto_tuning_license
@@ -320,7 +343,7 @@ demo:
       - id: generated-package-exists
         kind: file
         target: build/example-5inch/runtime/vehicle/drone_config_0.json
-        expected: The generated Drone PRO runtime configuration exists.
+        expected: The generated Drone Core runtime configuration exists.
       - id: launcher-session-running
         kind: process
         target: tools/fpv.py status
@@ -337,39 +360,73 @@ demo:
     - order: 1
       id: prepare_business_pack_foundation
       component: hakoniwa-business-pack
-      action: Resolve the Foundation and verify the local Drone PRO checkout declared by this Recipe.
+      action: Build the Foundation, clone hakoniwa-drone-core v4.1.1 when missing, and install the Recipe Python requirements. The first doctor reports the Drone Core release binaries and MuJoCo runtime as missing until steps 2 to 4 run.
       command: python tools/recipe.py configure --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
       agency: agent_action
       requires_gates: []
     - order: 2
+      id: extract_drone_core_release_binaries
+      component: hakoniwa-drone-core
+      action: Extract the v4.1.1 macOS release archive into the Drone Core checkout, creating its mac/ directory.
+      command: curl -L -o /tmp/hakoniwa-drone-core-mac.zip https://github.com/toppers/hakoniwa-drone-core/releases/download/v4.1.1/mac.zip && unzip -o /tmp/hakoniwa-drone-core-mac.zip -d ../hakoniwa-drone-core
+      agency: agent_action
+      requires_gates: []
+    - order: 3
+      id: install_drone_core_mujoco
+      component: hakoniwa-drone-core
+      action: Install the MuJoCo version named by MUJOCO_VERSION.txt under the Drone Core vendor directory.
+      command: bash ../hakoniwa-drone-core/tools/install-mujoco-mac.bash ../hakoniwa-drone-core
+      agency: agent_action
+      requires_gates: []
+    - order: 4
+      id: link_drone_core_mujoco
+      component: hakoniwa-drone-core
+      action: Add the checkout-local MuJoCo library directory to the release binaries' RPATH; the shipped RPATH points at the build machine.
+      command: bash ../hakoniwa-drone-core/tools/link-mujoco-mac.bash ../hakoniwa-drone-core/mac --lib-dir "$(cd ../hakoniwa-drone-core && pwd)/vendor/mujoco/lib"
+      agency: agent_action
+      requires_gates: []
+    - order: 5
+      id: doctor_recipe
+      component: hakoniwa-business-pack
+      action: Confirm that the Foundation and every Drone Core artifact report SATISFIED.
+      command: python tools/recipe.py doctor --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
+      agency: agent_action
+      requires_gates: []
+    - order: 6
       id: generate_fpv_vehicle
       component: hakoniwa-fpv-drone
-      action: Resolve the component-owned 5-inch Vehicle Recipe and generate the runtime package.
+      action: Resolve the component-owned 5-inch Vehicle Recipe and generate the runtime package; the verified configuration is applied automatically.
       command: python3.12 ../hakoniwa-fpv-drone/tools/fpv.py configure
       agency: agent_action
-      requires_gates: [hakoniwa_drone_pro_license]
-    - order: 3
+      requires_gates: [hakoniwa_drone_core_license]
+    - order: 7
       id: optional_pid_tuning
       component: hakoniwa-drone-core
       action: Follow README and the PID tuning know-how to tune Hover before Angle; review candidates before applying one.
       command: python3.12 ../hakoniwa-fpv-drone/tools/fpv.py tune-prepare
       agency: required_permission
       requires_gates: [pid_auto_tuning_license, accept_tuned_candidate]
-    - order: 4
+    - order: 8
       id: start_angle_runtime
       component: hakoniwa-fpv-drone
       action: Start the background Launcher and native MuJoCo Viewer.
       command: python3.12 ../hakoniwa-fpv-drone/tools/fpv.py start
       agency: agent_action
-      requires_gates: [hakoniwa_drone_pro_license]
-    - order: 5
+      requires_gates: [hakoniwa_drone_core_license]
+    - order: 9
       id: operate_ps5
       component: hakoniwa-drone-core
-      action: Toggle Radio Control and verify Angle-mode response with the PS5 controller.
+      action: >-
+        Press and release Cross to enable Radio Control, then press and release
+        Triangle to switch from the initial GPS mode to ATTI, then raise the left
+        stick to lift off. With ANGLE_CONTROL_ENABLE=1 the GPS mode produces no
+        control output, so the aircraft stays on the ground until ATTI is
+        selected. Fly with the right stick (Pitch/Roll) and the left stick
+        (throttle/Yaw).
       command: null
       agency: human_action
       requires_gates: [connect_and_operate_ps5]
-    - order: 6
+    - order: 10
       id: stop_runtime
       component: hakoniwa-fpv-drone
       action: Terminate the owned Launcher session through its control endpoint.
@@ -382,7 +439,9 @@ demo:
       - The Launcher reports RUNNING and detects the PS5 controller.
       - The aircraft responds to Angle commands without the initial immediate divergence.
     failure_signals:
-      - The private Drone PRO service or RC artifacts are missing.
+      - The Drone Core service or RC artifacts are missing.
+      - The service log shows "[STATE] Hovering -> Landing" right after "radio_control: 1" and sticks have no effect; the runtime control-param.txt lacks CTRLMODE_LANDING_* values.
+      - The aircraft stays on the ground after Radio Control is enabled because the controller is still in GPS mode; press Triangle to select ATTI.
       - The generated model changes after a tuning profile is prepared.
       - The service loads RadioController during offline tuning instead of TuningController.
       - The vehicle remains on the ground and is incorrectly treated as a successful hover.
@@ -438,7 +497,7 @@ source_artifacts:
   - repository: hakoniwalab/hakoniwa-fpv-drone
     path: docs/generated-package.md
     revision: 715225d0299640e1cc010af4ee6fcc50513728ed
-    description: Generated Package and Drone PRO adapter contract.
+    description: Generated Package and Drone Core adapter contract.
   - repository: toppers/hakoniwa-drone-core
     path: README.md
     revision: main

@@ -19,6 +19,12 @@ DEFAULT_RECIPE = ROOT / "recipes" / "examples" / "5inch-fpv.yaml"
 DEFAULT_OUTPUT = ROOT / "build" / "example-5inch"
 DEFAULT_WORLD = ROOT / "recipes" / "environments" / "fpv-training-course.yaml"
 DEFAULT_VERIFIED_CONFIG = ROOT / "verified-configs" / "example-5inch-angle" / "drone-config"
+DEFAULT_DRONE_CORE = ROOT.parent / "hakoniwa-drone-core"
+# The free binary release (mac.zip from GitHub Releases) extracts to a flat
+# "mac/" directory of executables and shared libraries, not a built
+# ".hako/install/bin" tree. This assumes mac.zip was extracted directly under
+# the hakoniwa-drone-core checkout.
+DEFAULT_DRONE_CORE_BIN = DEFAULT_DRONE_CORE / "mac"
 DEFAULT_DRONE_PRO = ROOT.parent / "hakoniwa-drone-pro"
 DEFAULT_THREEJS_ROOT = ROOT.parent / "hakoniwa-threejs-drone"
 DEFAULT_BUSINESS_PACK_ROOT = ROOT.parent / "hakoniwa-business-pack"
@@ -688,14 +694,18 @@ def tune_apply(args: argparse.Namespace) -> int:
 
 def configure(args: argparse.Namespace) -> int:
     resolved = paths(args)
-    drone_pro = args.drone_pro_root.resolve()
+    drone_core = args.drone_core_root.resolve()
+    drone_core_bin = args.drone_core_bin.resolve()
     # Keep the Foundation interpreter path itself. Resolving its symlink would
     # bypass the virtual environment and lose Foundation-installed packages.
     foundation_python = require_file(args.foundation_python.absolute(), "Foundation Python")
-    service = require_file(drone_pro / ".hako" / "install" / "bin" / "mac-main_hako_drone_service", "Drone PRO service")
-    pdudef = require_file(drone_pro / "config" / "pdudef" / "drone-pdudef-1.json", "Drone PDU definition")
+    service = require_file(
+        drone_core_bin / "mac-main_hako_drone_service",
+        "Drone Core service (extract the released mac.zip; see --drone-core-bin)",
+    )
+    pdudef = require_file(drone_core / "config" / "pdudef" / "drone-pdudef-1.json", "Drone PDU definition")
     rc_config = require_file(args.rc_config.resolve(), "RC config")
-    require_file(drone_pro / "drone_api" / "rc" / "rc-custom.py", "RC client")
+    require_file(drone_core / "drone_api" / "rc" / "rc-custom.py", "RC client")
     rc_bootstrap = require_file(ROOT / "tools" / "fpv_rc_bootstrap.py", "FPV RC bootstrap")
     threejs_root = args.threejs_root.resolve()
     business_pack_root = args.business_pack_root.resolve()
@@ -775,7 +785,7 @@ def configure(args: argparse.Namespace) -> int:
                 "activation_timing": "before_start",
                 "command": str(service),
                 "args": [str(resolved["vehicle"]), str(pdudef), "--mujoco-viewer", "--mujoco-fpv-pip", "--real-sleep-msec", "1"],
-                "cwd": str(drone_pro),
+                "cwd": str(drone_core),
                 "delay_sec": 2,
             },
             {
@@ -786,7 +796,7 @@ def configure(args: argparse.Namespace) -> int:
                 # control to Drone PRO's unmodified stock RC client.
                 "args": [
                     "-u", str(rc_bootstrap), str(pdudef), str(rc_config),
-                    "--rc-root", str(drone_pro / "drone_api" / "rc"),
+                    "--rc-root", str(drone_core / "drone_api" / "rc"),
                 ],
                 "cwd": str(ROOT),
                 "depends_on": ["fpv-drone-service"],
@@ -795,11 +805,11 @@ def configure(args: argparse.Namespace) -> int:
     }
     if args.threejs:
         visual_state_publisher = require_file(
-            drone_pro / ".hako" / "install" / "bin" / "mac-drone_visual_state_publisher",
-            "Drone PRO visual-state publisher",
+            drone_core_bin / "mac-drone_visual_state_publisher",
+            "Drone Core visual-state publisher (extract the released mac.zip; see --drone-core-bin)",
         )
         visual_state_config = require_file(
-            drone_pro / "config" / "assets" / "visual_state_publisher" / "visual_state_publisher-1.json",
+            drone_core / "config" / "assets" / "visual_state_publisher" / "visual_state_publisher-1.json",
             "single-drone visual-state publisher config",
         )
         install_prefix = business_pack_root / "work" / "foundation" / "install"
@@ -808,7 +818,9 @@ def configure(args: argparse.Namespace) -> int:
         require_file(web_bridge_config / "bridge" / "bridge.json", "WebBridge fleet config")
         launcher["defaults"]["env"]["prepend"]["lib_path"].extend([
             str(install_prefix / "lib"),
-            str(drone_pro / ".hako" / "install" / "lib"),
+            # mac.zip ships libhako_service_c.dylib alongside the executables,
+            # not under a separate lib/ directory.
+            str(drone_core_bin),
         ])
         launcher["defaults"]["env"]["prepend"]["PATH"].extend([
             str(install_prefix / "bin"),
@@ -820,7 +832,7 @@ def configure(args: argparse.Namespace) -> int:
             "activation_timing": "before_start",
             "command": str(visual_state_publisher),
             "args": [str(visual_state_config)],
-            "cwd": str(drone_pro),
+            "cwd": str(drone_core),
             "depends_on": ["fpv-drone-service"],
             "delay_sec": 1,
         })
@@ -875,7 +887,12 @@ def launcher_command(args: argparse.Namespace, action: str) -> int:
 
 
 def parser() -> argparse.ArgumentParser:
-    result = argparse.ArgumentParser(description="Configure and run the generated FPV vehicle with Hakoniwa Drone PRO.")
+    result = argparse.ArgumentParser(
+        description=(
+            "Configure and run the generated FPV vehicle with Hakoniwa Drone Core. "
+            "PID auto-tuning (tune-*) additionally requires a licensed Hakoniwa Drone PRO checkout."
+        )
+    )
     result.add_argument(
         "command",
         choices=(
@@ -898,12 +915,27 @@ def parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Do not auto-apply a verified config after generation.",
     )
-    result.add_argument("--drone-pro-root", type=Path, default=DEFAULT_DRONE_PRO)
+    result.add_argument(
+        "--drone-core-root", type=Path, default=DEFAULT_DRONE_CORE,
+        help="Hakoniwa Drone Core checkout (config/, drone_api/) used for configure/start/status/stop/open-viewer.",
+    )
+    result.add_argument(
+        "--drone-core-bin", type=Path, default=DEFAULT_DRONE_CORE_BIN,
+        help=(
+            "Directory holding the extracted mac.zip release binaries "
+            "(mac-main_hako_drone_service, mac-drone_visual_state_publisher, ...). "
+            "Defaults to <drone-core-root>/mac."
+        ),
+    )
+    result.add_argument(
+        "--drone-pro-root", type=Path, default=DEFAULT_DRONE_PRO,
+        help="Hakoniwa Drone PRO checkout used only by tune-* commands (PID auto-tuning requires a PRO license).",
+    )
     result.add_argument("--threejs", action="store_true", help="Add the optional Three.js viewer runtime.")
     result.add_argument("--threejs-root", type=Path, default=DEFAULT_THREEJS_ROOT)
     result.add_argument("--business-pack-root", type=Path, default=DEFAULT_BUSINESS_PACK_ROOT)
     result.add_argument("--foundation-python", type=Path, default=DEFAULT_FOUNDATION_PYTHON)
-    result.add_argument("--rc-config", type=Path, default=DEFAULT_DRONE_PRO / "drone_api" / "rc" / "rc_config" / "ps4-control.json")
+    result.add_argument("--rc-config", type=Path, default=DEFAULT_DRONE_CORE / "drone_api" / "rc" / "rc_config" / "ps4-control.json")
     result.add_argument(
         "--hover-trials", type=int, default=40,
         help="Number of Hover trials in the FPV tuning profile (default: 40)",

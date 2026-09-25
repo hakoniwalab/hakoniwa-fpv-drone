@@ -135,7 +135,7 @@ FPVコースはGLBとして二重管理せず、World YAMLを正本として`fpv
 
 FPV固有のComponent CatalogとVehicle Recipeはこのリポジトリを正本とします。Business Pack側にはコンポーネントの検索Catalogだけを置き、システム構成Recipeもこのリポジトリの[FPV設計・Angle飛行Recipe](recipes/business-pack/fpv-drone-design-angle-flight.yaml)を参照します。これにより、FPVの設定や実行手順を二重管理しません。
 
-兄弟ディレクトリに`hakoniwa-business-pack`がある場合、Business Packの共通入口からガイド、診断、構築計画を利用できます。
+兄弟ディレクトリに`hakoniwa-business-pack`がある場合、Business Packの共通入口からガイド、診断、構築計画を利用できます。cloneからPS5操縦までの一連の手順は、[Angleモードで実行する](#angleモードで実行するcloneからps5操縦まで)を参照してください。
 
 ```bash
 cd ../hakoniwa-business-pack
@@ -175,27 +175,95 @@ PYTHONPATH=src python -m unittest discover -v
 
 MuJoCo Python bindingがある環境では、生成XMLを `MjModel.from_xml_path()` でロードするテストも実行します。ない場合はその1件だけskipします。
 
-## Angleモードで実行する
+## Angleモードで実行する（cloneからPS5操縦まで）
 
-兄弟ディレクトリにビルド済みの`hakoniwa-drone-pro`と、Business Pack Foundation環境があるmacOSでは、生成PackageをMuJoCo ViewerとPS4/PS5入力へ接続できます。
+macOS（Apple Silicon）で、生成した機体をMuJoCo ViewerとPS5 DualSenseで操縦するまでの手順です。物理・制御ランタイムには無償版の[hakoniwa-drone-core](https://github.com/toppers/hakoniwa-drone-core) v4.1.1のリリースバイナリを使い、`hakoniwa-drone-pro`は不要です（PID自動チューニングだけはPROライセンスが必要です）。
+
+前提：Python 3.12（Homebrew版は不可）、Xcode Command Line Tools、`brew install glfw`、PS5コントローラをBluetoothまたはUSBで接続済み。
+
+### 1. 2つのリポジトリを同じ親ディレクトリへcloneする
 
 ```bash
-python3.12 tools/fpv.py configure
-python3.12 tools/fpv.py start
-python3.12 tools/fpv.py status
-python3.12 tools/fpv.py stop
+mkdir fpv-drone && cd fpv-drone
+git clone https://github.com/hakoniwalab/hakoniwa-business-pack.git
+git clone https://github.com/hakoniwalab/hakoniwa-fpv-drone.git
 ```
 
-`start`はバックグラウンドLauncherを使用します。終了時は`hako-cmd stop`や`kill -9`ではなく、必ず上記の`stop`でLauncherのterminate経路を使用してください。
+以降のコマンドは、特に断りがなければ`hakoniwa-business-pack`で実行します。
 
-既定RC設定はDrone PROの`drone_api/rc/rc_config/ps4-control.json`です。macOSではPS5 DualSenseにもこのマッピングを利用します。別設定は`--rc-config`で指定できます。
+### 2. Recipeを診断し、Foundationと依存を構築する
 
-既定マッピングは、左スティック上下がスロットル、左右がYaw、右スティック上下がPitch、左右がRollです。ボタンindex 0（通常は×ボタン）を一度押して離すとRadio Controlの有効／無効が切り替わります。押し続ける必要はありません。OS／pygameの認識によってボタン番号が異なる場合はRC設定を調整してください。
+```bash
+cd hakoniwa-business-pack
+python3.12 tools/recipe.py doctor --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
+python3.12 tools/recipe.py configure --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
+```
+
+`configure`は、不足している兄弟リポジトリ（`hakoniwa-core-pro`、`hakoniwa-pdu-python`、`hakoniwa-drone-core` v4.1.1）をcloneし、Foundation（`work/foundation/install`）をビルドし、Recipeが宣言するPython依存（`pygame`、`PyYAML`）をFoundation Pythonへ入れます。この時点のdoctorは、次の手順で用意するdrone-coreのバイナリとMuJoCoを`MISSING`と報告します。
+
+### 3. drone-coreのリリースバイナリとMuJoCoを用意する（初回のみ）
+
+```bash
+curl -L -o /tmp/hakoniwa-drone-core-mac.zip \
+  https://github.com/toppers/hakoniwa-drone-core/releases/download/v4.1.1/mac.zip
+unzip -o /tmp/hakoniwa-drone-core-mac.zip -d ../hakoniwa-drone-core
+bash ../hakoniwa-drone-core/tools/install-mujoco-mac.bash ../hakoniwa-drone-core
+bash ../hakoniwa-drone-core/tools/link-mujoco-mac.bash ../hakoniwa-drone-core/mac \
+  --lib-dir "$(cd ../hakoniwa-drone-core && pwd)/vendor/mujoco/lib"
+```
+
+`mac.zip`は`hakoniwa-drone-core/mac/`に展開されます。配布バイナリには配布元のビルド環境のMuJoCoパスが埋め込まれているため、`link-mujoco-mac.bash`で、このチェックアウトの`vendor/mujoco/lib`をRPATHへ追加します。展開先を変える場合は、`tools/fpv.py`に`--drone-core-root`／`--drone-core-bin`を指定してください。
+
+```bash
+python3.12 tools/recipe.py doctor --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
+```
+
+すべて`SATISFIED`になれば準備完了です。
+
+### 4. 機体を生成して起動する
+
+```bash
+python3.12 ../hakoniwa-fpv-drone/tools/fpv.py configure
+python3.12 ../hakoniwa-fpv-drone/tools/fpv.py start
+python3.12 ../hakoniwa-fpv-drone/tools/fpv.py status
+```
+
+`configure`は既定のRecipeとWorldから機体を生成し、入力hashが一致する[検証済み構成](verified-configs/example-5inch-angle/)を自動適用します。`start`でMuJoCo Viewerが開き、PS5コントローラの入力クライアントがバックグラウンドで起動します。ログは`build/example-5inch/runtime/logs/`に出力されます。
+
+### 5. PS5で操縦する
+
+1. **×ボタンを押して離す**：Radio Controlが有効になります（アーム）。押し続ける必要はありません。サービスログに`radio_control: 1`が出ます。
+2. **△ボタンを押して離す**：初期のGPSモードからATTI（Angle）モードへ切り替わります。サービスログに`Control mode changed to ATTI`が出ます。
+3. **左スティックを上へ倒す**：浮上します。
+
+この機体は`ANGLE_CONTROL_ENABLE=1`のため、**GPSモードのままでは制御出力が出ず、×を押しただけでは浮上しません**。必ず△でATTIへ切り替えてください。
+
+| スティック | 上下 | 左右 |
+|---|---|---|
+| 左 | スロットル（上昇・下降） | Yaw |
+| 右 | Pitch（前進・後退） | Roll（左右移動） |
+
+既定RC設定はDrone Coreの`drone_api/rc/rc_config/ps4-control.json`で、macOSのPS5 DualSenseにもこのマッピングを使います。別の設定は`--rc-config`で指定できます。OSやpygameの認識によってボタン番号が異なる場合は、RC設定を調整してください。
+
+高度0.2m以下で左スティックを下へ倒し続けると、Landingへ遷移して着陸します。
+
+### 6. 停止する
+
+```bash
+python3.12 ../hakoniwa-fpv-drone/tools/fpv.py stop
+```
+
+終了時は`hako-cmd stop`や`kill -9`ではなく、必ず`stop`でLauncherのterminate経路を使ってください。
+
+### うまく動かないとき
+
+- **×と△は効くのにスティックで何も起きない**：`build/example-5inch/runtime/logs/fpv-drone-service.out`に、`radio_control: 1`の直後の`[STATE] Hovering -> Landing`がないか確認してください。runtimeの`control-param.txt`に`CTRLMODE_LANDING_*`がないと、地上でRadio Controlを有効にした瞬間にLandingへ入り、抜けられなくなります。
+- **`Drone Core service ... not found`**：手順3の展開先とリンクを確認してください。
 
 
 ## FPV機体のHover・Angle PID tuning
 
-> **ライセンス:** PID自動チューニングを実行するには、箱庭ドローンPROライセンスが必要です。本リポジトリのCatalog／Recipe／Generatorを利用できることは、箱庭ドローンPROのPID自動チューニング機能を利用できることを意味しません。
+> **ライセンス:** PID自動チューニングを実行するには、箱庭ドローンPROライセンスが必要です。本リポジトリのCatalog／Recipe／Generatorを利用できることは、箱庭ドローンPROのPID自動チューニング機能を利用できることを意味しません。`tune-*`コマンドは`hakoniwa-drone-core`ではなく、別途`--drone-pro-root`で指定するビルド済み`hakoniwa-drone-pro`checkoutを使用します（既定は兄弟ディレクトリ）。
 
 箱庭ドローンPROを利用すると、生成した機体ごとにHover／Angle PID候補を自動探索し、応答波形、hard gate、定量指標を使って比較できます。部品構成を変えるたびに感覚だけで調整をやり直すのではなく、入力モデルを固定した再現可能な評価工程にできます。今回のサンプル機体でも、生成、Hover調整、Angle調整、PS5実操作までを一貫して確認できました。
 
