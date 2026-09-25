@@ -360,60 +360,46 @@ demo:
     - order: 1
       id: prepare_business_pack_foundation
       component: hakoniwa-business-pack
-      action: Build the Foundation, clone hakoniwa-drone-core v4.1.1 when missing, and install the Recipe Python requirements. The first doctor reports the Drone Core release binaries and MuJoCo runtime as missing until steps 2 to 4 run.
-      command: python tools/recipe.py configure --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
+      action: Inside the (hako) Workspace shell from python tools/workspace.py enter, build the Foundation, clone hakoniwa-drone-core v4.1.1 when missing, and install the Recipe Python requirements. The first doctor reports the Drone Core release binaries and MuJoCo runtime as missing until step 2 runs.
+      command: python3.12 tools/recipe.py configure --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
       agency: agent_action
       requires_gates: []
     - order: 2
-      id: extract_drone_core_release_binaries
-      component: hakoniwa-drone-core
-      action: Extract the v4.1.1 macOS release archive into the Drone Core checkout, creating its mac/ directory.
-      command: curl -L -o /tmp/hakoniwa-drone-core-mac.zip https://github.com/toppers/hakoniwa-drone-core/releases/download/v4.1.1/mac.zip && unzip -o /tmp/hakoniwa-drone-core-mac.zip -d ../hakoniwa-drone-core
+      id: prepare_drone_core_native_runtime
+      component: hakoniwa-fpv-drone
+      action: Download the OS-specific Drone Core v4.1.1 release archive and the MuJoCo runtime with SHA-256 verification, extract them into the Drone Core checkout, and on macOS add the checkout-local MuJoCo library directory to the release binaries' RPATH. Downloads are cached and the command is idempotent.
+      command: python ../hakoniwa-fpv-drone/tools/fpv-drone-core.py prepare
       agency: agent_action
       requires_gates: []
     - order: 3
-      id: install_drone_core_mujoco
-      component: hakoniwa-drone-core
-      action: Install the MuJoCo version named by MUJOCO_VERSION.txt under the Drone Core vendor directory.
-      command: bash ../hakoniwa-drone-core/tools/install-mujoco-mac.bash ../hakoniwa-drone-core
-      agency: agent_action
-      requires_gates: []
-    - order: 4
-      id: link_drone_core_mujoco
-      component: hakoniwa-drone-core
-      action: Add the checkout-local MuJoCo library directory to the release binaries' RPATH; the shipped RPATH points at the build machine.
-      command: bash ../hakoniwa-drone-core/tools/link-mujoco-mac.bash ../hakoniwa-drone-core/mac --lib-dir "$(cd ../hakoniwa-drone-core && pwd)/vendor/mujoco/lib"
-      agency: agent_action
-      requires_gates: []
-    - order: 5
       id: doctor_recipe
       component: hakoniwa-business-pack
       action: Confirm that the Foundation and every Drone Core artifact report SATISFIED.
       command: python tools/recipe.py doctor --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
       agency: agent_action
       requires_gates: []
-    - order: 6
+    - order: 4
       id: generate_fpv_vehicle
       component: hakoniwa-fpv-drone
       action: Resolve the component-owned 5-inch Vehicle Recipe and generate the runtime package; the verified configuration is applied automatically.
       command: python3.12 ../hakoniwa-fpv-drone/tools/fpv.py configure
       agency: agent_action
       requires_gates: [hakoniwa_drone_core_license]
-    - order: 7
+    - order: 5
       id: optional_pid_tuning
       component: hakoniwa-drone-core
       action: Follow README and the PID tuning know-how to tune Hover before Angle; review candidates before applying one.
       command: python3.12 ../hakoniwa-fpv-drone/tools/fpv.py tune-prepare
       agency: required_permission
       requires_gates: [pid_auto_tuning_license, accept_tuned_candidate]
-    - order: 8
+    - order: 6
       id: start_angle_runtime
       component: hakoniwa-fpv-drone
       action: Start the background Launcher and native MuJoCo Viewer.
       command: python3.12 ../hakoniwa-fpv-drone/tools/fpv.py start
       agency: agent_action
       requires_gates: [hakoniwa_drone_core_license]
-    - order: 9
+    - order: 7
       id: operate_ps5
       component: hakoniwa-drone-core
       action: >-
@@ -426,7 +412,7 @@ demo:
       command: null
       agency: human_action
       requires_gates: [connect_and_operate_ps5]
-    - order: 10
+    - order: 8
       id: stop_runtime
       component: hakoniwa-fpv-drone
       action: Terminate the owned Launcher session through its control endpoint.

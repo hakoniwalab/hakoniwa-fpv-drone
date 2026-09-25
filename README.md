@@ -32,24 +32,11 @@ Catalog属性を追加してもRecipeの参照形式を壊さず、実行backend
 
 ## Quick Start
 
-このリポジトリは[箱庭ビジネスパック](https://github.com/hakoniwalab/hakoniwa-business-pack)の環境で使います。Python環境は、Business PackのFoundation Python（Python 3.12）に一本化します。
+このリポジトリは[箱庭ビジネスパック](https://github.com/hakoniwalab/hakoniwa-business-pack)のWorkspaceで使います。Python環境はBusiness PackのFoundation Python（Python 3.12）に一本化し、個別のvenvは作りません。cloneからPS5で飛ばすまでの手順は、[Angleモードで実行する](#angleモードで実行するcloneからps5操縦まで)を参照してください。
+
+手順1〜3を終えたあと、機体の検証、BOM、生成パッケージだけを確認したい場合は、`(hako)`シェルの中で生成ツールを実行します。
 
 ```bash
-mkdir fpv-drone && cd fpv-drone
-git clone https://github.com/hakoniwalab/hakoniwa-business-pack.git
-git clone https://github.com/hakoniwalab/hakoniwa-fpv-drone.git
-cd hakoniwa-business-pack
-python3.12 tools/recipe.py doctor --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
-python3.12 tools/recipe.py configure --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
-```
-
-`configure`がFoundationのビルド、必要な兄弟リポジトリのclone、Python依存のインストールを行います。そのあと、drone-coreのバイナリを用意して機体を生成し、PS5で飛ばすまでの手順は、[Angleモードで実行する](#angleモードで実行するcloneからps5操縦まで)を参照してください。
-
-機体の検証、BOM、生成パッケージだけを確認したい場合は、Business PackのWorkspace（`(hako)`プロンプト）の中で生成ツールを実行します。
-
-```bash
-cd hakoniwa-business-pack
-python tools/workspace.py enter
 cd ../hakoniwa-fpv-drone
 export PYTHONPATH=src
 python -m fpv_drone_generator.cli validate recipes/examples/5inch-fpv.yaml
@@ -59,8 +46,6 @@ python -m fpv_drone_generator.cli generate \
   --world recipes/environments/fpv-training-course.yaml \
   --output build/example-5inch
 ```
-
-Workspaceの中では、`python`はFoundation Pythonを指します。
 
 ## CatalogとRecipe
 
@@ -176,17 +161,19 @@ build/example-5inch/
 
 ## テスト
 
+`(hako)`シェルの中で、このリポジトリのルートから実行します。
+
 ```bash
 PYTHONPATH=src python -m unittest discover -v
 ```
 
-MuJoCo Python bindingがある環境では、生成XMLを `MjModel.from_xml_path()` でロードするテストも実行します。ない場合はその1件だけskipします。
+MuJoCo Python bindingがある環境では、生成XMLを `MjModel.from_xml_path()` でロードするテストも実行します。ない場合はその1件だけskipします。Three.jsアセット出力のテストは、`trimesh`がない環境ではskipします。
 
 ## Angleモードで実行する（cloneからPS5操縦まで）
 
-macOS（Apple Silicon）で、生成した機体をMuJoCo ViewerとPS5 DualSenseで操縦するまでの手順です。物理・制御ランタイムには無償版の[hakoniwa-drone-core](https://github.com/toppers/hakoniwa-drone-core) v4.1.1のリリースバイナリを使い、`hakoniwa-drone-pro`は不要です（PID自動チューニングだけはPROライセンスが必要です）。
+生成した機体をMuJoCo ViewerとPS5 DualSenseで操縦するまでの手順です。すべて箱庭ビジネスパックのWorkspace（`(hako)`シェル）から実行します。物理・制御ランタイムには無償版の[hakoniwa-drone-core](https://github.com/toppers/hakoniwa-drone-core) v4.1.1のリリースバイナリを使い、`hakoniwa-drone-pro`は不要です（PID自動チューニングだけはPROライセンスが必要です）。
 
-前提：Python 3.12（Homebrew版は不可）、Xcode Command Line Tools、`brew install glfw`、PS5コントローラをBluetoothまたはUSBで接続済み。
+前提：Python 3.12（Homebrew版は不可）、Xcode Command Line Tools、`brew install glfw`、PS5コントローラをBluetoothまたはUSBで接続済み。Business Pack側の前提は[Getting Started](https://github.com/hakoniwalab/hakoniwa-business-pack/blob/main/docs/getting-started-ja.md)を参照してください。飛行まで検証済みなのはmacOS（Apple Silicon）です。
 
 ### 1. 2つのリポジトリを同じ親ディレクトリへcloneする
 
@@ -196,61 +183,69 @@ git clone https://github.com/hakoniwalab/hakoniwa-business-pack.git
 git clone https://github.com/hakoniwalab/hakoniwa-fpv-drone.git
 ```
 
-以降のコマンドは、特に断りがなければ`hakoniwa-business-pack`で実行します。
-
-### 2. Recipeを診断し、Foundationと依存を構築する
+### 2. Workspaceに入る
 
 ```bash
 cd hakoniwa-business-pack
-python3.12 tools/recipe.py doctor --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
+python3.12 tools/workspace.py enter
+```
+
+プロンプトの先頭に`(hako)`が付きます。以降のコマンドはすべて、この`(hako)`シェルの`hakoniwa-business-pack`で実行します。
+
+### 3. Recipeを診断し、Foundationと依存を構築する
+
+```bash
+python3.12 tools/recipe.py doctor    --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
+python3.12 tools/recipe.py plan      --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
 python3.12 tools/recipe.py configure --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
 ```
 
-`configure`は、不足している兄弟リポジトリ（`hakoniwa-core-pro`、`hakoniwa-pdu-python`、`hakoniwa-drone-core` v4.1.1）をcloneし、Foundation（`work/foundation/install`）をビルドし、Recipeが宣言するPython依存（`pygame`、`PyYAML`）をFoundation Pythonへ入れます。この時点のdoctorは、次の手順で用意するdrone-coreのバイナリとMuJoCoを`MISSING`と報告します。
+`configure`は、不足している兄弟リポジトリ（`hakoniwa-core-pro`、`hakoniwa-pdu-python`、`hakoniwa-drone-core` v4.1.1）をcloneし、Foundation（`work/foundation/install`）をビルドし、Recipeが宣言するPython依存（`pygame`、`PyYAML`）をFoundation Pythonへ入れます。初回は10分前後かかります。完了すると、`(hako)`シェルの`python`はFoundation Pythonを指すので、以降は`python`で実行します。
 
-### 3. drone-coreのリリースバイナリとMuJoCoを用意する（初回のみ）
+この時点のdoctorは、次の手順で用意するdrone-coreのバイナリとMuJoCoを`MISSING`と報告します。
+
+### 4. drone-coreのリリースバイナリとMuJoCoを用意する
 
 ```bash
-curl -L -o /tmp/hakoniwa-drone-core-mac.zip \
-  https://github.com/toppers/hakoniwa-drone-core/releases/download/v4.1.1/mac.zip
-unzip -o /tmp/hakoniwa-drone-core-mac.zip -d ../hakoniwa-drone-core
-bash ../hakoniwa-drone-core/tools/install-mujoco-mac.bash ../hakoniwa-drone-core
-bash ../hakoniwa-drone-core/tools/link-mujoco-mac.bash ../hakoniwa-drone-core/mac \
-  --lib-dir "$(cd ../hakoniwa-drone-core && pwd)/vendor/mujoco/lib"
+python ../hakoniwa-fpv-drone/tools/fpv-drone-core.py prepare
+python tools/recipe.py doctor --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
 ```
 
-`mac.zip`は`hakoniwa-drone-core/mac/`に展開されます。配布バイナリには配布元のビルド環境のMuJoCoパスが埋め込まれているため、`link-mujoco-mac.bash`で、このチェックアウトの`vendor/mujoco/lib`をRPATHへ追加します。展開先を変える場合は、`tools/fpv.py`に`--drone-core-root`／`--drone-core-bin`を指定してください。
+`fpv-drone-core.py prepare`は、OSに合ったdrone-core v4.1.1のリリースzip（macOSは`mac.zip`、Linuxは`lnx.zip`、Windowsは`win.zip`）とMuJoCoを、SHA-256を検証してダウンロードし、`hakoniwa-drone-core`へ展開・インストールします。macOSでは、配布バイナリに埋め込まれた配布元のMuJoCoパスに加えて、このチェックアウトの`vendor/mujoco/lib`をRPATHへ追加します。ダウンロードしたファイルは`hakoniwa-drone-core/vendor/downloads/`に保存され、再実行時は検証済みのファイルを再利用します。何度実行しても同じ状態になります。
+
+doctorですべて`SATISFIED`になれば準備完了です。
+
+### 5. 機体を生成して起動する
+
+5インチのサンプル機：
 
 ```bash
-python3.12 tools/recipe.py doctor --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
-```
-
-すべて`SATISFIED`になれば準備完了です。
-
-### 4. 機体を生成して起動する
-
-```bash
-python3.12 ../hakoniwa-fpv-drone/tools/fpv.py configure
-python3.12 ../hakoniwa-fpv-drone/tools/fpv.py start
-python3.12 ../hakoniwa-fpv-drone/tools/fpv.py status
+python ../hakoniwa-fpv-drone/tools/fpv.py configure
+python ../hakoniwa-fpv-drone/tools/fpv.py start
+python ../hakoniwa-fpv-drone/tools/fpv.py status
 ```
 
 `configure`は既定のRecipeとWorldから機体を生成し、入力hashが一致する[検証済み構成](verified-configs/example-5inch-angle/)を自動適用します。
 
-SpeedyBee Master3Xを飛ばす場合は、Master3XのRecipeと出力先を指定します。PID自動チューニング済みの[検証済み構成](verified-configs/master3x-angle/)が自動適用されます。`start`／`status`／`stop`にも同じ`--output`を付けてください。
+SpeedyBee Master3X：
 
 ```bash
-python3.12 ../hakoniwa-fpv-drone/tools/fpv.py configure \
+python ../hakoniwa-fpv-drone/tools/fpv.py configure \
   --recipe ../hakoniwa-fpv-drone/recipes/examples/master3x.yaml \
   --output ../hakoniwa-fpv-drone/build/master3x
-python3.12 ../hakoniwa-fpv-drone/tools/fpv.py start --output ../hakoniwa-fpv-drone/build/master3x
-````start`でMuJoCo Viewerが開き、PS5コントローラの入力クライアントがバックグラウンドで起動します。ログは`build/example-5inch/runtime/logs/`に出力されます。
+python ../hakoniwa-fpv-drone/tools/fpv.py start  --output ../hakoniwa-fpv-drone/build/master3x
+python ../hakoniwa-fpv-drone/tools/fpv.py status --output ../hakoniwa-fpv-drone/build/master3x
+```
 
-### 5. PS5で操縦する
+PID自動チューニング済みの[検証済み構成](verified-configs/master3x-angle/)が自動適用されます。`stop`にも同じ`--output`を付けてください。
+
+`start`でMuJoCo Viewerが開き、PS5コントローラの入力クライアントがバックグラウンドで起動します。ログは`<output>/runtime/logs/`に出力されます。
+
+### 6. PS5で操縦する
 
 1. **×ボタンを押して離す**：Radio Controlが有効になります（アーム）。押し続ける必要はありません。サービスログに`radio_control: 1`が出ます。
 2. **△ボタンを押して離す**：初期のGPSモードからATTI（Angle）モードへ切り替わります。サービスログに`Control mode changed to ATTI`が出ます。
-3. **左スティックを上へ倒す**：浮上します。
+3. **左スティックを上へ倒す**：浮上します。スティックを中央に戻すと、その高度でホバリングします。
 
 この機体は`ANGLE_CONTROL_ENABLE=1`のため、**GPSモードのままでは制御出力が出ず、×を押しただけでは浮上しません**。必ず△でATTIへ切り替えてください。
 
@@ -263,19 +258,21 @@ python3.12 ../hakoniwa-fpv-drone/tools/fpv.py start --output ../hakoniwa-fpv-dro
 
 高度0.2m以下で左スティックを下へ倒し続けると、Landingへ遷移して着陸します。
 
-### 6. 停止する
+### 7. 停止する
 
 ```bash
-python3.12 ../hakoniwa-fpv-drone/tools/fpv.py stop
+python ../hakoniwa-fpv-drone/tools/fpv.py stop
+python ../hakoniwa-fpv-drone/tools/fpv.py stop --output ../hakoniwa-fpv-drone/build/master3x   # Master3Xの場合
 ```
 
-終了時は`hako-cmd stop`や`kill -9`ではなく、必ず`stop`でLauncherのterminate経路を使ってください。
+終了時は`hako-cmd stop`や`kill -9`ではなく、必ず`stop`でLauncherのterminate経路を使ってください。Workspaceを抜けるときは`exit`します。
 
 ### うまく動かないとき
 
-- **×と△は効くのにスティックで何も起きない**：`build/example-5inch/runtime/logs/fpv-drone-service.out`に、`radio_control: 1`の直後の`[STATE] Hovering -> Landing`がないか確認してください。runtimeの`control-param.txt`に`CTRLMODE_LANDING_*`がないと、地上でRadio Controlを有効にした瞬間にLandingへ入り、抜けられなくなります。
-- **`Drone Core service ... not found`**：手順3の展開先とリンクを確認してください。
-
+- **×と△は効くのにスティックで何も起きない**：`<output>/runtime/logs/fpv-drone-service.out`に、`radio_control: 1`の直後の`[STATE] Hovering -> Landing`がないか確認してください。runtimeの`control-param.txt`に`CTRLMODE_LANDING_*`がないと、地上でRadio Controlを有効にした瞬間にLandingへ入り、抜けられなくなります。
+- **浮上するがホバリングしない**：`configure`の出力が`No verified FPV config matches ...`になっていないか確認してください。未調整の汎用PIDが使われています。
+- **`Drone Core service ... not found`**：手順4の`fpv-drone-core.py prepare`を実行してください。
+- **`[WARNING] Hakoniwa Workspace is not active`**：手順2の`(hako)`シェルの外で実行しています。
 
 ## FPV機体のHover・Angle PID tuning
 
