@@ -3,10 +3,12 @@
 This directory freezes the three files that must remain consistent when reproducing the reviewed sample aircraft:
 
 - `drone-config/drone.xml`: generated MuJoCo vehicle and FPV course
-- `drone-config/drone_config_0.json`: portable Drone PRO runtime configuration
-- `drone-config/control-param.txt`: reviewed controller parameters, including the 55 degree Roll/Pitch Angle limit
+- `drone-config/drone_config_0.json`: portable Drone runtime configuration
+- `drone-config/control-param.txt`: reviewed controller parameters, including the 55 degree Roll/Pitch Angle limit and the Catalog `CTRLMODE_LANDING_*` values
 
 The configuration was regenerated and reviewed on 2026-08-29. Hover and Angle auto-tuning completed with all reported hard gates passing, followed by PS5 Angle-mode flight confirmation. Auto-tuning requires a valid Hakoniwa Drone PRO license. Drone PRO tuning profiles, search spaces, trial data, and logs are intentionally excluded.
+
+On 2026-09-25 the Catalog `CTRLMODE_LANDING_*` values were added to `control-param.txt` and PS5 Angle-mode flight was re-confirmed on Hakoniwa Drone Core v4.1.1. The PID values are unchanged. Without the landing values, RadioController enters Landing on the ground as soon as Radio Control is enabled and never leaves it, so stick input has no effect.
 
 The default Recipe and World apply this exact set automatically during `configure`:
 

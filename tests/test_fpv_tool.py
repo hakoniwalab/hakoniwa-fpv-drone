@@ -183,6 +183,34 @@ class FpvToolTest(unittest.TestCase):
             ),
         )
 
+    def test_verified_config_keeps_generated_radio_state_machine_values(self):
+        # configure overwrites the generated control-param.txt with the verified
+        # copy, so a missing CTRLMODE_* key silently falls back to 0.0 at runtime.
+        from fpv_drone_generator.catalog import load_catalogs
+        from fpv_drone_generator.package import generate_package
+        from fpv_drone_generator.recipe import load_recipe
+        from fpv_drone_generator.resolver import resolve_vehicle
+
+        def ctrlmode_values(path):
+            values = {}
+            for line in path.read_text(encoding="utf-8").splitlines():
+                fields = line.split()
+                if len(fields) >= 2 and fields[0].startswith("CTRLMODE_"):
+                    values[fields[0]] = float(fields[1])
+            return values
+
+        vehicle = resolve_vehicle(
+            load_recipe(FPV_TOOL.DEFAULT_RECIPE), load_catalogs(FPV_TOOL.ROOT / "catalogs")
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            generated = ctrlmode_values(
+                generate_package(vehicle, Path(directory) / "vehicle") / "control-param.txt"
+            )
+        verified = ctrlmode_values(FPV_TOOL.DEFAULT_VERIFIED_CONFIG / "control-param.txt")
+
+        self.assertIn("CTRLMODE_LANDING_COMPLETION_STABLE_ANGLE_DEG", generated)
+        self.assertEqual(generated, verified)
+
     def test_parameter_overrides_preserve_comments_and_append_missing_keys(self):
         source = "# generated\nPID_ROLL_Kp 1\nPID_ROLL_Ki 0\n"
         result = FPV_TOOL.apply_parameter_overrides(

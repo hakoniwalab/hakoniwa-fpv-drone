@@ -7,16 +7,27 @@
     "recipe_sha256": "48653cf74b497b5030bf19ec3bb17792d24181689dd51fa119c30c00dcb7108d",
     "world_sha256": "32af1265d55b2bf0030ebbd3091ba1c80361d25e3c442ecb2bcde99bba850a54"
   },
-  "verified_on": "2026-08-29",
+  "verified_on": "2026-09-25",
   "verification": {
     "controller_backend": "adapter-hakoniwa",
     "runtime_controller": "RadioController",
+    "runtime": "Hakoniwa Drone Core v4.1.1 (mac.zip release)",
     "mode": "angle",
     "max_roll_deg": 55.0,
     "max_pitch_deg": 55.0,
-    "pid_tuning": "Hakoniwa Drone PRO Hover then Angle; hard gates passed",
+    "pid_tuning": "Hakoniwa Drone PRO Hover then Angle on 2026-08-29; hard gates passed",
     "manual_acceptance": "PS5 Angle-mode flight"
   },
+  "history": [
+    {
+      "date": "2026-08-29",
+      "change": "Initial reviewed configuration with PID values from Hakoniwa Drone PRO auto-tuning."
+    },
+    {
+      "date": "2026-09-25",
+      "change": "Added the Catalog CTRLMODE_LANDING_* values. Without them the RadioController landing trigger fires on the ground as soon as Radio Control is enabled and the landing completion check can never pass, so stick input is ignored. Re-confirmed PS5 Angle-mode flight on Hakoniwa Drone Core v4.1.1."
+    }
+  ],
   "scope": [
     "simulation model and controller configuration only",
     "not validated against a real aircraft",
@@ -30,7 +41,7 @@
       "sha256": "d1e50908ef424f972616e222d78de90f9c356f8c4fec5d3c70a6686ac9e78c70"
     },
     "drone-config/control-param.txt": {
-      "sha256": "28b402f872d3b2138594908d24361122a43d212783f50cd643cef73c5461c38a"
+      "sha256": "31432848b61bc06e1489957e25215e04bc970ab767871a6c031e577582586a54"
     }
   }
 }
