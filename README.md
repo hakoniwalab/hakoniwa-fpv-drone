@@ -217,7 +217,7 @@ python ..\hakoniwa-fpv-drone\tools\fpv.py open-viewer --output ..\hakoniwa-fpv-d
 
 ## Windows配布用ZIP（一般ユーザー向け、Master3X）
 
-Quick Startで構築し、Windowsで動作を確認したWorkspaceを、Python・Git・ビルド環境なしで動くZIPにまとめます。利用者は、ZIPを展開して`start-fpv-drone.bat`を実行するだけです。PS5コントローラで操縦し、Three.jsのビューアで見ます。
+Quick Startで構築し、Windowsで動作を確認したWorkspaceを、Python・Git・ビルド環境なしで動くZIPにまとめます。利用者は、ZIPを展開して`start-fpv-drone.bat`を実行するだけです。PS5コントローラで操縦し、Three.jsのビューアで見ます。利用者向けの手順は[Windowsアプリ 利用ガイド](docs/windows-portable-app.md)を参照してください。
 
 ### 作り方（Windows x64、`(hako)`シェル、`hakoniwa-business-pack`で実行）
 
