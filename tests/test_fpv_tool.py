@@ -389,6 +389,18 @@ class FpvToolTest(unittest.TestCase):
                 FPV_TOOL.discover_verified_config(projected, FPV_TOOL.DEFAULT_WORLD, assembly)
             )
 
+    def test_crlf_projected_recipe_still_discovers_tuned_config(self):
+        assembly = FPV_TOOL.ROOT / "recipes" / "examples" / "master3x-visual-demo.assembly.json"
+        with tempfile.TemporaryDirectory() as directory:
+            projected = Path(directory) / "assembly-projected-recipe.yaml"
+            projected.write_bytes(
+                (FPV_TOOL.ROOT / "recipes" / "examples" / "master3x.yaml").read_bytes().replace(b"\n", b"\r\n")
+            )
+            self.assertEqual(
+                FPV_TOOL.ROOT / "verified-configs" / "master3x-angle" / "drone-config",
+                FPV_TOOL.discover_verified_config(projected, FPV_TOOL.DEFAULT_WORLD, assembly),
+            )
+
     def test_master3x_recipe_matches_its_assembly_projection(self):
         # The tuned config is keyed to master3x.yaml, so it must not drift from
         # the Assembly Graph that the Three.js assets are built from.

@@ -368,7 +368,11 @@ def tuning_marker(resolved: dict[str, Path]) -> Path:
 
 
 def sha256_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    """Hash text with LF line endings, so receipts match on Windows.
+
+    The generator writes CRLF there, and git may check files out with CRLF.
+    """
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def validate_verified_config(source: Path) -> None:
