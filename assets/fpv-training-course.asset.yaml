@@ -1,0 +1,9 @@
+# Plain World Asset (hakoniwa-urban-mobility docs/asset-contract.md 6.2):
+# the default FPV training course, a ground plane with gates, pylons, and
+# boxes that all collide.
+schema: hakoniwa.asset/v1
+id: fpv-training-course
+kind: plain
+version: 0.1.0
+title: FPV training course
+world: ../recipes/environments/fpv-training-course.yaml

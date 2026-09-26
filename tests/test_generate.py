@@ -7,6 +7,7 @@ from xml.etree import ElementTree as ET
 import yaml
 
 from fpv_drone_generator.catalog import load_catalogs
+from fpv_drone_generator.generators.mujoco import generate_world_mujoco
 from fpv_drone_generator.package import generate_package
 from fpv_drone_generator.recipe import load_recipe
 from fpv_drone_generator.resolver import resolve_vehicle
@@ -102,6 +103,31 @@ class GenerateTest(unittest.TestCase):
             self.assertIsNone(root.find("./worldbody/body[@name='course_start-gate']/geom[@name='start-gate_center']"))
             report = json.loads((output / "report.json").read_text(encoding="utf-8"))
             self.assertEqual(10, report["world"]["obstacle_count"])
+
+    def test_world_alone_matches_the_world_part_of_the_vehicle_mujoco(self):
+        vehicle = resolve_vehicle(load_recipe(SAMPLE_RECIPE), load_catalogs(CATALOGS))
+        world = load_world(SAMPLE_WORLD)
+        with tempfile.TemporaryDirectory() as directory:
+            output = generate_package(vehicle, Path(directory) / "vehicle", world)
+            world_path = Path(directory) / "world.xml"
+            generate_world_mujoco(world, world_path)
+            combined = ET.parse(output / "drone.xml").getroot()
+            alone = ET.parse(world_path).getroot()
+
+            def world_geometry(root):
+                worldbody = root.find("./worldbody")
+                elements = [
+                    element for element in worldbody
+                    if element.tag == "geom" or element.get("name", "").startswith("course_")
+                ]
+                for element in elements:
+                    for node in element.iter():  # indentation differs by nesting depth
+                        node.text = node.tail = None
+                return [ET.tostring(element, encoding="unicode") for element in elements]
+
+            self.assertEqual(world_geometry(alone), world_geometry(combined))
+            self.assertIsNone(alone.find(".//body[@name='drone_base']"))
+            self.assertEqual("degree", alone.find("./compiler").attrib["angle"])
 
     def test_world_can_enable_propeller_obstacle_collisions(self):
         vehicle = resolve_vehicle(load_recipe(HEXA_RECIPE), load_catalogs(CATALOGS))

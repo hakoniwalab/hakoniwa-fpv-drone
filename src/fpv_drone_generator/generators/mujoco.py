@@ -151,6 +151,35 @@ def _add_obstacle(worldbody: ET.Element, obstacle: Obstacle, world_config: World
             })
 
 
+def _add_ground(worldbody: ET.Element, size: tuple[float, float], rgba, friction) -> None:
+    ET.SubElement(worldbody, "geom", {
+        "name": "ground",
+        "type": "plane",
+        "size": f"{size[0]:.12g} {size[1]:.12g} 0.1",
+        "rgba": _numbers(rgba),
+        "friction": _numbers(friction),
+    })
+
+
+def generate_world_mujoco(world_config: World, output: Path) -> None:
+    """Write the World alone (ground and course obstacles) as MJCF.
+
+    The geometry is the same as the World part of generate_mujoco(); tools
+    that place vehicles use it to find the ground height under a point
+    without the vehicle in the way.
+    """
+    root = ET.Element("mujoco", {"model": "fpv_world"})
+    # Obstacle yaw is written in degrees, as in generate_mujoco().
+    ET.SubElement(root, "compiler", {"angle": "degree"})
+    world = ET.SubElement(root, "worldbody")
+    _add_ground(world, world_config.ground_size_m, world_config.ground_rgba, world_config.contact.ground_friction)
+    for obstacle in world_config.obstacles:
+        _add_obstacle(world, obstacle, world_config)
+    ET.indent(root, space="  ")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(ET.tostring(root, encoding="unicode") + "\n", encoding="utf-8")
+
+
 def generate_mujoco(vehicle: ResolvedVehicle, output: Path, world_config: World | None = None, initial_z_m: float = 0.25) -> None:
     frame = vehicle.components.frame
     camera = vehicle.components.camera
@@ -203,13 +232,7 @@ def generate_mujoco(vehicle: ResolvedVehicle, output: Path, world_config: World 
         ground_size = world_config.ground_size_m
         ground_rgba = world_config.ground_rgba
         ground_friction = world_config.contact.ground_friction
-    ET.SubElement(world, "geom", {
-        "name": "ground",
-        "type": "plane",
-        "size": f"{ground_size[0]:.12g} {ground_size[1]:.12g} 0.1",
-        "rgba": _numbers(ground_rgba),
-        "friction": _numbers(ground_friction),
-    })
+    _add_ground(world, ground_size, ground_rgba, ground_friction)
     if world_config is not None:
         for obstacle in world_config.obstacles:
             _add_obstacle(world, obstacle, world_config)
