@@ -1,5 +1,7 @@
 import importlib.util
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -310,6 +312,23 @@ class FpvToolTest(unittest.TestCase):
                  root / "vcpkg" / "installed" / "x64-windows" / "bin"],
                 FPV_TOOL.native_library_paths(install, core, core / "win", windows=True),
             )
+
+    def test_realtime_pacer_is_added_before_start_by_default(self):
+        parse = FPV_TOOL.parser().parse_args
+        defaults = parse(["configure"])
+        self.assertTrue(defaults.realtime_pacer)
+        self.assertEqual(0, defaults.real_sleep_msec)
+        self.assertEqual(10, defaults.pacer_delta_msec)
+        self.assertFalse(parse(["configure", "--no-realtime-pacer"]).realtime_pacer)
+
+    def test_realtime_pacer_rejects_a_delta_above_max_delay(self):
+        pacer = FPV_TOOL.ROOT / "tools" / "fpv_realtime_pacer.py"
+        result = subprocess.run(
+            [sys.executable, str(pacer), "unused.json", "--delta-msec", "25", "--max-delay-msec", "20"],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertIn("deadlock", result.stderr)
 
     def test_start_rejects_a_taken_threejs_port(self):
         import socket

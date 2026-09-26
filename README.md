@@ -127,6 +127,8 @@ PID自動チューニング済みの[検証済み構成](verified-configs/master
 
 `start`でMuJoCo Viewerが開き、PS5コントローラの入力クライアントがバックグラウンドで起動します。ログは`<output>/runtime/logs/`に出力されます。
 
+`configure`は、シミュレーション時刻を実時間に合わせる箱庭アセット（`tools/fpv_realtime_pacer.py`）もLauncherへ加えます。ドローンサービスはスリープせずに全速で動き、ペーサーが実際の経過時間に合わせて自分の時刻を進めます。箱庭のコンダクターは、最も遅いアセットから`max_delay`以上離れて世界時刻を進めないため、シミュレーションはOSによらず実時間の速さになります。`<output>/runtime/logs/fpv-realtime-pacer.out`に、5秒ごとの実時間比（`rtf`）が出ます。ペーサーのΔTは`--pacer-delta-msec`（既定10ms）で変えられます。デッドロックを避けるため、ドローンサービスのコンダクターの`max_delay`（20ms）以下にしてください。ペーサーを外す場合は`--no-realtime-pacer`を付け、代わりに`--real-sleep-msec`でステップごとのスリープを指定します。
+
 `status`は、Launcherの状態に加えて、ログから読み取った今の状態と、次にすべき操作を表示します。
 
 ```text
@@ -184,6 +186,7 @@ python ../hakoniwa-fpv-drone/tools/fpv.py open-viewer --output ../hakoniwa-fpv-d
 
 - **×と△は効くのにスティックで何も起きない**：`<output>/runtime/logs/fpv-drone-service.out`に、`radio_control: 1`の直後の`[STATE] Hovering -> Landing`がないか確認してください。runtimeの`control-param.txt`に`CTRLMODE_LANDING_*`がないと、地上でRadio Controlを有効にした瞬間にLandingへ入り、抜けられなくなります。
 - **浮上しない**：`status`で`Radio Control : ON`と`Mode : ATTI`を確認してください。×と△はトグルなので、押し直すと元に戻ります。
+- **機体の動きが遅い・速すぎる**：`fpv-realtime-pacer.out`の`rtf`が1.0付近か確認してください。ペーサーが起動していないと、ドローンサービスはスリープなしで全速になります。
 - **浮上するがホバリングしない**：`configure`の出力が`No verified FPV config matches ...`になっていないか確認してください。未調整の汎用PIDが使われています。
 - **`Drone Core service ... not found`**：手順4の`fpv-drone-core.py prepare`を実行してください。
 - **`Foundation Python not found`**：手順3の`configure`が`Foundation: SATISFIED`まで完了していません。Windowsでは、`foundation.py toolchain`の登録を先に行ってください。

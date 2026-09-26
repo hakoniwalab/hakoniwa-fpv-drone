@@ -1148,7 +1148,7 @@ def configure(args: argparse.Namespace) -> int:
                 "args": [
                     str(resolved["vehicle"]), str(pdudef),
                     *(["--mujoco-viewer", "--mujoco-fpv-pip"] if args.mujoco_viewer or not args.threejs else []),
-                    "--real-sleep-msec", "1",
+                    "--real-sleep-msec", str(args.real_sleep_msec),
                 ],
                 "cwd": str(drone_core),
                 "delay_sec": 2,
@@ -1168,6 +1168,23 @@ def configure(args: argparse.Namespace) -> int:
             },
         ],
     }
+    if args.realtime_pacer:
+        # The pacer must register before hako-cmd start so the Conductor
+        # includes it in every world-time advance decision.
+        pacer_config = resolved["runtime"] / "realtime-pacer-asset.json"
+        pacer_config.write_text(json.dumps({"paths": [], "robots": []}, indent=2) + "\n", encoding="utf-8")
+        launcher["assets"].insert(1, {
+            "name": "fpv-realtime-pacer",
+            "activation_timing": "before_start",
+            "command": str(foundation_python),
+            "args": [
+                "-u", str(require_file(ROOT / "tools" / "fpv_realtime_pacer.py", "real-time pacer")),
+                str(pacer_config), "--delta-msec", str(args.pacer_delta_msec),
+            ],
+            "cwd": str(ROOT),
+            "depends_on": ["fpv-drone-service"],
+            "delay_sec": 1,
+        })
     if args.threejs:
         visual_state_publisher = require_file(
             drone_core_bin / f"{NATIVE_PREFIX}drone_visual_state_publisher{EXECUTABLE_SUFFIX}",
@@ -1409,6 +1426,18 @@ def parser() -> argparse.ArgumentParser:
         help="Hakoniwa Drone PRO checkout used only by tune-* commands (PID auto-tuning requires a PRO license).",
     )
     result.add_argument("--threejs", action="store_true", help="Add the optional Three.js viewer runtime.")
+    result.add_argument(
+        "--no-realtime-pacer", dest="realtime_pacer", action="store_false",
+        help="Do not add the Hakoniwa asset that keeps simulation time in step with wall-clock time.",
+    )
+    result.add_argument(
+        "--pacer-delta-msec", type=int, default=10,
+        help="Real-time pacer step; must not exceed the drone service Conductor max_delay (20 ms).",
+    )
+    result.add_argument(
+        "--real-sleep-msec", type=int, default=0,
+        help="Per-step wall-clock sleep in the drone service (0 when the real-time pacer paces the run).",
+    )
     result.add_argument(
         "--mujoco-viewer", action="store_true",
         help="Also open the native MuJoCo Viewer with --threejs (it opens by default without --threejs).",
