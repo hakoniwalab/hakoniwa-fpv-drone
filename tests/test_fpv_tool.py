@@ -20,7 +20,7 @@ class FpvToolTest(unittest.TestCase):
         source = bootstrap.read_text(encoding="utf-8")
         self.assertIn("neutral.axis = [0.0] * 6", source)
         self.assertIn("neutral.button = [False] * 15", source)
-        self.assertIn('"-m",\n            "rc-custom"', source)
+        self.assertIn('"-m", "rc-custom"', source)
 
     def test_tuning_digest_is_deterministic_and_tracks_inputs(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -276,6 +276,33 @@ class FpvToolTest(unittest.TestCase):
         parse = FPV_TOOL.parser().parse_args
         self.assertFalse(parse(["configure", "--threejs"]).mujoco_viewer)
         self.assertTrue(parse(["configure", "--threejs", "--mujoco-viewer"]).mujoco_viewer)
+
+    def test_foundation_python_follows_the_platform_venv_layout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.assertEqual(root / "bin" / "python3", FPV_TOOL.foundation_python_path(root, windows=False))
+            self.assertEqual(root / "Scripts" / "python.exe", FPV_TOOL.foundation_python_path(root, windows=True))
+            (root / "python.exe").write_text("", encoding="utf-8")
+            self.assertEqual(root / "python.exe", FPV_TOOL.foundation_python_path(root, windows=True))
+
+    def test_windows_library_paths_include_dll_locations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            install = root / "work" / "foundation" / "install"
+            (install.parent / "config").mkdir(parents=True)
+            (install.parent / "config" / "toolchain.json").write_text(
+                json.dumps({"schema_version": 1, "vcpkg_root": str(root / "vcpkg")}), encoding="utf-8"
+            )
+            core = root / "hakoniwa-drone-core"
+            self.assertEqual(
+                [install / "lib", core / "mac"],
+                FPV_TOOL.native_library_paths(install, core, core / "mac", windows=False),
+            )
+            self.assertEqual(
+                [install / "bin", install / "lib", core / "win", core / "vendor" / "mujoco" / "bin",
+                 root / "vcpkg" / "installed" / "x64-windows" / "bin"],
+                FPV_TOOL.native_library_paths(install, core, core / "win", windows=True),
+            )
 
     def test_start_rejects_a_taken_threejs_port(self):
         import socket

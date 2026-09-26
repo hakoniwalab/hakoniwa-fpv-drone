@@ -7,6 +7,7 @@ import hashlib
 import json
 import math
 import os
+import platform
 import shutil
 import socket
 import subprocess
@@ -22,15 +23,31 @@ DEFAULT_OUTPUT = ROOT / "build" / "example-5inch"
 DEFAULT_WORLD = ROOT / "recipes" / "environments" / "fpv-training-course.yaml"
 DEFAULT_VERIFIED_CONFIG = ROOT / "verified-configs" / "example-5inch-angle" / "drone-config"
 DEFAULT_DRONE_CORE = ROOT.parent / "hakoniwa-drone-core"
-# The free binary release (mac.zip from GitHub Releases) extracts to a flat
-# "mac/" directory of executables and shared libraries, not a built
-# ".hako/install/bin" tree. This assumes mac.zip was extracted directly under
-# the hakoniwa-drone-core checkout.
-DEFAULT_DRONE_CORE_BIN = DEFAULT_DRONE_CORE / "mac"
+# The public release archives (mac.zip / lnx.zip / win.zip) extract to a flat
+# directory of executables and shared libraries inside the drone-core checkout.
+NATIVE_LAYOUTS = {
+    "Darwin": ("mac", "mac-", ""),
+    "Linux": ("lnx", "linux-", ""),
+    "Windows": ("win", "win-", ".exe"),
+}
+NATIVE_DIRECTORY, NATIVE_PREFIX, EXECUTABLE_SUFFIX = NATIVE_LAYOUTS.get(platform.system(), NATIVE_LAYOUTS["Darwin"])
+DEFAULT_DRONE_CORE_BIN = DEFAULT_DRONE_CORE / NATIVE_DIRECTORY
 DEFAULT_DRONE_PRO = ROOT.parent / "hakoniwa-drone-pro"
 DEFAULT_THREEJS_ROOT = ROOT.parent / "hakoniwa-threejs-drone"
 DEFAULT_BUSINESS_PACK_ROOT = ROOT.parent / "hakoniwa-business-pack"
-DEFAULT_FOUNDATION_PYTHON = ROOT.parent / "hakoniwa-business-pack" / "work" / "foundation" / "install" / "python" / "bin" / "python3"
+
+
+def foundation_python_path(python_root: Path, *, windows: bool | None = None) -> Path:
+    """Match Business Pack workspace.py: Scripts/ venv or portable root on Windows."""
+    if (os.name == "nt") if windows is None else windows:
+        portable = python_root / "python.exe"
+        return portable if portable.is_file() else python_root / "Scripts" / "python.exe"
+    return python_root / "bin" / "python3"
+
+
+DEFAULT_FOUNDATION_PYTHON = foundation_python_path(
+    DEFAULT_BUSINESS_PACK_ROOT / "work" / "foundation" / "install" / "python"
+)
 BASE_THREEJS_WHEELBASE_M = math.hypot(0.47, 0.38)
 FPV_TUNING_INITIAL_ALTITUDE_M = 2.0
 FPV_TUNING_MIN_ALTITUDE_M = 0.1
@@ -994,6 +1011,24 @@ def tune_apply(args: argparse.Namespace) -> int:
     return 0
 
 
+def native_library_paths(
+    install_prefix: Path, drone_core: Path, drone_core_bin: Path, *, windows: bool | None = None
+) -> list[Path]:
+    """Library search paths for the Launcher's lib_path (PATH on Windows)."""
+    if not ((os.name == "nt") if windows is None else windows):
+        return [install_prefix / "lib", drone_core_bin]
+    # Windows resolves DLLs through PATH: Foundation DLLs install to bin/,
+    # MuJoCo ships mujoco.dll in vendor/mujoco/bin, and glfw3.dll comes from
+    # the vcpkg root registered with foundation.py toolchain.
+    paths = [install_prefix / "bin", install_prefix / "lib", drone_core_bin, drone_core / "vendor" / "mujoco" / "bin"]
+    toolchain = install_prefix.parent / "config" / "toolchain.json"
+    if toolchain.is_file():
+        vcpkg_root = json.loads(toolchain.read_text(encoding="utf-8")).get("vcpkg_root")
+        if vcpkg_root:
+            paths.append(Path(vcpkg_root) / "installed" / "x64-windows" / "bin")
+    return paths
+
+
 def configure(args: argparse.Namespace) -> int:
     resolved = paths(args)
     drone_core = args.drone_core_root.resolve()
@@ -1002,7 +1037,7 @@ def configure(args: argparse.Namespace) -> int:
     # bypass the virtual environment and lose Foundation-installed packages.
     foundation_python = require_file(args.foundation_python.absolute(), "Foundation Python")
     service = require_file(
-        drone_core_bin / "mac-main_hako_drone_service",
+        drone_core_bin / f"{NATIVE_PREFIX}main_hako_drone_service{EXECUTABLE_SUFFIX}",
         "Drone Core service (run tools/fpv-drone-core.py prepare; see --drone-core-bin)",
     )
     pdudef = require_file(drone_core / "config" / "pdudef" / "drone-pdudef-1.json", "Drone PDU definition")
@@ -1072,7 +1107,7 @@ def configure(args: argparse.Namespace) -> int:
         )
 
     install_prefix = business_pack_root / "work" / "foundation" / "install"
-    require_file(install_prefix / "bin" / "hako-cmd", "Foundation hako-cmd (run recipe.py configure)")
+    require_file(install_prefix / "bin" / f"hako-cmd{EXECUTABLE_SUFFIX}", "Foundation hako-cmd (run recipe.py configure)")
     launcher = {
         "version": "0.1",
         "defaults": {
@@ -1084,7 +1119,7 @@ def configure(args: argparse.Namespace) -> int:
             # mac.zip ships libhako_service_c.dylib next to its executables.
             "env": {
                 "prepend": {
-                    "lib_path": [str(install_prefix / "lib"), str(drone_core_bin)],
+                    "lib_path": [str(path) for path in native_library_paths(install_prefix, drone_core, drone_core_bin)],
                     "PATH": [str(install_prefix / "bin"), str(foundation_python.parent)],
                 }
             },
@@ -1121,14 +1156,14 @@ def configure(args: argparse.Namespace) -> int:
     }
     if args.threejs:
         visual_state_publisher = require_file(
-            drone_core_bin / "mac-drone_visual_state_publisher",
+            drone_core_bin / f"{NATIVE_PREFIX}drone_visual_state_publisher{EXECUTABLE_SUFFIX}",
             "Drone Core visual-state publisher (run tools/fpv-drone-core.py prepare; see --drone-core-bin)",
         )
         visual_state_config = require_file(
             drone_core / "config" / "assets" / "visual_state_publisher" / "visual_state_publisher-1.json",
             "single-drone visual-state publisher config",
         )
-        web_bridge = require_file(install_prefix / "bin" / "hakoniwa-pdu-web-bridge", "WebBridge")
+        web_bridge = require_file(install_prefix / "bin" / f"hakoniwa-pdu-web-bridge{EXECUTABLE_SUFFIX}", "WebBridge")
         web_bridge_config = install_prefix / "share" / "hakoniwa-pdu-bridge" / "config" / "web_bridge_fleets"
         require_file(web_bridge_config / "bridge" / "bridge.json", "WebBridge fleet config")
         assets = launcher["assets"]
@@ -1351,7 +1386,7 @@ def parser() -> argparse.ArgumentParser:
         "--drone-core-bin", type=Path, default=DEFAULT_DRONE_CORE_BIN,
         help=(
             "Directory holding the extracted mac.zip release binaries "
-            "(mac-main_hako_drone_service, mac-drone_visual_state_publisher, ...). "
+            "(e.g. mac/mac-main_hako_drone_service, win/win-main_hako_drone_service.exe). "
             "Defaults to <drone-core-root>/mac."
         ),
     )

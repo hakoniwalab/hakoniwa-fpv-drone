@@ -36,6 +36,13 @@ Catalog属性を追加してもRecipeの参照形式を壊さず、実行backend
 
 前提：Python 3.12（Homebrew版は不可）、Xcode Command Line Tools、`brew install glfw`、PS5コントローラをBluetoothまたはUSBで接続済み。Business Pack側の前提は[Getting Started](https://github.com/hakoniwalab/hakoniwa-business-pack/blob/main/docs/getting-started-ja.md)を参照してください。飛行まで検証済みなのはmacOS（Apple Silicon）です。
 
+Windows 11（x64）では、次の点が異なります。
+
+- 事前にVisual Studio 2022（C++デスクトップ開発）と、自分でcloneしたvcpkgへ`boost-asio:x64-windows boost-beast:x64-windows glfw3:x64-windows`をインストールしておきます（Business Pack Getting Startedの4.2）。
+- 手順3の`configure`の前に、vcpkgの場所をFoundationへ登録します（Getting Startedの4.6）：`py -3.12 tools\foundation.py toolchain --recipe-id fpv-drone-design-angle-flight --vcpkg-root D:\vcpkg`
+- PowerShellで実行し、`python3.12`は`py -3.12`に読み替えます。行末の`\`で折り返したコマンドは、1行につなげて入力します。
+- `tools/fpv.py`は`win/win-*.exe`のバイナリを使い、Foundationの`bin`、`vendor/mujoco/bin`、vcpkgの`glfw3.dll`をDLLの検索パスに加えます。
+
 ### 1. 2つのリポジトリを同じ親ディレクトリへcloneする
 
 ```bash

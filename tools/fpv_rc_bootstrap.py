@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -66,17 +67,12 @@ def main() -> int:
         return 1
 
     os.chdir(rc_root)
-    os.execv(
-        sys.executable,
-        [
-            sys.executable,
-            "-u",
-            "-m",
-            "rc-custom",
-            args.config_path,
-            args.rc_config_path,
-        ],
-    )
+    command = [sys.executable, "-u", "-m", "rc-custom", args.config_path, args.rc_config_path]
+    if os.name == "nt":
+        # Windows exec* starts a new process and exits this one, which the
+        # Launcher treats as the asset terminating; keep this process alive.
+        return subprocess.call(command)
+    os.execv(sys.executable, command)
     return 0
 
 
