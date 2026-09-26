@@ -1096,7 +1096,11 @@ def configure(args: argparse.Namespace) -> int:
                 "name": "fpv-drone-service",
                 "activation_timing": "before_start",
                 "command": str(service),
-                "args": [str(resolved["vehicle"]), str(pdudef), "--mujoco-viewer", "--mujoco-fpv-pip", "--real-sleep-msec", "1"],
+                "args": [
+                    str(resolved["vehicle"]), str(pdudef),
+                    *(["--mujoco-viewer", "--mujoco-fpv-pip"] if args.mujoco_viewer or not args.threejs else []),
+                    "--real-sleep-msec", "1",
+                ],
                 "cwd": str(drone_core),
                 "delay_sec": 2,
             },
@@ -1204,6 +1208,79 @@ def require_free_ports(launcher_path: Path) -> None:
         raise RuntimeErrorWithMessage("; ".join(busy) + ". Stop that process and run start again.")
 
 
+FLIGHT_STATES = ("TakeOff", "Hovering", "Landing")
+
+
+def read_parameter(path: Path, name: str) -> float | None:
+    if not path.is_file():
+        return None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        fields = line.split()
+        if len(fields) >= 2 and fields[0] == name:
+            return float(fields[1])
+    return None
+
+
+def runtime_state(resolved: dict[str, Path]) -> dict[str, str]:
+    """Reconstruct the operator-visible Radio Control state from the runtime logs.
+
+    Cross and Triangle are toggles with no on-screen feedback, so the service
+    log is the only record of the current Radio Control, mode, and flight state.
+    """
+    start_in_hovering = read_parameter(resolved["vehicle"] / "control-param.txt", "CTRLMODE_START_IN_HOVERING")
+    state = {
+        "simulation": "not started",
+        "radio_control": "OFF",
+        "mode": "GPS",
+        "flight_state": "Hovering" if start_in_hovering else "TakeOff",
+        "controller": "unknown",
+    }
+    service_log = resolved["logs"] / "fpv-drone-service.out"
+    if service_log.is_file():
+        for line in service_log.read_text(encoding="utf-8", errors="replace").splitlines():
+            if "start simulation" in line:
+                state["simulation"] = "running"
+            elif line.startswith("radio_control:"):
+                state["radio_control"] = "ON" if line.split(":", 1)[1].strip() == "1" else "OFF"
+            elif "Control mode changed to " in line:
+                state["mode"] = line.rsplit("Control mode changed to ", 1)[1].strip()
+            elif line.startswith("[STATE] ") and " -> " in line:
+                target = line.rsplit(" -> ", 1)[1].strip()
+                if target in FLIGHT_STATES:
+                    state["flight_state"] = target
+    rc_log = resolved["logs"] / "fpv-remote-controller.out"
+    if rc_log.is_file():
+        for line in rc_log.read_text(encoding="utf-8", errors="replace").splitlines():
+            if line.startswith("ジョイスティックの名前:"):
+                state["controller"] = line.split(":", 1)[1].strip()
+            elif "ジョイスティックが接続されていません" in line:
+                state["controller"] = "not connected"
+    return state
+
+
+def print_runtime_state(resolved: dict[str, Path], launcher_state: str | None) -> None:
+    state = runtime_state(resolved)
+    if launcher_state != "RUNNING":
+        state["simulation"] = f"stopped (launcher {launcher_state or 'unknown'})"
+    print(f"Simulation    : {state['simulation']}")
+    print(f"Controller    : {state['controller']}")
+    print(f"Radio Control : {state['radio_control']}")
+    print(f"Mode          : {state['mode']}")
+    print(f"Flight state  : {state['flight_state']}")
+    if state["simulation"] != "running":
+        return
+    if state["controller"] == "not connected":
+        print("Next: connect the PS5 controller and run start again.")
+    elif state["radio_control"] == "OFF":
+        print("Next: press and release Cross to enable Radio Control.")
+    elif state["mode"] != "ATTI":
+        print("Next: press and release Triangle to switch to ATTI.")
+    elif state["flight_state"] == "Landing":
+        print("Landing: wait until it lands, then raise the left stick to take off again.")
+    else:
+        print("Ready: raise the left stick to lift off.")
+
+
 def launcher_command(args: argparse.Namespace, action: str) -> int:
     resolved = paths(args)
     foundation_python = require_file(args.foundation_python.absolute(), "Foundation Python")
@@ -1219,10 +1296,21 @@ def launcher_command(args: argparse.Namespace, action: str) -> int:
         print(f"Logs: {resolved['logs']}")
         return 0
     require_file(resolved["session"], "Launcher session")
-    run([
+    command = [
         str(foundation_python), "-m", "hakoniwa_pdu.apps.launcher.hako_launcher_ctl",
         "status" if action == "status" else "terminate", str(resolved["session"]),
-    ], cwd=ROOT)
+    ]
+    if action != "status":
+        run(command, cwd=ROOT)
+        return 0
+    print("+", " ".join(command), flush=True)
+    result = subprocess.run(command, cwd=ROOT, check=True, capture_output=True, text=True)
+    print(result.stdout, end="")
+    try:
+        launcher_state = json.loads(result.stdout.strip().splitlines()[-1]).get("state")
+    except (ValueError, IndexError, AttributeError):
+        launcher_state = None
+    print_runtime_state(resolved, launcher_state)
     return 0
 
 
@@ -1272,6 +1360,10 @@ def parser() -> argparse.ArgumentParser:
         help="Hakoniwa Drone PRO checkout used only by tune-* commands (PID auto-tuning requires a PRO license).",
     )
     result.add_argument("--threejs", action="store_true", help="Add the optional Three.js viewer runtime.")
+    result.add_argument(
+        "--mujoco-viewer", action="store_true",
+        help="Also open the native MuJoCo Viewer with --threejs (it opens by default without --threejs).",
+    )
     result.add_argument("--threejs-root", type=Path, default=DEFAULT_THREEJS_ROOT)
     result.add_argument("--business-pack-root", type=Path, default=DEFAULT_BUSINESS_PACK_ROOT)
     result.add_argument("--foundation-python", type=Path, default=DEFAULT_FOUNDATION_PYTHON)

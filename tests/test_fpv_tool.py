@@ -239,6 +239,44 @@ class FpvToolTest(unittest.TestCase):
             ),
         )
 
+    def test_runtime_state_follows_the_latest_log_lines(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            resolved = {"vehicle": root / "vehicle", "logs": root / "logs"}
+            resolved["vehicle"].mkdir()
+            resolved["logs"].mkdir()
+            (resolved["vehicle"] / "control-param.txt").write_text(
+                "CTRLMODE_START_IN_HOVERING 1\n", encoding="utf-8"
+            )
+            self.assertEqual(
+                {"simulation": "not started", "radio_control": "OFF", "mode": "GPS",
+                 "flight_state": "Hovering", "controller": "unknown"},
+                FPV_TOOL.runtime_state(resolved),
+            )
+            (resolved["logs"] / "fpv-drone-service.out").write_text(
+                "INFO: start simulation\n"
+                "DroneService::advanceTimeStep: Control mode changed to ATTI\n"
+                "DroneService::advanceTimeStep: Control mode changed to GPS\n"
+                "radio_control: 1\n"
+                "DroneService::advanceTimeStep: Control mode changed to ATTI\n"
+                "[STATE] Hovering -> Landing\n"
+                "[STATE] Idle -> Ascending\n",
+                encoding="utf-8",
+            )
+            (resolved["logs"] / "fpv-remote-controller.out").write_text(
+                "ジョイスティックの名前: DualSense Wireless Controller\n", encoding="utf-8"
+            )
+            self.assertEqual(
+                {"simulation": "running", "radio_control": "ON", "mode": "ATTI",
+                 "flight_state": "Landing", "controller": "DualSense Wireless Controller"},
+                FPV_TOOL.runtime_state(resolved),
+            )
+
+    def test_threejs_skips_the_native_mujoco_viewer_unless_requested(self):
+        parse = FPV_TOOL.parser().parse_args
+        self.assertFalse(parse(["configure", "--threejs"]).mujoco_viewer)
+        self.assertTrue(parse(["configure", "--threejs", "--mujoco-viewer"]).mujoco_viewer)
+
     def test_start_rejects_a_taken_threejs_port(self):
         import socket
 

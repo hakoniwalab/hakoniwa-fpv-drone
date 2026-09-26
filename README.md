@@ -102,13 +102,24 @@ PID自動チューニング済みの[検証済み構成](verified-configs/master
 
 `start`でMuJoCo Viewerが開き、PS5コントローラの入力クライアントがバックグラウンドで起動します。ログは`<output>/runtime/logs/`に出力されます。
 
+`status`は、Launcherの状態に加えて、ログから読み取った今の状態と、次にすべき操作を表示します。
+
+```text
+Simulation    : running
+Controller    : DualSense Wireless Controller
+Radio Control : OFF
+Mode          : GPS
+Flight state  : Hovering
+Next: press and release Cross to enable Radio Control.
+```
+
 ### 6. PS5で操縦する
 
 1. **×ボタンを押して離す**：Radio Controlが有効になります（アーム）。押し続ける必要はありません。サービスログに`radio_control: 1`が出ます。
 2. **△ボタンを押して離す**：初期のGPSモードからATTI（Angle）モードへ切り替わります。サービスログに`Control mode changed to ATTI`が出ます。
 3. **左スティックを上へ倒す**：浮上します。スティックを中央に戻すと、その高度でホバリングします。
 
-この機体は`ANGLE_CONTROL_ENABLE=1`のため、**GPSモードのままでは制御出力が出ず、×を押しただけでは浮上しません**。必ず△でATTIへ切り替えてください。
+この機体は`ANGLE_CONTROL_ENABLE=1`のため、**GPSモードのままでは制御出力が出ず、×を押しただけでは浮上しません**。必ず△でATTIへ切り替えてください。×と△は**押すたびに切り替わるトグル**で、画面には状態が表示されません。2回押すと元に戻るので、迷ったら別のターミナルで`status`を実行し、`Radio Control : ON`と`Mode : ATTI`になっているか確認してください。
 
 | スティック | 上下 | 左右 |
 |---|---|---|
@@ -140,13 +151,14 @@ python ../hakoniwa-fpv-drone/tools/fpv.py start       --output ../hakoniwa-fpv-d
 python ../hakoniwa-fpv-drone/tools/fpv.py open-viewer --output ../hakoniwa-fpv-drone/build/master3x
 ```
 
-`--assembly`から生成したRecipeが`recipes/examples/master3x.yaml`と一致するため、チューニング済みの[検証済み構成](verified-configs/master3x-angle/)が自動適用されます。ブラウザが開いたら、左上の**connect**を押してください。WebSocket（`ws://127.0.0.1:8765`）につながり、Drone Stateに位置とpwm0〜3が表示され、プロペラが回ります。PS5の操作は手順6と同じです。停止は`stop --output ../hakoniwa-fpv-drone/build/master3x`です。
+`--threejs`の構成では、MuJoCo Viewerは開きません。両方を表示したい場合は、`configure`に`--mujoco-viewer`を付けてください。`--assembly`から生成したRecipeが`recipes/examples/master3x.yaml`と一致するため、チューニング済みの[検証済み構成](verified-configs/master3x-angle/)が自動適用されます。ブラウザが開いたら、左上の**connect**を押してください。WebSocket（`ws://127.0.0.1:8765`）につながり、Drone Stateに位置とpwm0〜3が表示され、プロペラが回ります。PS5の操作は手順6と同じです。停止は`stop --output ../hakoniwa-fpv-drone/build/master3x`です。
 
 `--threejs`の構成では、HTTP（8000番）とWebSocket（8765番）のポートを使います。`start`はこれらのポートが空いているかを先に確認し、使用中の場合は使っているプロセスを表示して起動しません。
 
 ### うまく動かないとき
 
 - **×と△は効くのにスティックで何も起きない**：`<output>/runtime/logs/fpv-drone-service.out`に、`radio_control: 1`の直後の`[STATE] Hovering -> Landing`がないか確認してください。runtimeの`control-param.txt`に`CTRLMODE_LANDING_*`がないと、地上でRadio Controlを有効にした瞬間にLandingへ入り、抜けられなくなります。
+- **浮上しない**：`status`で`Radio Control : ON`と`Mode : ATTI`を確認してください。×と△はトグルなので、押し直すと元に戻ります。
 - **浮上するがホバリングしない**：`configure`の出力が`No verified FPV config matches ...`になっていないか確認してください。未調整の汎用PIDが使われています。
 - **`Drone Core service ... not found`**：手順4の`fpv-drone-core.py prepare`を実行してください。
 - **`[WARNING] Hakoniwa Workspace is not active`**：手順2の`(hako)`シェルの外で実行しています。
