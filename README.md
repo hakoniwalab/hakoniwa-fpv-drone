@@ -36,12 +36,15 @@ Catalog属性を追加してもRecipeの参照形式を壊さず、実行backend
 
 前提：Python 3.12（Homebrew版は不可）、Xcode Command Line Tools、`brew install glfw`、PS5コントローラをBluetoothまたはUSBで接続済み。Business Pack側の前提は[Getting Started](https://github.com/hakoniwalab/hakoniwa-business-pack/blob/main/docs/getting-started-ja.md)を参照してください。飛行まで検証済みなのはmacOS（Apple Silicon）です。
 
-Windows 11（x64）では、次の点が異なります。
+Windows 11（x64）では、PowerShellで実行し、`python3.12`を`py -3.12`に読み替えます。行末の`\`で折り返したコマンドは、1行につなげて入力します。手順2と手順3は、Windows用のコマンドを別に示します。Windowsでは、事前にVisual Studio 2022（C++デスクトップ開発）と、自分でcloneしたvcpkgへBoostとGLFWを入れておきます（Business Pack Getting Startedの4.2）。
 
-- 事前にVisual Studio 2022（C++デスクトップ開発）と、自分でcloneしたvcpkgへ`boost-asio:x64-windows boost-beast:x64-windows glfw3:x64-windows`をインストールしておきます（Business Pack Getting Startedの4.2）。
-- 手順3の`configure`の前に、vcpkgの場所をFoundationへ登録します（Getting Startedの4.6）：`py -3.12 tools\foundation.py toolchain --recipe-id fpv-drone-design-angle-flight --vcpkg-root D:\vcpkg`
-- PowerShellで実行し、`python3.12`は`py -3.12`に読み替えます。行末の`\`で折り返したコマンドは、1行につなげて入力します。
-- `tools/fpv.py`は`win/win-*.exe`のバイナリを使い、Foundationの`bin`、`vendor/mujoco/bin`、vcpkgの`glfw3.dll`をDLLの検索パスに加えます。
+```powershell
+git clone https://github.com/microsoft/vcpkg.git D:\vcpkg
+D:\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+D:\vcpkg\vcpkg.exe install boost-asio:x64-windows boost-beast:x64-windows glfw3:x64-windows
+```
+
+vcpkgの場所は任意です。以降の例ではD:\vcpkgとします。
 
 ### 1. 2つのリポジトリを同じ親ディレクトリへcloneする
 
@@ -58,6 +61,13 @@ cd hakoniwa-business-pack
 python3.12 tools/workspace.py enter
 ```
 
+Windows（PowerShell）：
+
+```powershell
+cd hakoniwa-business-pack
+py -3.12 tools\workspace.py enter
+```
+
 プロンプトの先頭に`(hako)`が付きます。以降のコマンドはすべて、この`(hako)`シェルの`hakoniwa-business-pack`で実行します。別のvenvが有効な場合も、Workspaceが環境を切り替えるので影響はありませんが、先に`deactivate`しておくと確実です。
 
 ### 3. Recipeを診断し、Foundationと依存を構築する
@@ -68,7 +78,15 @@ python3.12 tools/recipe.py plan      --recipe ../hakoniwa-fpv-drone/recipes/busi
 python3.12 tools/recipe.py configure --recipe ../hakoniwa-fpv-drone/recipes/business-pack/fpv-drone-design-angle-flight.yaml
 ```
 
-最初の`doctor`は、Foundationがまだないので`MISSING`になります。これは正常です。`configure`は、不足している兄弟リポジトリ（`hakoniwa-core-pro`、`hakoniwa-pdu-python`、`hakoniwa-pdu-endpoint`、`hakoniwa-pdu-bridge-core`、`hakoniwa-drone-core` v4.1.1、`hakoniwa-threejs-drone`）をcloneし、Foundation（`work/foundation/install`）をビルドし、Recipeが宣言するPython依存（`pygame`、`PyYAML`、`trimesh`）をFoundation Pythonへ入れます。初回は10分以上かかります。完了すると、`(hako)`シェルの`python`はFoundation Pythonを指すので、以降は`python`で実行します。
+Windows（PowerShell）では、`configure`の前にvcpkgの場所をFoundationへ登録します（Getting Startedの4.6）。WebBridgeのビルドがBoostを使うため、これを省くと`configure`が失敗します。
+
+```powershell
+py -3.12 tools\recipe.py doctor --recipe ..\hakoniwa-fpv-drone\recipes\business-pack\fpv-drone-design-angle-flight.yaml
+py -3.12 tools\foundation.py toolchain --recipe-id fpv-drone-design-angle-flight --vcpkg-root D:\vcpkg
+py -3.12 tools\recipe.py configure --recipe ..\hakoniwa-fpv-drone\recipes\business-pack\fpv-drone-design-angle-flight.yaml
+```
+
+最初の`doctor`は、Foundationがまだないので`MISSING`になります。これは正常です。`configure`は、不足している兄弟リポジトリ（`hakoniwa-core-pro`、`hakoniwa-pdu-python`、`hakoniwa-pdu-endpoint`、`hakoniwa-pdu-bridge-core`、`hakoniwa-drone-core` v4.1.1、`hakoniwa-threejs-drone`）をcloneし、Foundation（`work/foundation/install`）をビルドし、Recipeが宣言するPython依存（`pygame`、`PyYAML`、`trimesh`）をFoundation Pythonへ入れます。初回は10分以上かかります。完了すると、`(hako)`シェルの`python`はFoundation Pythonを指すので、以降は`python`で実行します。`configure`が最後に`Foundation: SATISFIED`で終わっていることを確認してください。終わっていないうちは、`python`はシステムのPythonのままで、手順5の`fpv.py`が`Foundation Python not found`で止まります。
 
 drone-coreのリリースバイナリとMuJoCoは、cloneしただけでは入っていません。次の手順4で用意します。
 
@@ -168,6 +186,7 @@ python ../hakoniwa-fpv-drone/tools/fpv.py open-viewer --output ../hakoniwa-fpv-d
 - **浮上しない**：`status`で`Radio Control : ON`と`Mode : ATTI`を確認してください。×と△はトグルなので、押し直すと元に戻ります。
 - **浮上するがホバリングしない**：`configure`の出力が`No verified FPV config matches ...`になっていないか確認してください。未調整の汎用PIDが使われています。
 - **`Drone Core service ... not found`**：手順4の`fpv-drone-core.py prepare`を実行してください。
+- **`Foundation Python not found`**：手順3の`configure`が`Foundation: SATISFIED`まで完了していません。Windowsでは、`foundation.py toolchain`の登録を先に行ってください。
 - **`[WARNING] Hakoniwa Workspace is not active`**：手順2の`(hako)`シェルの外で実行しています。
 - **Three.jsビューアに機体の状態が出ない**：左上の**connect**を押したか確認してください。`start`が`port 8765 ... is in use`で止まる場合は、表示されたプロセス（Dockerコンテナなど）を止めてから、もう一度`start`してください。
 
