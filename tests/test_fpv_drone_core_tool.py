@@ -69,6 +69,17 @@ class FpvDroneCoreToolTest(unittest.TestCase):
             mode = (Path(directory) / "out" / "mac" / "mac-drone_service_rc").stat().st_mode & 0o777
             self.assertEqual(0o755, mode)
 
+    def test_mujoco_copy_accepts_single_directory_and_flat_windows_layouts(self):
+        for layout in ("mujoco-3.13.0/bin", "bin"):
+            with self.subTest(layout=layout), tempfile.TemporaryDirectory() as directory:
+                extraction = Path(directory) / "extract"
+                (extraction / layout).mkdir(parents=True)
+                (extraction / layout / "mujoco.dll").write_text("dll", encoding="utf-8")
+                (extraction / "LICENSE").write_text("license", encoding="utf-8")
+                core = Path(directory) / "core"
+                TOOL.copy_extracted_mujoco(extraction, core, "3.13.0")
+                self.assertTrue((core / "vendor" / "mujoco" / "bin" / "mujoco.dll").is_file())
+
     def test_prepare_requires_a_drone_core_checkout(self):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(TOOL.PrepareError, "recipe.py configure"):

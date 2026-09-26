@@ -135,6 +135,10 @@ def run_checked(command: list[str], cwd: Path) -> None:
 
 def copy_extracted_mujoco(extraction_root: Path, drone_core: Path, version: str) -> None:
     source = extraction_root / f"mujoco-{version}"
+    if not source.is_dir() and ((extraction_root / "bin").is_dir() or (extraction_root / "lib").is_dir()):
+        # The Windows archive has bin/, include/, lib/ at its root instead of
+        # a single mujoco-<version>/ directory.
+        source = extraction_root
     if not source.is_dir():
         directories = [path for path in extraction_root.iterdir() if path.is_dir()]
         if len(directories) != 1:
