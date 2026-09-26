@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "id": "fpv-drone-master3x",
+  "package_id": "hakoniwa-fpv-drone-master3x-windows-x64",
+  "recipe_id": "fpv-drone-design-angle-flight",
+  "title": "Hakoniwa FPV Drone (Master3X)",
+  "tool": "tools/fpv_portable.py",
+  "entrypoint_name": "fpv-drone",
+  "readme": "portable/README-WINDOWS.txt",
+  "repositories": [
+    {
+      "name": "hakoniwa-fpv-drone",
+      "required_artifact": "tools/fpv.py",
+      "include_paths": [
+        "LICENSE",
+        "README.md",
+        "pyproject.toml",
+        "assembly-interfaces",
+        "catalogs",
+        "composer",
+        "portable",
+        "recipes",
+        "schemas",
+        "src",
+        "tools",
+        "verified-configs",
+        "build/portable-runtime"
+      ]
+    },
+    {
+      "name": "hakoniwa-drone-core",
+      "required_artifact": "win/win-main_hako_drone_service.exe",
+      "include_paths": [
+        "LICENSE",
+        "LICENSE.md",
+        "LICENSE-ja.md",
+        "VERSION.txt",
+        "MUJOCO_VERSION.txt",
+        "config",
+        "drone_api",
+        "vendor/mujoco",
+        "win"
+      ]
+    },
+    {
+      "name": "hakoniwa-threejs-drone",
+      "required_artifact": "index.html",
+      "include_paths": ["LICENSE", "index.html", "assets", "config", "src", "thirdparty"]
+    },
+    {
+      "name": "hakoniwa-pdu-python",
+      "required_artifact": "src/hakoniwa_pdu/apps/launcher/hako_launcher.py",
+      "include_paths": ["src", "tools"]
+    }
+  ],
+  "python_paths": ["hakoniwa-business-pack", "hakoniwa-pdu-python/src"],
+  "validation_imports": ["pygame", "yaml", "trimesh", "numpy", "hakopy", "hakoniwa_pdu"],
+  "staging_cleanup": ["hakoniwa-fpv-drone/build/portable-master3x"]
+}

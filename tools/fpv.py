@@ -1034,16 +1034,31 @@ def tune_apply(args: argparse.Namespace) -> int:
     return 0
 
 
+PORTABLE_RUNTIME_BIN = ROOT / "build" / "portable-runtime" / "bin"
+
+
 def native_library_paths(
-    install_prefix: Path, drone_core: Path, drone_core_bin: Path, *, windows: bool | None = None
+    install_prefix: Path,
+    drone_core: Path,
+    drone_core_bin: Path,
+    *,
+    windows: bool | None = None,
+    portable_runtime_bin: Path = PORTABLE_RUNTIME_BIN,
+    portable: bool | None = None,
 ) -> list[Path]:
     """Library search paths for the Launcher's lib_path (PATH on Windows)."""
     if not ((os.name == "nt") if windows is None else windows):
         return [install_prefix / "lib", drone_core_bin]
     # Windows resolves DLLs through PATH: Foundation DLLs install to bin/,
     # MuJoCo ships mujoco.dll in vendor/mujoco/bin, and glfw3.dll comes from
-    # the vcpkg root registered with foundation.py toolchain.
+    # the vcpkg root registered with foundation.py toolchain. A portable
+    # package carries glfw3.dll in build/portable-runtime/bin instead
+    # (tools/fpv_portable.py collect) and must not depend on a vcpkg path.
     paths = [install_prefix / "bin", install_prefix / "lib", drone_core_bin, drone_core / "vendor" / "mujoco" / "bin"]
+    if portable_runtime_bin.is_dir():
+        paths.append(portable_runtime_bin)
+    if (os.environ.get("HAKONIWA_PORTABLE_WORKSPACE") == "1") if portable is None else portable:
+        return paths
     toolchain = install_prefix.parent / "config" / "toolchain.json"
     if toolchain.is_file():
         vcpkg_root = json.loads(toolchain.read_text(encoding="utf-8")).get("vcpkg_root")

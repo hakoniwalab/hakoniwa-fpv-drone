@@ -215,6 +215,35 @@ python ..\hakoniwa-fpv-drone\tools\fpv.py open-viewer --output ..\hakoniwa-fpv-d
 - **`[WARNING] Hakoniwa Workspace is not active`**：手順2の`(hako)`シェルの外で実行しています。
 - **Three.jsビューアに機体の状態が出ない**：左上の**connect**を押したか確認してください。`start`が`port 28765 ... is in use`で止まる場合は、表示されたプロセスを止めるか、`configure`で別のポートを指定してから、もう一度`start`してください。
 
+## Windows配布用ZIP（一般ユーザー向け、Master3X）
+
+Quick Startで構築し、Windowsで動作を確認したWorkspaceを、Python・Git・ビルド環境なしで動くZIPにまとめます。利用者は、ZIPを展開して`start-fpv-drone.bat`を実行するだけです。PS5コントローラで操縦し、Three.jsのビューアで見ます。
+
+### 作り方（Windows x64、`(hako)`シェル、`hakoniwa-business-pack`で実行）
+
+前提は、Quick Startの手順1〜4が終わり、手順8（Master3XのThree.js）で飛ばせていることです。
+
+```powershell
+python ..\hakoniwa-fpv-drone\tools\fpv.py stop --output ..\hakoniwa-fpv-drone\build\master3x
+```
+
+```powershell
+python tools\package_portable_workspace.py --profile fpv-drone-master3x
+```
+
+出力は`dist\hakoniwa-fpv-drone-master3x-windows-x64.zip`です。初回は、公式のembeddable Pythonをpython.orgから取得します。取得済みのZIPがあれば、`--python-embed-zip`で指定できます。中身を確認したいときは、`--keep-staging`を付けると`work\portable-package\`に展開したまま残ります。
+
+ZIPの作成は、Business Packの`package_portable_workspace.py`が、このリポジトリの[portable/windows-profile.json](portable/windows-profile.json)を読んで行います。FPV固有の処理は[tools/fpv_portable.py](tools/fpv_portable.py)が受け持ちます。
+
+| コマンド | 実行される場所 | 内容 |
+|---|---|---|
+| `collect` | 作成元のWorkspace | vcpkgにある`glfw3.dll`（Drone Coreのサービスが使う）を`build\portable-runtime\bin`へ集める |
+| `doctor` | 作成元のWorkspace | Drone Coreのバイナリ、MuJoCo、Master3Xのverified config、WebBridge、集めたDLLがそろっているか確認する |
+| `prepare` | ZIPの中（初回の`start`、作成時の検証） | `core_mmap_path`を展開先に合わせ、`fpv.py configure --threejs --assembly master3x-visual-demo.assembly.json`を実行する。展開先が変わらなければ次回からは省く |
+| `start` / `status` / `stop` | ZIPの中 | `start`は`prepare`、`fpv.py start`、HTTPサーバーの起動待ち、`open-viewer`の順に行う |
+
+生成したruntimeは、ZIPの中の`hakoniwa-fpv-drone\build\portable-master3x`に置かれます。利用者向けの説明は、ZIPのルートにある`README-WINDOWS.txt`（元は[portable/README-WINDOWS.txt](portable/README-WINDOWS.txt)）です。
+
 ## CatalogとRecipe
 
 Catalogは部品そのものです。

@@ -310,8 +310,28 @@ class FpvToolTest(unittest.TestCase):
             self.assertEqual(
                 [install / "bin", install / "lib", core / "win", core / "vendor" / "mujoco" / "bin",
                  root / "vcpkg" / "installed" / "x64-windows" / "bin"],
-                FPV_TOOL.native_library_paths(install, core, core / "win", windows=True),
+                FPV_TOOL.native_library_paths(
+                    install, core, core / "win", windows=True,
+                    portable_runtime_bin=root / "missing", portable=False,
+                ),
             )
+
+    def test_portable_library_paths_use_bundled_dlls_instead_of_vcpkg(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            install = root / "work" / "foundation" / "install"
+            (install.parent / "config").mkdir(parents=True)
+            (install.parent / "config" / "toolchain.json").write_text(
+                json.dumps({"vcpkg_root": str(root / "vcpkg")}), encoding="utf-8"
+            )
+            bundled = root / "portable-runtime" / "bin"
+            bundled.mkdir(parents=True)
+            core = root / "hakoniwa-drone-core"
+            paths = FPV_TOOL.native_library_paths(
+                install, core, core / "win", windows=True, portable_runtime_bin=bundled, portable=True,
+            )
+            self.assertIn(bundled, paths)
+            self.assertNotIn(root / "vcpkg" / "installed" / "x64-windows" / "bin", paths)
 
     def test_realtime_pacer_is_added_before_start_by_default(self):
         parse = FPV_TOOL.parser().parse_args
