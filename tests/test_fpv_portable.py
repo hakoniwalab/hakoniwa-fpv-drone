@@ -89,10 +89,13 @@ class FpvPortableTest(unittest.TestCase):
             with mock.patch.multiple(
                 PORTABLE, OUTPUT=output, STAMP=output / "portable-layout.json",
                 relocate_core_config=mock.DEFAULT,
-            ), mock.patch.object(PORTABLE, "_run", side_effect=configure) as run:
+            ), mock.patch.object(PORTABLE, "prepare_workspace", return_value=0) as workspace, \
+                    mock.patch.object(PORTABLE, "_run", side_effect=configure) as run:
                 self.assertEqual(0, PORTABLE.prepare())
                 self.assertEqual(0, PORTABLE.prepare())
             self.assertEqual(1, run.call_count)
+            # The Workspace bootstrap is regenerated on every start; configure runs once.
+            self.assertEqual(2, workspace.call_count)
 
     def test_doctor_reports_missing_inputs(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -117,6 +120,10 @@ class FpvPortableTest(unittest.TestCase):
         # so the generator package must be on the packaged interpreter path.
         self.assertIn(f"{ROOT.name}/src", profile["python_paths"])
         self.assertIn("fpv_drone_generator", profile["validation_imports"])
+        # hakopy lives in the Foundation Core Python directory, which the
+        # source Workspace reaches through an absolute .pth file.
+        self.assertIn("hakoniwa-business-pack/work/foundation/install/share/hakoniwa/python", profile["python_paths"])
+        self.assertIn("hakopy", profile["validation_imports"])
         self.assertEqual(["hakoniwa-fpv-drone/build/portable-master3x"], profile["staging_cleanup"])
         self.assertEqual(
             PORTABLE.OUTPUT.relative_to(ROOT.parent).as_posix(), profile["staging_cleanup"][0]

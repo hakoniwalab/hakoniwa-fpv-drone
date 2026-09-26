@@ -140,8 +140,23 @@ def layout_is_current(stamp: Path | None = None, package_root: Path | None = Non
     )
 
 
+def prepare_workspace() -> int:
+    """Regenerate the Workspace Python bootstrap for this extraction directory.
+
+    The package ships without it (it embeds the staging path); it registers
+    the Foundation DLL directories that hakopy and the Endpoint need.
+    """
+    return subprocess.run(
+        [sys.executable, str(BUSINESS_PACK / "tools" / "workspace.py"), "prepare"],
+        cwd=BUSINESS_PACK, check=False,
+    ).returncode
+
+
 def prepare() -> int:
     relocate_core_config()
+    result = prepare_workspace()
+    if result != 0:
+        return result
     if layout_is_current():
         print(f"Portable FPV runtime is current: {OUTPUT}")
         return 0
