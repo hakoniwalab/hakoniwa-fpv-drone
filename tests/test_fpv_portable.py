@@ -113,6 +113,10 @@ class FpvPortableTest(unittest.TestCase):
         for relative in ("tools", "src", "recipes", "catalogs", "verified-configs"):
             self.assertIn(relative, owner["include_paths"])
             self.assertTrue((ROOT / relative).exists(), relative)
+        # The embeddable Python ignores PYTHONPATH because of its ._pth file,
+        # so the generator package must be on the packaged interpreter path.
+        self.assertIn(f"{ROOT.name}/src", profile["python_paths"])
+        self.assertIn("fpv_drone_generator", profile["validation_imports"])
         self.assertEqual(["hakoniwa-fpv-drone/build/portable-master3x"], profile["staging_cleanup"])
         self.assertEqual(
             PORTABLE.OUTPUT.relative_to(ROOT.parent).as_posix(), profile["staging_cleanup"][0]
