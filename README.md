@@ -231,7 +231,7 @@ python ..\hakoniwa-fpv-drone\tools\fpv.py stop --output ..\hakoniwa-fpv-drone\bu
 python tools\package_portable_workspace.py --profile fpv-drone-master3x
 ```
 
-出力は`dist\hakoniwa-fpv-drone-master3x-windows-x64.zip`です。初回は、公式のembeddable Pythonをpython.orgから取得します。取得済みのZIPがあれば、`--python-embed-zip`で指定できます。中身を確認したいときは、`--keep-staging`を付けると`work\portable-package\`に展開したまま残ります。
+出力は`dist\hako-fpv-master3x-win64.zip`です。ZIPの中のパスがWindowsの260文字制限に収まるよう、名前を短くしています。初回は、公式のembeddable Pythonをpython.orgから取得します。取得済みのZIPがあれば、`--python-embed-zip`で指定できます。中身を確認したいときは、`--keep-staging`を付けると`work\portable-package\`に展開したまま残ります。
 
 ZIPの作成は、Business Packの`package_portable_workspace.py`が、このリポジトリの[portable/windows-profile.json](portable/windows-profile.json)を読んで行います。FPV固有の処理は[tools/fpv_portable.py](tools/fpv_portable.py)が受け持ちます。
 

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "id": "fpv-drone-master3x",
-  "package_id": "hakoniwa-fpv-drone-master3x-windows-x64",
+  "package_id": "hako-fpv-master3x-win64",
   "recipe_id": "fpv-drone-design-angle-flight",
   "title": "Hakoniwa FPV Drone (Master3X)",
   "tool": "tools/fpv_portable.py",
