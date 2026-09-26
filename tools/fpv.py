@@ -45,8 +45,22 @@ def foundation_python_path(python_root: Path, *, windows: bool | None = None) ->
     return python_root / "bin" / "python3"
 
 
+def workspace_foundation_install(business_pack_root: Path) -> Path:
+    """Prefer the install prefix exported by an active Business Pack Workspace.
+
+    The Workspace work directory can be relocated (HAKONIWA_WORK_DIR), so the
+    sibling business-pack/work layout is only the fallback outside the Workspace.
+    """
+    home = os.environ.get("HAKONIWA_HOME")
+    if os.environ.get("HAKONIWA_WORKSPACE_ACTIVE") == "1" and home:
+        return Path(home)
+    return business_pack_root / "work" / "foundation" / "install"
+
+
 DEFAULT_FOUNDATION_PYTHON = foundation_python_path(
-    DEFAULT_BUSINESS_PACK_ROOT / "work" / "foundation" / "install" / "python"
+    Path(os.environ["VIRTUAL_ENV"])
+    if os.environ.get("HAKONIWA_WORKSPACE_ACTIVE") == "1" and os.environ.get("VIRTUAL_ENV")
+    else workspace_foundation_install(DEFAULT_BUSINESS_PACK_ROOT) / "python"
 )
 BASE_THREEJS_WHEELBASE_M = math.hypot(0.47, 0.38)
 FPV_TUNING_INITIAL_ALTITUDE_M = 2.0
@@ -1106,7 +1120,7 @@ def configure(args: argparse.Namespace) -> int:
             asset_env=generator_env,
         )
 
-    install_prefix = business_pack_root / "work" / "foundation" / "install"
+    install_prefix = workspace_foundation_install(business_pack_root)
     require_file(install_prefix / "bin" / f"hako-cmd{EXECUTABLE_SUFFIX}", "Foundation hako-cmd (run recipe.py configure)")
     launcher = {
         "version": "0.1",

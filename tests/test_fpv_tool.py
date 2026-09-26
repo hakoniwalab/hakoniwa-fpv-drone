@@ -285,6 +285,13 @@ class FpvToolTest(unittest.TestCase):
             (root / "python.exe").write_text("", encoding="utf-8")
             self.assertEqual(root / "python.exe", FPV_TOOL.foundation_python_path(root, windows=True))
 
+    def test_active_workspace_install_prefix_wins_over_the_sibling_default(self):
+        root = Path("/business-pack")
+        with mock.patch.dict(FPV_TOOL.os.environ, {"HAKONIWA_WORKSPACE_ACTIVE": "1", "HAKONIWA_HOME": "/relocated/install"}):
+            self.assertEqual(Path("/relocated/install"), FPV_TOOL.workspace_foundation_install(root))
+        with mock.patch.dict(FPV_TOOL.os.environ, {"HAKONIWA_WORKSPACE_ACTIVE": "0"}):
+            self.assertEqual(root / "work" / "foundation" / "install", FPV_TOOL.workspace_foundation_install(root))
+
     def test_windows_library_paths_include_dll_locations(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
