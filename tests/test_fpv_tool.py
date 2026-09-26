@@ -359,6 +359,38 @@ class FpvToolTest(unittest.TestCase):
             )
             FPV_TOOL.require_free_ports(launcher, ports)
 
+    def test_clear_stale_mmap_removes_only_segments_from_core_config(self):
+        with tempfile.TemporaryDirectory() as directory:
+            mmap_dir = Path(directory) / "mmap"
+            mmap_dir.mkdir()
+            for name in ("mmap-0x100.bin", "mmap-0xff.bin", "flock.bin", "pro_init.lock"):
+                (mmap_dir / name).write_bytes(b"x")
+            config = Path(directory) / "cpp_core_config.json"
+            config.write_text(json.dumps({"shm_type": "mmap", "core_mmap_path": str(mmap_dir)}), encoding="utf-8")
+
+            removed = FPV_TOOL.clear_stale_mmap(config)
+
+            self.assertEqual(["mmap-0x100.bin", "mmap-0xff.bin"], [path.name for path in removed])
+            self.assertEqual(["flock.bin", "pro_init.lock"], sorted(path.name for path in mmap_dir.iterdir()))
+            self.assertEqual([], FPV_TOOL.clear_stale_mmap(Path(directory) / "missing.json"))
+            config.write_text(json.dumps({"shm_type": "shm", "core_mmap_path": str(mmap_dir)}), encoding="utf-8")
+            (mmap_dir / "mmap-0x100.bin").write_bytes(b"x")
+            self.assertEqual([], FPV_TOOL.clear_stale_mmap(config))
+
+    def test_clear_stale_mmap_reports_a_segment_held_by_a_running_simulation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            mmap_dir = Path(directory)
+            (mmap_dir / "mmap-0x100.bin").write_bytes(b"x")
+            config = mmap_dir / "cpp_core_config.json"
+            config.write_text(json.dumps({"core_mmap_path": str(mmap_dir)}), encoding="utf-8")
+            with mock.patch.object(Path, "unlink", side_effect=PermissionError("in use")):
+                with self.assertRaisesRegex(FPV_TOOL.RuntimeErrorWithMessage, "in use by another Hakoniwa simulation"):
+                    FPV_TOOL.clear_stale_mmap(config)
+
+    def test_core_config_path_follows_workspace_hako_config_path(self):
+        with mock.patch.dict(FPV_TOOL.os.environ, {"HAKO_CONFIG_PATH": "/ws/config/cpp_core_config.json"}):
+            self.assertEqual(Path("/ws/config/cpp_core_config.json"), FPV_TOOL.core_config_path())
+
     def test_threejs_ports_come_from_configure_with_uncommon_defaults(self):
         with tempfile.TemporaryDirectory() as directory:
             viewer = Path(directory)

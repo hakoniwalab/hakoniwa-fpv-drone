@@ -130,6 +130,9 @@ foundation_requirements:
       shared_memory: true
       hako_cmd: true
       python_binding: true
+      # Windows: build callback assets as a DLL so WebBridge (EXE) and the
+      # Endpoint core_callback DLL share one asset state. Ignored elsewhere.
+      callback_assets_shared: true
   hakoniwa-pdu-python:
     version:
       min: 1.6.5

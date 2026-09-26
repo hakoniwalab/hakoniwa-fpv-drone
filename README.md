@@ -207,6 +207,7 @@ python ..\hakoniwa-fpv-drone\tools\fpv.py open-viewer --output ..\hakoniwa-fpv-d
 - **×と△は効くのにスティックで何も起きない**：`<output>/runtime/logs/fpv-drone-service.out`に、`radio_control: 1`の直後の`[STATE] Hovering -> Landing`がないか確認してください。runtimeの`control-param.txt`に`CTRLMODE_LANDING_*`がないと、地上でRadio Controlを有効にした瞬間にLandingへ入り、抜けられなくなります。
 - **浮上しない**：`status`で`Radio Control : ON`と`Mode : ATTI`を確認してください。×と△はトグルなので、押し直すと元に戻ります。
 - **`no game controller is connected`で`start`が止まる**：PS5コントローラを接続してから、もう一度`start`してください。`start`は、コントローラがないと起動しません。RCクライアントが終了して、全体が巻き込まれて止まるのを防ぐためです。
+- **`... is in use by another Hakoniwa simulation`で`start`が止まる**：`start`は起動前に、前回の実行で残った箱庭のmmapファイル（Core configの`core_mmap_path`の`mmap-*.bin`）を削除します。Windowsでは、古いmmapファイルがサイズを変えずに再利用され、`hako-cmd`が落ちたり、アセットが`WAIT RUNNING`のまま止まったりするためです。このエラーは、別の箱庭シミュレーション（別のWorkspaceのものも含む）がそのファイルを使っているという意味です。そちらを`stop`してから、もう一度`start`してください。
 - **機体の動きが遅い・速すぎる**：`fpv-realtime-pacer.out`の`rtf`が1.0付近か確認してください。ペーサーが起動していないと、ドローンサービスはスリープなしで全速になります。
 - **浮上するがホバリングしない**：`configure`の出力が`No verified FPV config matches ...`になっていないか確認してください。未調整の汎用PIDが使われています。
 - **`Drone Core service ... not found`**：手順4の`fpv-drone-core.py prepare`を実行してください。

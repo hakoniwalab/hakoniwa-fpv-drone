@@ -1419,13 +1419,66 @@ def require_controller(foundation_python: Path) -> None:
         raise RuntimeErrorWithMessage("no game controller is connected; connect the PS5 controller and run start again.")
 
 
+def core_config_path() -> Path:
+    """The Core config the assets will use: the Workspace's HAKO_CONFIG_PATH."""
+    configured = os.environ.get("HAKO_CONFIG_PATH")
+    if configured:
+        return Path(configured)
+    return workspace_foundation_install(DEFAULT_BUSINESS_PACK_ROOT).parent / "config" / "cpp_core_config.json"
+
+
+def clear_stale_mmap(config_path: Path) -> list[Path]:
+    """Remove Hakoniwa mmap segments left behind by a previous run.
+
+    The Windows mmap backend reuses an existing mmap-*.bin without resizing
+    it, so a segment from a run with a different PDU layout crashes hako-cmd
+    (0xC0000005) or leaves assets waiting forever. Only the generated
+    mmap-*.bin segments are removed; lock files stay. Callers must make sure
+    no simulation is running.
+    """
+    if not config_path.is_file():
+        return []
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    mmap_dir = config.get("core_mmap_path")
+    if config.get("shm_type", "mmap") != "mmap" or not isinstance(mmap_dir, str) or not mmap_dir:
+        return []
+    removed = []
+    for segment in sorted(Path(mmap_dir).glob("mmap-*.bin")):
+        try:
+            segment.unlink()
+        except PermissionError as error:
+            raise RuntimeErrorWithMessage(
+                f"cannot remove {segment}: it is in use by another Hakoniwa simulation. "
+                "Stop it (tools/fpv.py stop, or the other workspace's stop) and run start again."
+            ) from error
+        removed.append(segment)
+    return removed
+
+
+def launcher_state(foundation_python: Path, session: Path) -> str | None:
+    if not session.is_file():
+        return None
+    result = subprocess.run(
+        [str(foundation_python), "-m", "hakoniwa_pdu.apps.launcher.hako_launcher_ctl", "status", str(session)],
+        cwd=ROOT, capture_output=True, text=True, check=False,
+    )
+    try:
+        return json.loads(result.stdout.strip().splitlines()[-1]).get("state")
+    except (ValueError, IndexError, AttributeError):
+        return None
+
+
 def launcher_command(args: argparse.Namespace, action: str) -> int:
     resolved = paths(args)
     foundation_python = require_file(args.foundation_python.absolute(), "Foundation Python")
     require_file(resolved["launcher"], "FPV launcher (run configure first)")
     if action == "start":
+        if launcher_state(foundation_python, resolved["session"]) == "RUNNING":
+            raise RuntimeErrorWithMessage("the FPV runtime is already running; run stop first.")
         require_controller(foundation_python)
         require_free_ports(resolved["launcher"], threejs_ports(resolved))
+        for segment in clear_stale_mmap(core_config_path()):
+            print(f"Removed stale Hakoniwa mmap segment: {segment}")
         run([
             str(foundation_python), "-m", "hakoniwa_pdu.apps.launcher.hako_launcher",
             str(resolved["launcher"]), "--background", str(resolved["session"]),
@@ -1446,10 +1499,10 @@ def launcher_command(args: argparse.Namespace, action: str) -> int:
     result = subprocess.run(command, cwd=ROOT, check=True, capture_output=True, text=True)
     print(result.stdout, end="")
     try:
-        launcher_state = json.loads(result.stdout.strip().splitlines()[-1]).get("state")
+        state = json.loads(result.stdout.strip().splitlines()[-1]).get("state")
     except (ValueError, IndexError, AttributeError):
-        launcher_state = None
-    print_runtime_state(resolved, launcher_state)
+        state = None
+    print_runtime_state(resolved, state)
     return 0
 
 
