@@ -330,6 +330,16 @@ class FpvToolTest(unittest.TestCase):
         self.assertEqual(2, result.returncode)
         self.assertIn("deadlock", result.stderr)
 
+    def test_start_requires_a_connected_controller(self):
+        def fake_run(stdout):
+            return mock.Mock(returncode=0, stdout=stdout, stderr="")
+
+        with mock.patch.object(FPV_TOOL.subprocess, "run", return_value=fake_run("0\n")):
+            with self.assertRaisesRegex(FPV_TOOL.RuntimeErrorWithMessage, "no game controller"):
+                FPV_TOOL.require_controller(Path("python"))
+        with mock.patch.object(FPV_TOOL.subprocess, "run", return_value=fake_run("1\n")):
+            FPV_TOOL.require_controller(Path("python"))
+
     def test_start_rejects_a_taken_threejs_port(self):
         import socket
 
@@ -341,13 +351,27 @@ class FpvToolTest(unittest.TestCase):
             launcher.write_text(
                 json.dumps({"assets": [{"name": "fpv-threejs-web-bridge"}]}), encoding="utf-8"
             )
-            with mock.patch.dict(FPV_TOOL.THREEJS_PORTS, {"fpv-threejs-web-bridge": port}):
-                with self.assertRaisesRegex(FPV_TOOL.RuntimeErrorWithMessage, f"port {port}"):
-                    FPV_TOOL.require_free_ports(launcher)
-                launcher.write_text(
-                    json.dumps({"assets": [{"name": "fpv-drone-service"}]}), encoding="utf-8"
-                )
-                FPV_TOOL.require_free_ports(launcher)
+            ports = {"fpv-threejs-web-bridge": port}
+            with self.assertRaisesRegex(FPV_TOOL.RuntimeErrorWithMessage, f"port {port}"):
+                FPV_TOOL.require_free_ports(launcher, ports)
+            launcher.write_text(
+                json.dumps({"assets": [{"name": "fpv-drone-service"}]}), encoding="utf-8"
+            )
+            FPV_TOOL.require_free_ports(launcher, ports)
+
+    def test_threejs_ports_come_from_configure_with_uncommon_defaults(self):
+        with tempfile.TemporaryDirectory() as directory:
+            viewer = Path(directory)
+            resolved = {"viewer": viewer}
+            self.assertEqual(
+                {"fpv-threejs-http-server": 28000, "fpv-threejs-web-bridge": 28765},
+                FPV_TOOL.threejs_ports(resolved),
+            )
+            (viewer / "ports.json").write_text(json.dumps({"http": 31000, "websocket": 31765}), encoding="utf-8")
+            self.assertEqual(
+                {"fpv-threejs-http-server": 31000, "fpv-threejs-web-bridge": 31765},
+                FPV_TOOL.threejs_ports(resolved),
+            )
 
     def test_master3x_assembly_projection_discovers_tuned_config(self):
         assembly = FPV_TOOL.ROOT / "recipes" / "examples" / "master3x-visual-demo.assembly.json"

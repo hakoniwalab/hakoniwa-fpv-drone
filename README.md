@@ -36,7 +36,7 @@ Catalog属性を追加してもRecipeの参照形式を壊さず、実行backend
 
 前提：Python 3.12（Homebrew版は不可）、Xcode Command Line Tools、`brew install glfw`、PS5コントローラをBluetoothまたはUSBで接続済み。Business Pack側の前提は[Getting Started](https://github.com/hakoniwalab/hakoniwa-business-pack/blob/main/docs/getting-started-ja.md)を参照してください。飛行まで検証済みなのはmacOS（Apple Silicon）です。
 
-Windows 11（x64）では、PowerShellで実行し、`python3.12`を`py -3.12`に読み替えます。行末の`\`で折り返したコマンドは、1行につなげて入力します。手順2と手順3は、Windows用のコマンドを別に示します。Windowsでは、事前にVisual Studio 2022（C++デスクトップ開発）と、自分でcloneしたvcpkgへBoostとGLFWを入れておきます（Business Pack Getting Startedの4.2）。
+Windows 11（x64）では、PowerShellで実行し、`python3.12`を`py -3.12`に読み替えます。コマンドが異なる箇所には、Windows（PowerShell）用のブロックを別に示します。PowerShellでは、行の継続に`\`ではなく`` ` ``（バッククォート）を使います。Windowsでは、事前にVisual Studio 2022（C++デスクトップ開発）と、自分でcloneしたvcpkgへBoostとGLFWを入れておきます（Business Pack Getting Startedの4.2）。
 
 ```powershell
 git clone https://github.com/microsoft/vcpkg.git D:\vcpkg
@@ -123,6 +123,16 @@ python ../hakoniwa-fpv-drone/tools/fpv.py start  --output ../hakoniwa-fpv-drone/
 python ../hakoniwa-fpv-drone/tools/fpv.py status --output ../hakoniwa-fpv-drone/build/master3x
 ```
 
+Windows（PowerShell）：
+
+```powershell
+python ..\hakoniwa-fpv-drone\tools\fpv.py configure `
+  --recipe ..\hakoniwa-fpv-drone\recipes\examples\master3x.yaml `
+  --output ..\hakoniwa-fpv-drone\build\master3x
+python ..\hakoniwa-fpv-drone\tools\fpv.py start  --output ..\hakoniwa-fpv-drone\build\master3x
+python ..\hakoniwa-fpv-drone\tools\fpv.py status --output ..\hakoniwa-fpv-drone\build\master3x
+```
+
 PID自動チューニング済みの[検証済み構成](verified-configs/master3x-angle/)が自動適用されます。`stop`にも同じ`--output`を付けてください。
 
 `start`でMuJoCo Viewerが開き、PS5コントローラの入力クライアントがバックグラウンドで起動します。ログは`<output>/runtime/logs/`に出力されます。
@@ -178,20 +188,31 @@ python ../hakoniwa-fpv-drone/tools/fpv.py start       --output ../hakoniwa-fpv-d
 python ../hakoniwa-fpv-drone/tools/fpv.py open-viewer --output ../hakoniwa-fpv-drone/build/master3x
 ```
 
-`--threejs`の構成では、MuJoCo Viewerは開きません。両方を表示したい場合は、`configure`に`--mujoco-viewer`を付けてください。`--assembly`から生成したRecipeが`recipes/examples/master3x.yaml`と一致するため、チューニング済みの[検証済み構成](verified-configs/master3x-angle/)が自動適用されます。ブラウザが開いたら、左上の**connect**を押してください。WebSocket（`ws://127.0.0.1:8765`）につながり、Drone Stateに位置とpwm0〜3が表示され、プロペラが回ります。PS5の操作は手順6と同じです。停止は`stop --output ../hakoniwa-fpv-drone/build/master3x`です。
+Windows（PowerShell）：
 
-`--threejs`の構成では、HTTP（8000番）とWebSocket（8765番）のポートを使います。`start`はこれらのポートが空いているかを先に確認し、使用中の場合は使っているプロセスを表示して起動しません。
+```powershell
+python ..\hakoniwa-fpv-drone\tools\fpv.py configure --threejs `
+  --assembly ..\hakoniwa-fpv-drone\recipes\examples\master3x-visual-demo.assembly.json `
+  --output ..\hakoniwa-fpv-drone\build\master3x
+python ..\hakoniwa-fpv-drone\tools\fpv.py start       --output ..\hakoniwa-fpv-drone\build\master3x
+python ..\hakoniwa-fpv-drone\tools\fpv.py open-viewer --output ..\hakoniwa-fpv-drone\build\master3x
+```
+
+`--threejs`の構成では、MuJoCo Viewerは開きません。両方を表示したい場合は、`configure`に`--mujoco-viewer`を付けてください。`--assembly`から生成したRecipeが`recipes/examples/master3x.yaml`と一致するため、チューニング済みの[検証済み構成](verified-configs/master3x-angle/)が自動適用されます。ブラウザが開いたら、左上の**connect**を押してください。WebSocket（`ws://127.0.0.1:28765`）につながり、Drone Stateに位置とpwm0〜3が表示され、プロペラが回ります。PS5の操作は手順6と同じです。停止は`stop --output ../hakoniwa-fpv-drone/build/master3x`です。
+
+`--threejs`の構成では、HTTP（28000番）とWebSocket（28765番）のポートを使います。8000番や8765番のような定番の番号は、ほかのアプリやWindowsのサービスと衝突しやすいため避けています。別の番号にする場合は、`configure`に`--threejs-http-port`と`--threejs-ws-port`を指定してください。`start`はこれらのポートが空いているかを先に確認し、使用中の場合は使っているプロセスを表示して起動しません。
 
 ### うまく動かないとき
 
 - **×と△は効くのにスティックで何も起きない**：`<output>/runtime/logs/fpv-drone-service.out`に、`radio_control: 1`の直後の`[STATE] Hovering -> Landing`がないか確認してください。runtimeの`control-param.txt`に`CTRLMODE_LANDING_*`がないと、地上でRadio Controlを有効にした瞬間にLandingへ入り、抜けられなくなります。
 - **浮上しない**：`status`で`Radio Control : ON`と`Mode : ATTI`を確認してください。×と△はトグルなので、押し直すと元に戻ります。
+- **`no game controller is connected`で`start`が止まる**：PS5コントローラを接続してから、もう一度`start`してください。`start`は、コントローラがないと起動しません。RCクライアントが終了して、全体が巻き込まれて止まるのを防ぐためです。
 - **機体の動きが遅い・速すぎる**：`fpv-realtime-pacer.out`の`rtf`が1.0付近か確認してください。ペーサーが起動していないと、ドローンサービスはスリープなしで全速になります。
 - **浮上するがホバリングしない**：`configure`の出力が`No verified FPV config matches ...`になっていないか確認してください。未調整の汎用PIDが使われています。
 - **`Drone Core service ... not found`**：手順4の`fpv-drone-core.py prepare`を実行してください。
 - **`Foundation Python not found`**：手順3の`configure`が`Foundation: SATISFIED`まで完了していません。Windowsでは、`foundation.py toolchain`の登録を先に行ってください。
 - **`[WARNING] Hakoniwa Workspace is not active`**：手順2の`(hako)`シェルの外で実行しています。
-- **Three.jsビューアに機体の状態が出ない**：左上の**connect**を押したか確認してください。`start`が`port 8765 ... is in use`で止まる場合は、表示されたプロセス（Dockerコンテナなど）を止めてから、もう一度`start`してください。
+- **Three.jsビューアに機体の状態が出ない**：左上の**connect**を押したか確認してください。`start`が`port 28765 ... is in use`で止まる場合は、表示されたプロセスを止めるか、`configure`で別のポートを指定してから、もう一度`start`してください。
 
 ## CatalogとRecipe
 
@@ -299,12 +320,32 @@ python -m fpv_drone_generator.cli generate \
   --output build/example-5inch
 ```
 
+Windows（PowerShell）：
+
+```powershell
+cd ..\hakoniwa-fpv-drone
+$env:PYTHONPATH = "src"
+python -m fpv_drone_generator.cli validate recipes\examples\5inch-fpv.yaml
+python -m fpv_drone_generator.cli bom recipes\examples\5inch-fpv.yaml
+python -m fpv_drone_generator.cli generate `
+  recipes\examples\5inch-fpv.yaml `
+  --world recipes\environments\fpv-training-course.yaml `
+  --output build\example-5inch
+```
+
 ## テスト
 
 `(hako)`シェルの中で、このリポジトリのルートから実行します。
 
 ```bash
 PYTHONPATH=src python -m unittest discover -v
+```
+
+Windows（PowerShell）：
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m unittest discover -v
 ```
 
 MuJoCo Python bindingがある環境では、生成XMLを `MjModel.from_xml_path()` でロードするテストも実行します。ない場合はその1件だけskipします。Three.jsアセット出力のテストは、`trimesh`がない環境ではskipします。

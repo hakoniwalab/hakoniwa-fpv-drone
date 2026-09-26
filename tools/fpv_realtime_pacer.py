@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import sys
 import time
+import traceback
 
 
 def parser() -> argparse.ArgumentParser:
@@ -43,6 +44,15 @@ def main() -> int:
     import hakopy
 
     def on_manual_timing_control(context) -> int:
+        # hakopy discards exceptions raised in callbacks; log them explicitly.
+        try:
+            return pace()
+        except Exception:
+            traceback.print_exc()
+            sys.stderr.flush()
+            return 1
+
+    def pace() -> int:
         print("[pacer] manual timing control started", flush=True)
         start = time.monotonic()
         next_report = start + args.report_sec
@@ -79,7 +89,8 @@ def main() -> int:
         print("ERROR: hakopy.asset_register() failed", file=sys.stderr)
         return 1
     print(f"[pacer] registered {args.asset_name}: delta={args.delta_msec} ms", flush=True)
-    hakopy.start()
+    result = hakopy.start()
+    print(f"[pacer] finished: hakopy.start() returned {result}", flush=True)
     return 0
 
 

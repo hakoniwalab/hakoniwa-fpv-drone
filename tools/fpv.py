@@ -34,6 +34,10 @@ NATIVE_DIRECTORY, NATIVE_PREFIX, EXECUTABLE_SUFFIX = NATIVE_LAYOUTS.get(platform
 DEFAULT_DRONE_CORE_BIN = DEFAULT_DRONE_CORE / NATIVE_DIRECTORY
 DEFAULT_DRONE_PRO = ROOT.parent / "hakoniwa-drone-pro"
 DEFAULT_THREEJS_ROOT = ROOT.parent / "hakoniwa-threejs-drone"
+# Uncommon ports below the OS ephemeral ranges (Linux 32768+, macOS/Windows
+# 49152+) so the viewer does not collide with typical 8000/8765 services.
+DEFAULT_THREEJS_HTTP_PORT = 28000
+DEFAULT_THREEJS_WS_PORT = 28765
 DEFAULT_BUSINESS_PACK_ROOT = ROOT.parent / "hakoniwa-business-pack"
 
 
@@ -168,6 +172,7 @@ def materialize_threejs_viewer(
     catalogs: Path | None = None,
     asset_python: Path | None = None,
     asset_env: dict[str, str] | None = None,
+    websocket_port: int = DEFAULT_THREEJS_WS_PORT,
 ) -> Path:
     require_file(threejs_root / "index.html", "Three.js viewer")
     require_file(resolved["output"] / "fpv-course.json", "generated FPV course")
@@ -267,7 +272,7 @@ def materialize_threejs_viewer(
         "three": {"sceneConfigPath": "./scene-config.json"},
         "pdu": {
             "pduDefPath": "/hakoniwa-threejs-drone/config/pdudef-fleets.json",
-            "wsUri": "ws://127.0.0.1:8765",
+            "wsUri": f"ws://127.0.0.1:{websocket_port}",
             "wireVersion": "v2",
         },
         "ui": {
@@ -308,7 +313,7 @@ def viewer_url(resolved: dict[str, Path]) -> str:
             f"Three.js output must be below {ROOT.parent} for the built-in HTTP server: {config}"
         ) from exc
     return (
-        "http://127.0.0.1:8000/hakoniwa-threejs-drone/index.html"
+        f"http://127.0.0.1:{threejs_ports(resolved)['fpv-threejs-http-server']}/hakoniwa-threejs-drone/index.html"
         f"?viewerConfigPath=/{relative.as_posix()}"
     )
 
@@ -1118,6 +1123,7 @@ def configure(args: argparse.Namespace) -> int:
             catalogs=catalogs,
             asset_python=foundation_python,
             asset_env=generator_env,
+            websocket_port=args.threejs_ws_port,
         )
 
     install_prefix = workspace_foundation_install(business_pack_root)
@@ -1195,8 +1201,21 @@ def configure(args: argparse.Namespace) -> int:
             "single-drone visual-state publisher config",
         )
         web_bridge = require_file(install_prefix / "bin" / f"hakoniwa-pdu-web-bridge{EXECUTABLE_SUFFIX}", "WebBridge")
-        web_bridge_config = install_prefix / "share" / "hakoniwa-pdu-bridge" / "config" / "web_bridge_fleets"
-        require_file(web_bridge_config / "bridge" / "bridge.json", "WebBridge fleet config")
+        installed_bridge_config = install_prefix / "share" / "hakoniwa-pdu-bridge" / "config" / "web_bridge_fleets"
+        require_file(installed_bridge_config / "bridge" / "bridge.json", "WebBridge fleet config")
+        # Copy the Foundation config (its files reference each other relatively)
+        # so the WebSocket port can change without editing the shared install.
+        web_bridge_config = resolved["viewer"] / "web_bridge_fleets"
+        shutil.rmtree(web_bridge_config, ignore_errors=True)
+        shutil.copytree(installed_bridge_config, web_bridge_config)
+        websocket_comm = web_bridge_config / "comm" / "visual-state-websocket-server.json"
+        comm = json.loads(require_file(websocket_comm, "WebBridge WebSocket config").read_text(encoding="utf-8"))
+        comm["local"]["port"] = args.threejs_ws_port
+        websocket_comm.write_text(json.dumps(comm, indent=2) + "\n", encoding="utf-8")
+        (resolved["viewer"] / "ports.json").write_text(
+            json.dumps({"http": args.threejs_http_port, "websocket": args.threejs_ws_port}, indent=2) + "\n",
+            encoding="utf-8",
+        )
         assets = launcher["assets"]
         assets.insert(1, {
             "name": "fpv-visual-state-publisher",
@@ -1224,7 +1243,7 @@ def configure(args: argparse.Namespace) -> int:
             "name": "fpv-threejs-http-server",
             "activation_timing": "after_start",
             "command": str(foundation_python),
-            "args": ["-m", "http.server", "8000", "--bind", "127.0.0.1"],
+            "args": ["-m", "http.server", str(args.threejs_http_port), "--bind", "127.0.0.1"],
             "cwd": str(ROOT.parent),
             "depends_on": ["fpv-threejs-web-bridge"],
         })
@@ -1236,7 +1255,14 @@ def configure(args: argparse.Namespace) -> int:
     return 0
 
 
-THREEJS_PORTS = {"fpv-threejs-http-server": 8000, "fpv-threejs-web-bridge": 8765}
+def threejs_ports(resolved: dict[str, Path]) -> dict[str, int]:
+    """Ports chosen at configure time, keyed by the Launcher asset that binds them."""
+    path = resolved["viewer"] / "ports.json"
+    ports = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    return {
+        "fpv-threejs-http-server": int(ports.get("http", DEFAULT_THREEJS_HTTP_PORT)),
+        "fpv-threejs-web-bridge": int(ports.get("websocket", DEFAULT_THREEJS_WS_PORT)),
+    }
 
 
 def port_in_use(port: int) -> bool:
@@ -1249,6 +1275,8 @@ def port_in_use(port: int) -> bool:
 
 
 def port_owner(port: int) -> str:
+    if os.name == "nt":
+        return windows_port_owner(port)
     if shutil.which("lsof") is None:
         return "unknown process"
     result = subprocess.run(
@@ -1258,7 +1286,24 @@ def port_owner(port: int) -> str:
     return ", ".join(f"{row.split()[0]} (pid {row.split()[1]})" for row in rows) or "unknown process"
 
 
-def require_free_ports(launcher_path: Path) -> None:
+def windows_port_owner(port: int) -> str:
+    result = subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True, text=True, check=False)
+    pids = {
+        fields[-1]
+        for fields in (line.split() for line in result.stdout.splitlines())
+        if len(fields) >= 5 and fields[1].endswith(f":{port}") and fields[3].upper() == "LISTENING"
+    }
+    owners = []
+    for pid in sorted(pids):
+        task = subprocess.run(
+            ["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"], capture_output=True, text=True, check=False
+        )
+        name = task.stdout.strip().split(",")[0].strip('"') if task.stdout.strip().startswith('"') else "unknown"
+        owners.append(f"{name} (pid {pid})")
+    return ", ".join(owners) or "unknown process"
+
+
+def require_free_ports(launcher_path: Path, ports: dict[str, int]) -> None:
     """Fail before launching when the Three.js HTTP or WebSocket port is taken.
 
     Otherwise WebBridge fails to bind and the browser shows no vehicle state.
@@ -1267,7 +1312,7 @@ def require_free_ports(launcher_path: Path) -> None:
     names = {asset.get("name") for asset in launcher.get("assets", [])}
     busy = [
         f"port {port} ({name}) is in use by {port_owner(port)}"
-        for name, port in THREEJS_PORTS.items()
+        for name, port in ports.items()
         if name in names and port_in_use(port)
     ]
     if busy:
@@ -1347,12 +1392,36 @@ def print_runtime_state(resolved: dict[str, Path], launcher_state: str | None) -
         print("Ready: raise the left stick to lift off.")
 
 
+CONTROLLER_COUNT_SCRIPT = (
+    "import os; os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'; "
+    "import pygame; pygame.joystick.init(); print(pygame.joystick.get_count())"
+)
+
+
+def require_controller(foundation_python: Path) -> None:
+    """Fail before launching when no game controller is connected.
+
+    rc-custom.py exits without a joystick, and the Launcher then aborts every
+    asset, which looks like an unrelated simulator failure.
+    """
+    result = subprocess.run(
+        [str(foundation_python), "-c", CONTROLLER_COUNT_SCRIPT],
+        capture_output=True, text=True, check=False,
+    )
+    lines = result.stdout.strip().splitlines()
+    if result.returncode != 0 or not lines or not lines[-1].isdigit():
+        raise RuntimeErrorWithMessage(f"cannot check the game controller with pygame: {result.stderr.strip()}")
+    if int(lines[-1]) == 0:
+        raise RuntimeErrorWithMessage("no game controller is connected; connect the PS5 controller and run start again.")
+
+
 def launcher_command(args: argparse.Namespace, action: str) -> int:
     resolved = paths(args)
     foundation_python = require_file(args.foundation_python.absolute(), "Foundation Python")
     require_file(resolved["launcher"], "FPV launcher (run configure first)")
     if action == "start":
-        require_free_ports(resolved["launcher"])
+        require_controller(foundation_python)
+        require_free_ports(resolved["launcher"], threejs_ports(resolved))
         run([
             str(foundation_python), "-m", "hakoniwa_pdu.apps.launcher.hako_launcher",
             str(resolved["launcher"]), "--background", str(resolved["session"]),
@@ -1438,6 +1507,8 @@ def parser() -> argparse.ArgumentParser:
         "--real-sleep-msec", type=int, default=0,
         help="Per-step wall-clock sleep in the drone service (0 when the real-time pacer paces the run).",
     )
+    result.add_argument("--threejs-http-port", type=int, default=DEFAULT_THREEJS_HTTP_PORT)
+    result.add_argument("--threejs-ws-port", type=int, default=DEFAULT_THREEJS_WS_PORT)
     result.add_argument(
         "--mujoco-viewer", action="store_true",
         help="Also open the native MuJoCo Viewer with --threejs (it opens by default without --threejs).",
