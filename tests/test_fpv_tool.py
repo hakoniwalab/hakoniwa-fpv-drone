@@ -22,7 +22,7 @@ class FpvToolTest(unittest.TestCase):
         source = bootstrap.read_text(encoding="utf-8")
         self.assertIn("neutral.axis = [0.0] * 6", source)
         self.assertIn("neutral.button = [False] * 15", source)
-        self.assertIn('"-m", "rc-custom"', source)
+        self.assertIn("runpy.run_module('rc-custom'", source)
 
     def test_tuning_digest_is_deterministic_and_tracks_inputs(self):
         with tempfile.TemporaryDirectory() as directory:

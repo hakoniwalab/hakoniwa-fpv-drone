@@ -67,7 +67,17 @@ def main() -> int:
         return 1
 
     os.chdir(rc_root)
-    command = [sys.executable, "-u", "-m", "rc-custom", args.config_path, args.rc_config_path]
+    # The portable package runs the embedded Python, whose ._pth file keeps
+    # neither the cwd nor the script directory on sys.path, so `-m rc-custom`
+    # (and its sibling `rc_utils` import) would fail there.  Put rc_root on
+    # sys.path explicitly and then run the module exactly as `-m` would.
+    runner = (
+        "import runpy, sys; sys.path.insert(0, sys.argv.pop(1)); "
+        "runpy.run_module('rc-custom', run_name='__main__', alter_sys=True)"
+    )
+    command = [
+        sys.executable, "-u", "-c", runner, str(rc_root), args.config_path, args.rc_config_path,
+    ]
     if os.name == "nt":
         # Windows exec* starts a new process and exits this one, which the
         # Launcher treats as the asset terminating; keep this process alive.
