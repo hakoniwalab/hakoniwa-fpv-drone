@@ -1511,8 +1511,14 @@ def launcher_command(args: argparse.Namespace, action: str) -> int:
         run(command, cwd=ROOT)
         return 0
     print("+", " ".join(command), flush=True)
-    result = subprocess.run(command, cwd=ROOT, check=True, capture_output=True, text=True)
+    # hako_launcher_ctl exits non-zero when the Launcher is no longer running;
+    # still show its report and the flight state instead of a traceback.
+    result = subprocess.run(command, cwd=ROOT, check=False, capture_output=True, text=True)
     print(result.stdout, end="")
+    if result.stderr.strip():
+        print(result.stderr.strip())
+    if result.returncode != 0:
+        print(f"Launcher: not running (hako_launcher_ctl exit {result.returncode}). Logs: {resolved['logs']}")
     try:
         state = json.loads(result.stdout.strip().splitlines()[-1]).get("state")
     except (ValueError, IndexError, AttributeError):
