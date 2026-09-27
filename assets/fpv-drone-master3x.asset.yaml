@@ -13,6 +13,11 @@ source:
     tool: tools/fpv.py
     assembly: recipes/examples/master3x-visual-demo.assembly.json
 simulator: drone-core
+# Urban Studio preview: the Assembly's Three.js display model, exported once
+# by the generator (hakoniwa-urban-mobility tools/asset_preview.py).
+preview:
+  format: fpv-assembly
+  path: ${repo:hakoniwa-fpv-drone}/recipes/examples/master3x-visual-demo.assembly.json
 spawn:
   # The generated report's initial_pose.mujoco_z_m for this assembly (the
   # recipe ground clearance below the lowest collision geometry). Adapters
