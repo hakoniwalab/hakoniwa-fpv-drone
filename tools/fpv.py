@@ -1254,6 +1254,9 @@ def configure(args: argparse.Namespace) -> int:
                 "--node-name", "web_bridge_fleets_node1",
                 "--delta-time-step-usec", "20000",
                 "--enable-ondemand",
+                # The real-time pacer paces the run; a WebBridge that also
+                # sleeps its step in wall time holds everything below 1x.
+                *(["--disable-real-sleep"] if args.realtime_pacer else []),
             ],
             "cwd": str(ROOT),
             "depends_on": ["fpv-visual-state-publisher"],
