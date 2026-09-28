@@ -18,6 +18,10 @@ from xml.etree import ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from fpv_drone_generator.camera_optics import uptilt_from_xyaxes  # noqa: E402
+
 DEFAULT_RECIPE = ROOT / "recipes" / "examples" / "5inch-fpv.yaml"
 DEFAULT_OUTPUT = ROOT / "build" / "example-5inch"
 DEFAULT_WORLD = ROOT / "recipes" / "environments" / "fpv-training-course.yaml"
@@ -153,15 +157,17 @@ def mujoco_fpv_camera(model_path: Path) -> dict[str, object]:
     if len(position) != 3 or any(not math.isfinite(value) for value in position):
         raise RuntimeErrorWithMessage(f"invalid MuJoCo FPV camera position: {model_path}")
     xyaxes = [float(value) for value in camera.attrib.get("xyaxes", "").split()]
-    if xyaxes != [0.0, -1.0, 0.0, 0.0, 0.0, 1.0]:
+    uptilt = uptilt_from_xyaxes(xyaxes)
+    if uptilt is None:
         raise RuntimeErrorWithMessage(
             "Three.js FPV adapter currently requires the generated forward-facing "
-            f"MuJoCo camera xyaxes='0 -1 0 0 0 1': {model_path}"
+            f"MuJoCo camera (xyaxes '0 -1 0 -sin 0 cos', tilted up or down only): {model_path}"
         )
     fov = float(camera.attrib.get("fovy", "90"))
     if not math.isfinite(fov) or fov <= 0 or fov >= 180:
         raise RuntimeErrorWithMessage(f"invalid MuJoCo FPV camera fovy: {model_path}")
-    return {"position_m": position, "fov_deg": fov}
+    # fov_deg is MuJoCo's vertical fovy, the same axis as Three.js fov.
+    return {"position_m": position, "fov_deg": fov, "uptilt_deg": uptilt}
 
 
 def materialize_threejs_viewer(
@@ -203,7 +209,8 @@ def materialize_threejs_viewer(
         runtime_camera = drone_types[type_name]["cameras"][0]
         runtime_camera.update({
             "pos": fpv_camera["position_m"],
-            "hpr": [0.0, 0.0, 0.0],
+            # ROS pitch is nose-down positive: an uptilt is a negative pitch.
+            "hpr": [0.0, 0.0 - fpv_camera["uptilt_deg"], 0.0],
             "fov": fpv_camera["fov_deg"],
             "near": 0.02,
             "far": 1000,
@@ -233,7 +240,7 @@ def materialize_threejs_viewer(
         drone_instance["cameras"] = [{
             "name": "fpv",
             "pos": camera_position,
-            "hpr": [0.0, 0.0, 0.0],
+            "hpr": [0.0, 0.0 - fpv_camera["uptilt_deg"], 0.0],
             "fov": fpv_camera["fov_deg"],
             "near": 0.02,
             "far": 1000,
@@ -295,8 +302,8 @@ def materialize_threejs_viewer(
         print(f"Three.js visual scale: {scale:.6f} (generated wheelbase={wheelbase:.3f} m)")
     print(
         "Three.js FPV camera: "
-        f"position={fpv_camera['position_m']} m, fov={fpv_camera['fov_deg']:.1f} deg "
-        "(MuJoCo runtime model)"
+        f"position={fpv_camera['position_m']} m, vertical fov={fpv_camera['fov_deg']:.1f} deg, "
+        f"uptilt={fpv_camera['uptilt_deg']:.1f} deg (MuJoCo runtime model)"
     )
     return viewer / "viewer-config.json"
 

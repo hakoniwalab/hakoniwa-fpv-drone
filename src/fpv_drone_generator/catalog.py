@@ -120,7 +120,10 @@ class Battery(Common):
 class Camera(Common):
     mass_kg: float
     dimensions_m: Vector3
+    # Diagonal field of view on a 4:3 sensor (camera_optics.vertical_fov_deg).
     fov_deg: float | None
+    # Tilt up from the body's forward axis, as mounted on the frame.
+    uptilt_deg: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -337,10 +340,20 @@ def _make_battery(raw: dict[str, Any], path: str) -> Battery:
     return Battery(**common.__dict__, mass_kg=_number(raw.get("mass_kg"), f"{path}.mass_kg", positive=True), dimensions_m=_vector3(raw.get("dimensions_m"), f"{path}.dimensions_m", positive=True), cell_count=cells, nominal_voltage_v=_number(raw.get("nominal_voltage_v"), f"{path}.nominal_voltage_v", positive=True), capacity_ah=_number(raw.get("capacity_ah"), f"{path}.capacity_ah", positive=True), internal_resistance_ohm=None if resistance is None else _number(resistance, f"{path}.internal_resistance_ohm", positive=True))
 
 
+UPTILT_RANGE_DEG = (-30.0, 60.0)
+
+
 def _make_camera(raw: dict[str, Any], path: str) -> Camera:
     common = _common(raw, path)
     fov = raw.get("fov_deg")
-    return Camera(**common.__dict__, mass_kg=_number(raw.get("mass_kg"), f"{path}.mass_kg", positive=True), dimensions_m=_vector3(raw.get("dimensions_m"), f"{path}.dimensions_m", positive=True), fov_deg=None if fov is None else _number(fov, f"{path}.fov_deg", positive=True))
+    fov_deg = None if fov is None else _number(fov, f"{path}.fov_deg", positive=True)
+    if fov_deg is not None and fov_deg >= 180:
+        raise ValidationError(f"{path}.fov_deg must be below 180")
+    uptilt = _number(raw.get("uptilt_deg", 0.0), f"{path}.uptilt_deg")
+    low, high = UPTILT_RANGE_DEG
+    if not low <= uptilt <= high:
+        raise ValidationError(f"{path}.uptilt_deg must be within [{low:g}, {high:g}]")
+    return Camera(**common.__dict__, mass_kg=_number(raw.get("mass_kg"), f"{path}.mass_kg", positive=True), dimensions_m=_vector3(raw.get("dimensions_m"), f"{path}.dimensions_m", positive=True), fov_deg=fov_deg, uptilt_deg=uptilt)
 
 
 def _make_controller(raw: dict[str, Any], path: str) -> Controller:

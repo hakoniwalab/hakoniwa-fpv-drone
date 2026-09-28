@@ -32,7 +32,13 @@ items:
 - motor: `mass_kg`, `kv_rpm_per_v`, optional `max_current_a`, `dynamics`
 - propeller: `mass_kg`, `diameter_m`, `pitch_m`, `blade_count`, `thrust_coefficient_ns2_rad2`, `torque_coefficient_nms2_rad2`
 - battery: `mass_kg`, `dimensions_m`, `cell_count`, `nominal_voltage_v`, `capacity_ah`, optional `internal_resistance_ohm`
-- camera: `mass_kg`, `dimensions_m`, optional `fov_deg`
+- camera: `mass_kg`, `dimensions_m`, optional `fov_deg`, optional `uptilt_deg`
+  - `fov_deg` is the diagonal field of view on a 4:3 sensor, as camera products
+    state it (below 180). The generators render the matching vertical field of
+    view (`camera_optics.vertical_fov_deg`: 120° diagonal is about 92° vertical)
+    for the MuJoCo `fovy` and the Three.js camera; without it the vertical FOV is 90°.
+  - `uptilt_deg` tilts the camera up from the body's forward axis (default 0,
+    within [-30, 60]), as FPV pilots mount it to look ahead while pitched forward.
 - controller: `mass_kg`, `backend`, `supported_modes`, `default_mode`, `parameters`
 - landing_gear: `mass_kg`, `geometry`
 - attachment: `mass_kg`, `physical_role`, `geometry`

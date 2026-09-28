@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .assembly import ResolvedAssembly, resolve_assembly_poses
+from .camera_optics import vertical_fov_deg
 from .catalog import Camera
 from .catalog_glb import _mesh_from_primitive
 from .errors import ResolutionError
@@ -57,6 +58,11 @@ def _one(nodes: list[Any], kind: str) -> Any:
     if len(nodes) != 1:
         raise ResolutionError(f"Three.js asset export requires exactly one {kind}")
     return nodes[0]
+
+
+def _uptilted(rpy_deg, uptilt_deg: float) -> list[float]:
+    roll, pitch, yaw = rpy_deg
+    return [roll, pitch - uptilt_deg, yaw]
 
 
 def export_threejs_assets(resolved: ResolvedAssembly, output_dir: Path, *, type_name: str | None = None) -> Path:
@@ -147,8 +153,10 @@ def export_threejs_assets(resolved: ResolvedAssembly, output_dir: Path, *, type_
         "cameras": [{
             "name": "fpv",
             "pos": list(camera_pose.position_m),
-            "hpr": list(rpy_deg_from_quaternion(camera_pose.rotation)),
-            "fov": camera_component.fov_deg,
+            # ROS pitch is nose-down positive, so an uptilt is a negative pitch.
+            "hpr": _uptilted(rpy_deg_from_quaternion(camera_pose.rotation), camera_component.uptilt_deg),
+            # Three.js fov is vertical; the catalog states the diagonal FOV.
+            "fov": vertical_fov_deg(camera_component.fov_deg),
             "near": 0.02,
             "far": 1000.0,
             "window": {"width": 640, "height": 480},

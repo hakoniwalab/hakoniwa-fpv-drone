@@ -4,6 +4,7 @@ import math
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+from ..camera_optics import mujoco_xyaxes, vertical_fov_deg
 from ..catalog import GeometryAssembly, GeometryPrimitive, Vector3
 from ..model import ResolvedVehicle
 from ..transforms import multiply_quaternions, quaternion_from_rpy_deg, transform_point
@@ -300,6 +301,12 @@ def generate_mujoco(vehicle: ResolvedVehicle, output: Path, world_config: World 
         ET.SubElement(rotor_body, "site", {"name": f"{rotor.name}_axis", "type": "sphere", "size": "0.006", "rgba": "0.9 0.2 0.15 1" if rotor.rotation_direction < 0 else "0.15 0.55 1 1"})
     camera_position = vehicle.recipe.placements.camera_m
     ET.SubElement(body, "geom", {"name": "fpv_camera", "type": "box", "pos": _numbers(camera_position), "size": _numbers(tuple(value / 2.0 for value in camera.dimensions_m)), "mass": "0", "contype": "0", "conaffinity": "0", "rgba": "0.15 0.15 0.15 1"})
-    ET.SubElement(body, "camera", {"name": "fpv", "pos": _numbers(camera_position), "xyaxes": "0 -1 0 0 0 1", "fovy": f"{camera.fov_deg or 90.0:.12g}"})
+    ET.SubElement(body, "camera", {
+        "name": "fpv",
+        "pos": _numbers(camera_position),
+        "xyaxes": mujoco_xyaxes(camera.uptilt_deg),
+        # fovy is vertical; the catalog states the diagonal FOV (camera_optics).
+        "fovy": f"{vertical_fov_deg(camera.fov_deg):.12g}",
+    })
     ET.indent(root, space="  ")
     output.write_text(ET.tostring(root, encoding="unicode") + "\n", encoding="utf-8")
